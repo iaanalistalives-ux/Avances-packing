@@ -492,7 +492,7 @@ file.onchange=function(e){ leerArchivos(e.target.files); file.value=""; };
 drop.addEventListener("drop",function(e){ leerArchivos(e.dataTransfer.files); });
 
 function reiniciar(){
-  LOTES=[]; $("revision").innerHTML=""; $("exito").style.display="none";
+  LOTES=[]; PENDIENTES=null; $("revision").innerHTML=""; $("exito").style.display="none";
   $("drop").style.display="block"; mostrarErr(""); render();
 }
 
@@ -503,7 +503,7 @@ var jsonpN = 0;
 function jsonp(params, cb, errcb){
   var name = "__enc_cb_"+(++jsonpN)+"_"+Date.now();
   var s = document.createElement("script");
-  var to = setTimeout(function(){ limpiar(); errcb&&errcb("tiempo de espera agotado"); }, 40000);
+  var to = setTimeout(function(){ limpiar(); errcb&&errcb("tiempo de espera agotado"); }, 60000);
   function limpiar(){ clearTimeout(to); try{ delete window[name]; }catch(e){ window[name]=undefined; }
                       if(s.parentNode) s.parentNode.removeChild(s); }
   window[name] = function(r){ limpiar(); cb(r); };
@@ -521,57 +521,108 @@ function nuevoCodigo(){
          p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
 }
 
+var PENDIENTES=null, COD_ACTUAL="", REINTENTOS=0;
+
 function enviar(){
   var validos = LOTES.filter(function(L){ return L.ok; });
   if(!validos.length){ mostrarErr("No hay ningún archivo válido para subir."); return; }
-  var b=$("btnEnviar"); if(b){ b.disabled=true; b.textContent="Enviando…"; }
-  var cod = nuevoCodigo();
+  COD_ACTUAL = nuevoCodigo(); REINTENTOS=0;
 
   if(!CFG.ENDPOINT){
+    var b0=$("btnEnviar"); if(b0){ b0.disabled=true; b0.textContent="Enviando…"; }
     log("MODO PRUEBA: no se envió nada al servidor.","ko");
     validos.forEach(function(L){ log("Simulado · "+L.archivo+" · "+L.filas.length+" filas","ok"); });
-    exito(cod, validos, true);
+    exito(COD_ACTUAL, validos, true);
     return;
   }
 
-  /* Se envía PO por PO. Cada PO borra sus filas anteriores en el primer lote. */
-  var tareas = [];
+  /* Se agrupa por PO. La PO entera es la unidad que se envía y la unidad que se
+     reintenta: reintentar un lote suelto podría duplicar filas si el envío sí llegó
+     y lo que se perdió fue la respuesta. Reenviar la PO completa siempre es seguro,
+     porque su primer lote borra lo anterior de esa PO. */
+  var tareas=[];
   validos.forEach(function(L){
     L.pos.forEach(function(po){
-      var filas = L.filas.filter(function(x){ return x.po===po; });
-      for(var i=0;i<filas.length;i+=CFG.LOTE){
-        tareas.push({
-          L:L, po:po, chunk:filas.slice(i,i+CFG.LOTE),
-          primero:(i===0)?1:0,
-          ultimo :(i+CFG.LOTE>=filas.length)?1:0
-        });
-      }
+      tareas.push({ L:L, po:po, filas:L.filas.filter(function(x){ return x.po===po; }) });
     });
   });
+  procesar(tareas, validos);
+}
 
-  var i=0, fallos=0;
-  (function paso(){
-    if(i>=tareas.length){
-      if(fallos){ mostrarErr("Terminó con "+fallos+" lote(s) con error. Revisa el detalle de abajo y vuelve a intentar.");
-                  if(b){ b.disabled=false; b.textContent="Reintentar"; } return; }
-      exito(cod, validos, false); return;
+function reintentarPendientes(){
+  if(!PENDIENTES || !PENDIENTES.tareas.length) return;
+  mostrarErr("");
+  log("— Reintentando "+PENDIENTES.tareas.length+" PO —");
+  procesar(PENDIENTES.tareas, PENDIENTES.validos);
+}
+
+function procesar(tareas, validos){
+  var b=$("btnEnviar");
+  if(b){ b.disabled=true; b.textContent="Enviando…"; }
+  var i=0, fallidas=[];
+
+  (function siguiente(){
+    if(i>=tareas.length){ terminar(); return; }
+    var t=tareas[i];
+    enviarPO(t, 1, function(ok, motivo){
+      if(ok) log("OK · "+t.po+" · "+t.filas.length+" filas","ok");
+      else { fallidas.push(t); log("ERROR · "+t.po+" · "+motivo,"ko"); }
+      i++;
+      /* Un respiro entre PO: Apps Script rechaza envíos demasiado seguidos. */
+      setTimeout(siguiente, 350);
+    });
+  })();
+
+  function terminar(){
+    if(fallidas.length){
+      PENDIENTES = { tareas:fallidas, validos:validos };
+      mostrarErr("Quedaron "+fallidas.length+" PO sin subir ("+
+        fallidas.map(function(t){ return t.po; }).join(", ")+
+        "). Las que sí subieron ya están guardadas. Toca Reintentar para mandar solo esas: "+
+        "volver a enviarlas no duplica nada.");
+      if(b){ b.disabled=false; b.textContent="Reintentar las que fallaron";
+             b.setAttribute("onclick","reintentarPendientes()"); }
+      return;
     }
-    var t = tareas[i];
+    PENDIENTES=null;
+    exito(COD_ACTUAL, validos, false);
+  }
+}
+
+/* Manda una PO completa, en lotes. Si algo falla, reintenta la PO entera hasta 3 veces,
+   esperando cada vez un poco más. Casi todos estos fallos son pasajeros. */
+function enviarPO(t, intento, cb){
+  var lotes=[];
+  for(var i=0;i<t.filas.length;i+=CFG.LOTE) lotes.push(t.filas.slice(i,i+CFG.LOTE));
+  var k=0;
+
+  (function paso(){
+    if(k>=lotes.length){ cb(true); return; }
+    var chunk=lotes[k];
     jsonp({
-      accion:"lote", id_carga:cod, archivo:t.L.archivo,
+      accion:"lote", id_carga:COD_ACTUAL, archivo:t.L.archivo,
       cliente_cod:t.L.cliente_cod, cliente:t.L.cliente, po:t.po,
-      primero:t.primero, ultimo:t.ultimo,
-      filas: JSON.stringify(t.chunk.map(function(x){
+      primero:(k===0)?1:0, ultimo:(k===lotes.length-1)?1:0,
+      filas: JSON.stringify(chunk.map(function(x){
         return [x.estilo,x.codcolor,x.color,x.talla,x.req,x.enc,x.sal,x.pct,x.pctsal];
       }))
     }, function(r){
-      if(r && r.ok) log("OK · "+t.po+" · "+t.chunk.length+" filas","ok");
-      else { fallos++; log("ERROR · "+t.po+" · "+((r&&r.error)||"respuesta inválida"),"ko"); }
-      i++; paso();
-    }, function(msg){
-      fallos++; log("ERROR · "+t.po+" · "+msg,"ko"); i++; paso();
-    });
+      if(r && r.ok){ k++; setTimeout(paso, 120); }
+      else fallo((r&&r.error)||"el servidor respondió algo inesperado");
+    }, function(msg){ fallo(msg); });
   })();
+
+  function fallo(motivo){
+    if(intento < 3){
+      var espera = intento*1500;
+      REINTENTOS++;
+      log("· "+t.po+" falló ("+motivo+"), reintento "+(intento+1)+" de 3 en "+
+          (espera/1000)+"s", "");
+      setTimeout(function(){ enviarPO(t, intento+1, cb); }, espera);
+    }else{
+      cb(false, motivo+" · 3 intentos");
+    }
+  }
 }
 
 function exito(cod, validos, prueba){
@@ -582,7 +633,9 @@ function exito(cod, validos, prueba){
   $("exitoDet").innerHTML = (prueba? "<b>Simulación.</b> No se guardó nada. " : "")+
     fmt(fil)+" filas de "+Object.keys(pos).length+" PO ("+Object.keys(pos).join(", ")+")"+
     "<br>"+fmt(enc)+" prendas encajadas de "+fmt(req)+" requeridas · "+pct(enc,req)+" de avance"+
-    (prueba? "" : "<br>Las PO subidas reemplazaron a sus versiones anteriores.");
+    (prueba? "" : "<br>Las PO subidas reemplazaron a sus versiones anteriores.")+
+    (REINTENTOS>0 ? "<br><span style=\"color:var(--taupe)\">El servidor falló "+REINTENTOS+
+      " vez/veces y se reintentó solo. Los datos están completos.</span>" : "");
   $("revision").innerHTML="";
   $("drop").style.display="none";
   $("exito").style.display="block";
