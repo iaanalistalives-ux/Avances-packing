@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avance de Encajado · Consulta · LIVES</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --petrol:#0E3B36; --petrol-2:#12463F; --emer:#10B981; --sage:#0F7A5A;
+  --sage-dark:#0B815E; --slate:#4E6B78; --taupe:#B45309; --rose:#DC2626;
+  --tan:#F59E0B; --warm:#DCE5E2; --warm-light:#F1F6F4; --stone:#5F726C; --card:#fff;
+  --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04);
+  --sh-h:0 4px 12px rgba(14,59,54,.10); --r:12px;
+}
+body{margin:0;background:var(--warm-light);color:#333;
+font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.45;
+font-variant-numeric:tabular-nums;}
+*{box-sizing:border-box;}
+
+.header{background:var(--petrol);border-bottom:3px solid var(--emer);min-height:70px;
+display:flex;align-items:center;gap:16px;padding:0 22px;flex-wrap:wrap;}
+.header img{height:38px;display:block;}
+.divider{width:1px;height:34px;background:rgba(255,255,255,.3);}
+.htitle{color:#fff;font-size:17px;font-weight:700;letter-spacing:.2px;}
+.hsub{color:#B9CFC9;font-size:11.5px;}
+.hstate{margin-left:auto;color:#B9CFC9;font-size:11.5px;text-align:right;}
+
+.wrap{width:100%;max-width:none;margin:0 auto;padding:18px clamp(16px,2.2vw,52px) 44px;}
+details.help p{max-width:130ch;}
+
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);
+border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:14px;
+position:sticky;top:0;z-index:15;}
+select,input[type=search]{font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);
+border:1px solid var(--warm);border-radius:8px;padding:7px 12px;background:#fff;cursor:pointer;}
+input[type=search]{font-weight:400;color:#333;cursor:text;min-width:150px;}
+.btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;
+cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage);}
+.btn:hover{border-color:var(--sage);}
+.btn.primary{background:var(--sage);color:#fff;border-color:var(--sage);}
+.btn.primary:hover{background:var(--sage-dark);}
+.spacer{margin-left:auto;}
+.flab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px;}
+.kpi{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:0;
+position:relative;overflow:hidden;transition:box-shadow .15s,transform .15s;}
+.kpi:hover{box-shadow:var(--sh-h);transform:translateY(-1px);}
+.kpi .banda{display:block;height:5px;background:var(--sage);}
+.kpi.neutro .banda{background:var(--slate);}
+.kpi .cuerpo{padding:16px 18px 18px;}
+.kpi .l{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--stone);}
+.kpi .row{display:flex;align-items:baseline;gap:10px;margin-top:8px;}
+.kpi .v{font-size:52px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1.5px;}
+.kpi.neutro .v{color:var(--slate);}
+.kpi .s{font-size:11.5px;color:var(--stone);margin-top:6px;}
+.kpi.hero{background:var(--petrol);}
+.kpi.hero .banda{background:var(--emer);}
+.kpi.hero .l{color:#8FB3AC;} .kpi.hero .v{color:#fff;} .kpi.hero .s{color:#8FB3AC;}
+
+.note{background:var(--card);border-left:4px solid var(--slate);border-radius:0 var(--r) var(--r) 0;
+box-shadow:var(--sh);padding:11px 16px;margin-bottom:14px;font-size:12.5px;color:var(--stone);}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;}
+.col12{grid-column:span 12;} .col8{grid-column:span 8;}
+.col6{grid-column:span 6;} .col4{grid-column:span 4;}
+@media(max-width:1100px){.col8,.col6,.col4{grid-column:span 12;}}
+.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+padding:20px 18px 16px;position:relative;overflow:hidden;padding-top:20px;}
+.panel .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--warm);}
+.panel .tira.resultado{background:var(--sage);}
+.panel .tira.volumen{background:var(--slate);}
+.panel .pt{font-size:15px;font-weight:700;}
+.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:12px;}
+.grid>.panel:not([class*="col"]){grid-column:span 12;}
+.panel:empty{display:none;}
+
+.cwrap{position:relative;width:100%;height:clamp(220px,26vh,320px);}
+.cwrap.tall{height:clamp(260px,34vh,400px);}
+.cwrap canvas{position:absolute;inset:0;}
+@media(min-width:1700px){
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+  .cwrap{height:clamp(260px,28vh,380px);}
+  .cwrap.tall{height:clamp(300px,36vh,460px);}
+}
+
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;
+position:sticky;top:0;background:var(--card);z-index:2;}
+th.orden{cursor:pointer;user-select:none;}
+th.orden:hover{color:var(--sage);}
+th .fl{font-size:9px;color:var(--sage);}
+td{padding:8px 6px;border-bottom:1px solid var(--warm-light);}
+tr:hover td{background:var(--warm-light);}
+td.num,th.num{text-align:right;}
+tfoot td{font-weight:700;border-top:2px solid var(--warm);border-bottom:none;background:var(--warm-light);}
+.vacio{color:var(--stone);font-size:13px;padding:14px 0;}
+
+.drop{border:2px dashed var(--warm);border-radius:var(--r);background:var(--card);
+box-shadow:var(--sh);padding:34px 24px;text-align:center;cursor:pointer;transition:.15s;
+margin-bottom:14px;}
+.drop:hover,.drop.over{border-color:var(--sage);background:var(--warm-light);}
+.drop .big{font-size:16px;font-weight:700;color:#333;margin-bottom:4px;}
+.drop .sm{font-size:12.5px;color:var(--stone);}
+.err{display:none;background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;
+padding:12px 16px;color:var(--rose);font-size:13px;margin-bottom:16px;line-height:1.5;}
+.err a{color:var(--rose);}
+
+details.help{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+padding:12px 16px;margin-top:18px;font-size:13px;}
+details.help summary{cursor:pointer;font-weight:700;color:var(--sage-dark);}
+details.help p{color:var(--stone);margin:8px 0 0;}
+
+@media(max-width:900px){
+  .wrap{padding:14px 14px 36px;}
+  .col12,.col8,.col6,.col4{grid-column:span 12;}
+  .kpis{grid-template-columns:repeat(2,1fr);}
+  .cwrap{height:300px;} .cwrap.tall{height:340px;}
+}
+@media(max-width:600px){
+  body{font-size:13.5px;}
+  .header{min-height:auto;padding:12px 14px;gap:10px;}
+  .header img{height:30px;} .divider{display:none;} .htitle{font-size:15px;}
+  .hstate{margin-left:0;text-align:left;width:100%;}
+  .bar{position:static;flex-wrap:nowrap;overflow-x:auto;padding:8px 10px;gap:8px;-webkit-overflow-scrolling:touch;}
+  .bar::-webkit-scrollbar{display:none;}
+  .bar>*{flex:none;}
+  .btn,select,input[type=search]{min-height:44px;font-size:14px;}
+  .spacer{display:none;}
+  .kpis{grid-template-columns:1fr;gap:10px;}
+  .kpi .v{font-size:38px;}
+  .kpi:hover{transform:none;box-shadow:var(--sh);}
+  .cwrap,.cwrap.tall{height:260px;}
+  .panel{padding:18px 14px 14px;}
+  table{min-width:600px;}
+  .grid,.kpis{grid-template-columns:1fr!important;}
+  .grid>*{grid-column:span 12!important;}
+  .panel:hover{box-shadow:var(--sh);}
+  .panel.plegable.plegado .tw,
+  .panel.plegable.plegado .cwrap{display:none!important;}
+  .verdet{display:block;width:100%;margin-top:10px;background:#fff;border:1px solid var(--warm);
+          color:var(--sage);border-radius:8px;padding:12px;font-family:inherit;font-size:14px;
+          font-weight:700;cursor:pointer;min-height:44px;}
+}
+@media print{
+  @page{size:A4 landscape;margin:9mm;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  .bar,.no-print,details.help,#drop,#err{display:none!important;}
+  body{background:#fff!important;}
+  .wrap{max-width:none;padding:0;}
+  .panel,.kpi,.note{box-shadow:none;border:1px solid var(--warm);break-inside:avoid;}
+  .kpi.hero{background:#fff!important;}
+  .kpi.hero .v{color:var(--sage)!important;}
+  .kpi.hero .l,.kpi.hero .s{color:var(--stone)!important;}
+  .cwrap{height:170px!important;}
+  .panel.plegable.plegado .tw{display:block!important;}
+}
+
+/* ===== Interruptor de vista ===== */
+.seg{display:inline-flex;background:var(--warm-light);border-radius:8px;padding:3px;gap:2px;}
+.seg button{background:none;border:none;font-family:inherit;font-size:13px;font-weight:700;
+color:var(--stone);padding:6px 14px;border-radius:6px;cursor:pointer;}
+.seg button.active{background:var(--sage);color:#fff;box-shadow:var(--sh);}
+
+/* ===== Vista de tarjetas: un bloque por PO + color ===== */
+.gblock{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+position:relative;overflow:hidden;padding:20px 18px 18px;margin-bottom:14px;}
+.gblock .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--sage);}
+.ghead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.ghead .gt{font-size:16px;font-weight:700;line-height:1.2;}
+.ghead .gs{font-size:11.5px;color:var(--stone);margin-top:2px;}
+.ghead .gtot{margin-left:auto;text-align:right;}
+.ghead .gpct{font-size:30px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1px;}
+.ghead .gsub{font-size:11.5px;color:var(--stone);margin-top:3px;}
+
+.tchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:stretch;}
+.tchip{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:0;overflow:hidden;
+display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s;}
+.tchip:hover{box-shadow:var(--sh-h);transform:translateY(-1px);}
+.tchip .banda{display:block;height:5px;background:var(--emer);}
+.tchip.bajo .banda{background:var(--tan);}
+.tchip .cuerpo{padding:14px 15px 15px;display:flex;flex-direction:column;flex:1;}
+.tchip .tl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--stone);}
+.tchip .tv{font-size:32px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1px;margin-top:6px;}
+.tchip.bajo .tv{color:var(--taupe);}
+.tchip .ts{font-size:11.5px;color:var(--stone);margin-top:5px;}
+.tchip .track{height:7px;background:var(--warm-light);border-radius:4px;margin-top:auto;overflow:hidden;position:relative;}
+.tchip .fill{height:100%;border-radius:4px;width:0;background:var(--emer);
+transition:width .9s cubic-bezier(.2,.8,.2,1);}
+.tchip.bajo .fill{background:var(--tan);}
+.tchip .cien{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--stone);opacity:.45;}
+.tchip .tsal{font-size:11px;color:var(--stone);margin-top:7px;}
+
+@media(max-width:600px){
+  .tchips{grid-template-columns:repeat(2,1fr)!important;gap:10px;}
+  .tchip .tv{font-size:26px;}
+  .ghead .gpct{font-size:24px;}
+  .gblock{padding:18px 14px 14px;}
+}
+@media print{
+  .gblock,.tchip{box-shadow:none;border:1px solid var(--warm);break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="data:image/png;base64,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" alt="LIVES">
+  <div class="divider"></div>
+  <div>
+    <div class="htitle">AVANCE DE ENCAJADO &middot; CONSULTA</div>
+    <div class="hsub">Lo que reporta el sistema, filtrable por PO, estilo, color y talla</div>
+  </div>
+  <div class="hstate" id="hstate">Cargando&hellip;</div>
+</div>
+
+<div class="wrap">
+
+  <div class="err" id="err"></div>
+
+  <div class="drop" id="drop" style="display:none">
+    <input type="file" id="file" accept=".xlsx,.xls" multiple style="display:none">
+    <div class="big">Arrastra aqu&iacute; los Excel de Avance Encajado</div>
+    <div class="sm">Uno o varios &middot; archivos como <b>504431_USA.xlsx</b> &middot; o toca para elegir</div>
+  </div>
+
+  <div id="app" style="display:none">
+
+    <div class="bar">
+      <span class="flab">Cliente</span><select id="fCliente"></select>
+      <span class="flab">PO</span><select id="fPO"></select>
+      <span class="flab">Estilo</span><select id="fEstilo"></select>
+      <span class="flab">Color</span><select id="fColor"></select>
+      <span class="flab">Talla</span><select id="fTalla"></select>
+      <input type="search" id="fBusca" placeholder="Buscar…">
+      <button class="btn" onclick="limpiarFiltros()">Quitar filtros</button>
+      <span class="spacer"></span>
+      <span class="seg" id="segVista">
+        <button class="active" onclick="verVista('tarjetas',this)">Tarjetas</button>
+        <button onclick="verVista('tabla',this)">Tabla</button>
+      </span>
+      <button class="btn" onclick="exportarExcel()">Descargar Excel</button>
+      <button class="btn" onclick="window.print()">Imprimir</button>
+      <button class="btn primary" onclick="recargar()">Actualizar</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="note" id="fuente"></div>
+
+    <div id="sinDatos" class="panel" style="display:none;margin-bottom:14px">
+      <span class="tira"></span>
+      <div class="pt">No hay filas con estos filtros</div>
+      <div class="ph" id="sinDatosTxt"></div>
+    </div>
+
+    <div id="cuerpo">
+
+      <div id="vistaTarjetas"></div>
+
+      <div class="grid" id="vistaTabla" style="display:none">
+        <div class="panel col12" id="pDetalle"><span class="tira volumen"></span>
+          <div class="pt">Detalle del avance</div>
+          <div class="ph">Una fila por PO, estilo, color y talla, tal como sale del sistema.
+            Toca el t&iacute;tulo de una columna para ordenar por ella.</div>
+          <div class="tw" id="tblDetalle"></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel col6" id="pTalla"><span class="tira resultado"></span>
+          <div class="pt">Avance por talla</div>
+          <div class="ph" id="phTalla"></div>
+          <div class="cwrap tall"><canvas id="cTalla"></canvas></div>
+        </div>
+        <div class="panel col6" id="pColor"><span class="tira resultado"></span>
+          <div class="pt">Avance por color</div>
+          <div class="ph" id="phColor"></div>
+          <div class="cwrap tall"><canvas id="cColor"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <details class="help">
+      <summary>&iquest;C&oacute;mo leo esta consulta?</summary>
+      <p><b>Qu&eacute; es una fila.</b> Cada fila es una combinaci&oacute;n de PO, estilo,
+      c&oacute;digo de color y talla, con las prendas <i>requeridas</i> por la PO, las
+      <i>encajadas</i> hasta el momento y los <i>saldos</i> (prendas disponibles que
+      todav&iacute;a no se han encajado). No hay n&uacute;mero de caja: esto es avance por talla,
+      no contenido de caja.</p>
+      <p><b>De d&oacute;nde salen los porcentajes.</b> <i>% avance</i> y <i>% avance + saldo</i>
+      son los que calcula el sistema y vienen dentro del Excel. Aqu&iacute; no se recalculan:
+      solo se muestran con el signo de porcentaje, porque en el Excel salen como n&uacute;mero
+      suelto (103.44 en vez de 103.44%).</p>
+      <p><b>La &uacute;nica cifra que calcula esta pantalla</b> es el total del pie de la tabla y
+      el de las tarjetas de arriba, cuando se juntan varias filas. Se calcula como
+      <i>suma de encajadas &divide; suma de requeridas</i>, nunca promediando los porcentajes de
+      cada fila: promediarlos le dar&iacute;a el mismo peso a una talla de 8 prendas que a una de
+      800.</p>
+      <p><b>Qu&eacute; no se carga.</b> Las filas de <i>Total</i> por color, <i>TOTAL</i> por
+      estilo y <i>TOTAL GENERAL</i> del Excel no entran: son sumas de las filas de detalle y
+      contarlas duplicar&iacute;a cada prenda. Los totales se vuelven a sumar aqu&iacute;.</p>
+      <p><b>Actualizaci&oacute;n.</b> Los reportes no traen fecha de corte. La fecha que aparece
+      abajo de las tarjetas es la de la &uacute;ltima carga registrada. Cuando alguien vuelve a
+      subir una PO, los datos anteriores de esa PO se reemplazan por completo.</p>
+      <p><b>Las dos vistas muestran lo mismo.</b> En <i>Tarjetas</i> hay una tarjeta por talla,
+      agrupadas por PO, estilo y color, con la barra de avance y una marca vertical en el 100%.
+      En <i>Tabla</i> est&aacute;n las mismas filas para buscar y ordenar. El color de la tarjeta
+      solo distingue si esa talla ya lleg&oacute; al 100% de lo requerido (verde) o todav&iacute;a
+      no (&aacute;mbar); no es un sem&aacute;foro de cumplimiento, porque nadie ha declarado
+      qu&eacute; tolerancia se acepta.</p>
+      <p><b>Si con los filtros elegidos no queda ninguna fila</b>, la pantalla lo dice y esconde
+      la tabla y los gr&aacute;ficos, en vez de mostrar ceros.</p>
+    </details>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CFG — lo único que se toca al instalar
+   ============================================================ */
+var CFG = {
+  /* ID del Google Sheet (el tramo entre /d/ y /edit de su URL).
+     Si queda vacío, la consulta arranca en modo archivo: se cargan los Excel a mano. */
+  SHEET_ID : "19-hZFD1BoJ_D8677es0iy4TVJWKy8ARQ20qCNFLo-EM",
+  HOJA     : "DATA"
+};
+
+var SAGE="#0F7A5A", EMER="#10B981", SLATE="#4E6B78", STONE="#5F726C", TAN="#F59E0B", WARM="#F1F6F4";
+var ORDEN_TALLA = ["P","XXS","XS","S","M","L","XL","XXL","XXXL","1X","2X","3X"];
+
+Chart.defaults.font.family="Calibri, Arial, sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.color=STONE;
+Chart.defaults.borderColor=WARM;
+Chart.defaults.maintainAspectRatio=false;
+Chart.defaults.plugins.tooltip.backgroundColor='rgba(14,59,54,.95)';
+Chart.defaults.plugins.tooltip.padding=10;
+Chart.defaults.plugins.tooltip.cornerRadius=6;
+if(window.matchMedia('(max-width:600px)').matches){
+  Chart.defaults.font.size=11;
+  Chart.defaults.plugins.legend.labels.boxWidth=10;
+}
+var LEYENDA = { position:'top', align:'end', labels:{ boxWidth:12, usePointStyle:true, padding:14 } };
+var ANIM = { duration:900, easing:'easeOutCubic',
+             delay:function(c){ return (c.type==='data'&&c.mode==='default')?c.dataIndex*45:0; } };
+
+/* El valor al final de cada barra, siempre visible */
+var etiquetasBarra = {
+  id:'etiquetasBarra',
+  afterDatasetsDraw:function(chart,args,opts){
+    var ctx=chart.ctx, f=(opts&&opts.fmt)||function(v){return v.toFixed(1)+'%';};
+    chart.data.datasets.forEach(function(ds,di){
+      if(ds.sinEtiquetas) return;
+      var meta=chart.getDatasetMeta(di); if(meta.hidden) return;
+      meta.data.forEach(function(bar,i){
+        var v=ds.data[i]; if(v===null||v===undefined) return;
+        ctx.save();
+        ctx.font='700 11.5px Calibri, Arial, sans-serif';
+        ctx.fillStyle=ds.borderColor||SAGE;
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(f(v), bar.x+8, bar.y);
+        ctx.restore();
+      });
+    });
+  }
+};
+
+/* ============================================================
+   Utilidades
+   ============================================================ */
+function $(id){ return document.getElementById(id); }
+function norm(v){ if(v===null||v===undefined) return ""; return String(v).replace(/\s+/g," ").trim().toUpperCase(); }
+function numv(v){ if(v===null||v===undefined||v==="") return null;
+  var n=Number(String(v).replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:null; }
+function fmt(n,d){ if(n===null||n===undefined||!isFinite(n)) return "—";
+  return Number(n).toLocaleString("es-PE",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+/* Un porcentaje que ya viene calculado, solo se le pone el signo */
+function pctSistema(v,d){ if(v===null||v===undefined||!isFinite(v)) return "—";
+  d=(d===undefined)?2:d;
+  return Number(v).toLocaleString("es-PE",{minimumFractionDigits:d,maximumFractionDigits:d})+"%"; }
+/* Un total de varias filas: suma ÷ suma, nunca promedio de porcentajes */
+function pctTotal(a,b,d){ if(!b) return "—"; return pctSistema(a/b*100,d); }
+function ordenTalla(t){ var i=ORDEN_TALLA.indexOf(t); return i<0 ? 900+(t.charCodeAt(0)||0) : i; }
+function mostrarErr(t){ var e=$("err"); e.textContent=t; e.style.display=t?"block":"none"; }
+function esc(t){ return String(t===null||t===undefined?"":t)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ============================================================
+   Parser del Excel (mismo que usa el cargador)
+   ============================================================ */
+function parsearLibro(wb, nombreArchivo){
+  var res={ok:false,error:"",archivo:nombreArchivo,cliente:"",filas:[]};
+  var ws=null;
+  for(var i=0;i<wb.SheetNames.length;i++){
+    if(norm(wb.SheetNames[i]).indexOf("ENCAJADO")>=0){ ws=wb.Sheets[wb.SheetNames[i]]; break; }
+  }
+  if(!ws) ws=wb.Sheets[wb.SheetNames[0]];
+  var m=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  if(!m||!m.length){ res.error="La hoja está vacía."; return res; }
+
+  var hr=-1, col={};
+  for(var r=0;r<Math.min(m.length,40);r++){
+    var f=m[r]||[], a=-1,b=-1;
+    for(var c=0;c<f.length;c++){ var t=norm(f[c]); if(t==="PO")a=c; if(t==="REQUERIDAS")b=c; }
+    if(a>=0&&b>=0){
+      hr=r;
+      for(var c2=0;c2<f.length;c2++){
+        var t2=norm(f[c2]);
+        if(t2==="PO")col.po=c2;
+        else if(t2.indexOf("ESTILO")>=0)col.estilo=c2;
+        else if(t2.indexOf("CODIGO COLOR")>=0||t2.indexOf("CÓDIGO COLOR")>=0)col.codcolor=c2;
+        else if(t2.indexOf("DESCRIPCION COLOR")>=0||t2.indexOf("DESCRIPCIÓN COLOR")>=0)col.color=c2;
+        else if(t2==="TALLA")col.talla=c2;
+        else if(t2==="REQUERIDAS")col.req=c2;
+        else if(t2.indexOf("ENCAJADAS")>=0)col.enc=c2;
+        else if(t2==="SALDOS"||t2==="SALDO")col.sal=c2;
+        else if(t2.indexOf("AVANCE")>=0&&t2.indexOf("SALDO")>=0)col.pctsal=c2;
+        else if(t2.indexOf("AVANCE")>=0)col.pct=c2;
+      }
+      break;
+    }
+  }
+  if(hr<0){ res.error="No se encontró la fila de encabezados (PO y Requeridas)."; return res; }
+
+  for(var r3=0;r3<hr;r3++){
+    var f3=m[r3]||[];
+    for(var c3=0;c3<f3.length;c3++){
+      if(norm(f3[c3]).indexOf("CLIENTE")===0){ res.cliente=norm(f3[c3+2]); break; }
+    }
+    if(res.cliente) break;
+  }
+
+  for(var r4=hr+1;r4<m.length;r4++){
+    var fr=m[r4]||[], talla=norm(fr[col.talla]);
+    var req=numv(fr[col.req]), enc=numv(fr[col.enc]);
+    var sal=col.sal!==undefined?numv(fr[col.sal]):null;
+    if(fr.map(norm).join(" ").indexOf("TOTAL GENERAL")>=0) continue;
+    if(!talla||talla==="TOTAL") continue;
+    if(req===null&&enc===null) continue;
+    res.filas.push({
+      cliente:res.cliente, po:norm(fr[col.po]), estilo:norm(fr[col.estilo]),
+      codcolor:col.codcolor!==undefined?norm(fr[col.codcolor]):"",
+      color:norm(fr[col.color]), talla:talla,
+      req:req===null?0:req, enc:enc===null?0:enc, sal:sal===null?0:sal,
+      pct:    col.pct!==undefined    ? numv(fr[col.pct])    : null,
+      pctsal: col.pctsal!==undefined ? numv(fr[col.pctsal]) : null,
+      fecha:"", archivo:nombreArchivo
+    });
+  }
+  if(!res.filas.length){ res.error="No se encontró detalle bajo el encabezado."; return res; }
+  res.ok=true; return res;
+}
+
+/* ============================================================
+   Lectura del Sheet (CSV — gviz en JSON pierde celdas)
+   ============================================================ */
+function parseCSV(txt){
+  var filas=[],f=[],campo="",dentro=false;
+  for(var i=0;i<txt.length;i++){
+    var ch=txt[i];
+    if(dentro){
+      if(ch==='"'){ if(txt[i+1]==='"'){ campo+='"'; i++; } else dentro=false; }
+      else campo+=ch;
+    }else{
+      if(ch==='"') dentro=true;
+      else if(ch===","){ f.push(campo); campo=""; }
+      else if(ch==="\n"){ f.push(campo); filas.push(f); f=[]; campo=""; }
+      else if(ch!=="\r") campo+=ch;
+    }
+  }
+  if(campo!==""||f.length){ f.push(campo); filas.push(f); }
+  return filas;
+}
+
+var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
+
+function urlSheet(){
+  return "https://docs.google.com/spreadsheets/d/"+CFG.SHEET_ID+
+         "/gviz/tq?tqx=out:csv&sheet="+encodeURIComponent(CFG.HOJA);
+}
+function abrirSheet(){ window.open(urlSheet(),"_blank"); }
+
+/* Un fallo de lectura tiene tres causas muy distintas y el navegador las reporta todas
+   igual ("Failed to fetch"). En vez de un mensaje genérico, se dice cuál es la más
+   probable según desde dónde se abrió la página. */
+function diagnostico(msg){
+  var local = (location.protocol==="file:");
+  var h = "<b>No se pudo leer el Sheet.</b> ";
+  /* Si el servidor ya dijo qué pasa, se dice eso y no una lista de sospechosos. */
+  if(msg.indexOf("no existe todavía")>=0){
+    h += "La hoja «"+CFG.HOJA+"» no existe en ese Sheet. Sube primero un Excel con el cargador: "+
+         "la hoja se crea sola en esa primera carga.";
+  }else if(msg.indexOf("inicio de sesión")>=0){
+    h += "El Sheet pidió iniciar sesión en vez de entregar los datos. Ábrelo y comparte: "+
+         "«Cualquier usuario que tenga el enlace · Lector».";
+  }else if(local){
+    h += "Esta página está abierta desde el disco (file:///), y desde ahí el navegador "+
+         "bloquea la lectura de Google Sheets. Súbela a GitHub Pages y ábrela por su enlace: "+
+         "así funciona. Mientras tanto puedes cargar los Excel a mano aquí abajo.";
+  }else{
+    h += "Las causas, de la más probable a la menos: "+
+         "<b>1)</b> el Sheet no está compartido como «Cualquier usuario que tenga el enlace · Lector». "+
+         "<b>2)</b> la hoja «"+CFG.HOJA+"» todavía no existe porque no se ha subido ningún Excel con el cargador. "+
+         "<b>3)</b> el ID del Sheet está mal copiado.";
+  }
+  h += " <a href=\""+urlSheet()+"\" target=\"_blank\" style=\"color:inherit;font-weight:700\">"+
+       "Abrir el enlace del Sheet para comprobarlo</a>"+
+       " <span style=\"opacity:.7\">(detalle técnico: "+esc(msg)+")</span>";
+  var e=$("err"); e.innerHTML=h; e.style.display="block";
+}
+
+function cargarDesdeSheet(){
+  var url=urlSheet()+"&t="+Date.now();
+  $("hstate").textContent="Leyendo el Sheet…";
+  fetch(url).then(function(r){
+    if(r.status===400) throw new Error("la hoja «"+CFG.HOJA+"» no existe todavía en ese Sheet");
+    if(!r.ok) throw new Error("el Sheet respondió "+r.status);
+    return r.text();
+  }).then(function(txt){
+    if(/<html/i.test(txt.substring(0,400)))
+      throw new Error("el Sheet devolvió una página de inicio de sesión en vez de datos");
+    var f=parseCSV(txt);
+    if(f.length<2) throw new Error("la hoja "+CFG.HOJA+" no tiene filas");
+    var head=f[0].map(norm), ix={};
+    head.forEach(function(h,i){ ix[h]=i; });
+    var need=["PO","ESTILO","COLOR","TALLA","REQUERIDAS","ENCAJADAS"];
+    var falta=need.filter(function(c){ return ix[c]===undefined; });
+    if(falta.length) throw new Error("a la hoja le faltan las columnas "+falta.join(", "));
+    var G=function(r,c){ return ix[c]===undefined?null:r[ix[c]]; };
+    var out=[];
+    for(var i=1;i<f.length;i++){
+      var r2=f[i]; if(!r2||!norm(G(r2,"PO"))) continue;
+      var fe=G(r2,"FECHA_CARGA")||"";
+      if(fe && (!ULTIMA_CARGA || String(fe)>String(ULTIMA_CARGA))) ULTIMA_CARGA=fe;
+      out.push({
+        cliente:norm(G(r2,"CLIENTE")), po:norm(G(r2,"PO")), estilo:norm(G(r2,"ESTILO")),
+        codcolor:norm(G(r2,"COD_COLOR")), color:norm(G(r2,"COLOR")), talla:norm(G(r2,"TALLA")),
+        req:numv(G(r2,"REQUERIDAS"))||0, enc:numv(G(r2,"ENCAJADAS"))||0, sal:numv(G(r2,"SALDOS"))||0,
+        pct:numv(G(r2,"PCT_AVANCE")), pctsal:numv(G(r2,"PCT_AVANCE_SALDO")),
+        fecha:fe, archivo:String(G(r2,"ARCHIVO")||"")
+      });
+    }
+    if(!out.length) throw new Error("la hoja no tiene filas con PO");
+    DATOS=out; ORIGEN="Sheet en línea";
+    arrancarApp();
+  }).catch(function(e){
+    diagnostico(e.message);
+    $("drop").style.display="block";
+    $("hstate").textContent="Sin conexión al Sheet";
+  });
+}
+
+/* ============================================================
+   Carga manual de Excel
+   ============================================================ */
+function leerArchivos(lista){
+  mostrarErr("");
+  var pend=lista.length; if(!pend) return;
+  var acum=[], errores=[], nombres=[];
+  Array.prototype.forEach.call(lista,function(f){
+    var rd=new FileReader();
+    rd.onload=function(e){
+      try{
+        var wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});
+        var r=parsearLibro(wb,f.name);
+        if(r.ok){ acum=acum.concat(r.filas); nombres.push(f.name); }
+        else errores.push(f.name+": "+r.error);
+      }catch(ex){ errores.push(f.name+": no se pudo abrir ("+ex.message+")"); }
+      if(--pend===0) fin();
+    };
+    rd.onerror=function(){ errores.push(f.name+": no se pudo leer"); if(--pend===0) fin(); };
+    rd.readAsArrayBuffer(f);
+  });
+  function fin(){
+    if(errores.length) mostrarErr(errores.join(" · "));
+    if(!acum.length) return;
+    DATOS=acum; ORIGEN="Archivos cargados a mano: "+nombres.join(", ");
+    ULTIMA_CARGA=null; $("drop").style.display="none";
+    arrancarApp();
+  }
+}
+
+/* ============================================================
+   Filtros
+   ============================================================ */
+var F={cliente:"",po:"",estilo:"",color:"",talla:"",busca:""};
+var ULTIMO_TOCADO="";
+
+function unicos(arr,k){ var s={}; arr.forEach(function(x){ if(x[k]) s[x[k]]=1; }); return Object.keys(s); }
+function opciones(sel, valores, etiqueta, ordenar){
+  var l=valores.slice(); if(ordenar) l.sort(ordenar); else l.sort();
+  sel.innerHTML='<option value="">'+etiqueta+'</option>'+
+    l.map(function(x){ return '<option value="'+esc(x)+'">'+esc(x)+'</option>'; }).join("");
+}
+function filtrar(over){
+  var f={}; for(var k in F) f[k]=F[k];
+  if(over) for(var k2 in over) f[k2]=over[k2];
+  var q=f.busca?norm(f.busca):"";
+  return DATOS.filter(function(x){
+    if(f.cliente && x.cliente!==f.cliente) return false;
+    if(f.po      && x.po     !==f.po)      return false;
+    if(f.estilo  && x.estilo !==f.estilo)  return false;
+    if(f.color   && x.color  !==f.color)   return false;
+    if(f.talla   && x.talla  !==f.talla)   return false;
+    if(q && (x.po+" "+x.estilo+" "+x.codcolor+" "+x.color+" "+x.talla).indexOf(q)<0) return false;
+    return true;
+  });
+}
+function armarFiltros(){
+  /* Cada select ofrece lo que existe con los OTROS filtros aplicados: nunca opciones vacías.
+     Si un filtro elegido antes deja de tener sentido con el que se acaba de tocar, se suelta
+     ESE, no el recién elegido: quien cambia de PO espera cambiar de PO, no perderla. */
+  var defs=[["cliente","fCliente","Todos",null],["po","fPO","Todas",null],
+            ["estilo","fEstilo","Todos",null],["color","fColor","Todos",null],
+            ["talla","fTalla","Todas",function(a,b){ return ordenTalla(a)-ordenTalla(b); }]];
+  defs.forEach(function(d){
+    if(d[0]===ULTIMO_TOCADO || !F[d[0]]) return;
+    var over={}; over[d[0]]="";
+    if(unicos(filtrar(over),d[0]).indexOf(F[d[0]])<0) F[d[0]]="";
+  });
+  defs.forEach(function(d){
+    var over={}; over[d[0]]="";
+    opciones($(d[1]), unicos(filtrar(over),d[0]), d[2], d[3]);
+    $(d[1]).value=F[d[0]];
+  });
+}
+function limpiarFiltros(){
+  F={cliente:"",po:"",estilo:"",color:"",talla:"",busca:""};
+  ULTIMO_TOCADO=""; $("fBusca").value=""; armarFiltros(); render();
+}
+["fCliente","fPO","fEstilo","fColor","fTalla"].forEach(function(id){
+  $(id).addEventListener("change",function(){
+    ULTIMO_TOCADO={fCliente:"cliente",fPO:"po",fEstilo:"estilo",fColor:"color",fTalla:"talla"}[id];
+    F.cliente=$("fCliente").value; F.po=$("fPO").value; F.estilo=$("fEstilo").value;
+    F.color=$("fColor").value;     F.talla=$("fTalla").value;
+    armarFiltros(); render();
+  });
+});
+$("fBusca").addEventListener("input",function(){ F.busca=this.value; render(); });
+
+/* ============================================================
+   Orden de la tabla
+   ============================================================ */
+var ORD={campo:"po", asc:true};
+var COLUMNAS=[
+  {k:"po",     t:"PO",            num:false},
+  {k:"estilo", t:"Estilo",        num:false},
+  {k:"color",  t:"Color",         num:false},
+  {k:"talla",  t:"Talla",         num:false},
+  {k:"req",    t:"Requeridas",    num:true},
+  {k:"enc",    t:"Encajadas",     num:true},
+  {k:"pct",    t:"% avance",      num:true},
+  {k:"sal",    t:"Saldos",        num:true},
+  {k:"pctsal", t:"% avance + saldo", num:true}
+];
+function ordenar(campo){
+  if(ORD.campo===campo) ORD.asc=!ORD.asc; else { ORD.campo=campo; ORD.asc=true; }
+  render();
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+var VISTA="tarjetas";
+function verVista(v,btn){
+  VISTA=v;
+  document.querySelectorAll("#segVista button").forEach(function(b){ b.classList.remove("active"); });
+  if(btn) btn.classList.add("active");
+  $("vistaTarjetas").style.display = (v==="tarjetas")?"block":"none";
+  $("vistaTabla").style.display    = (v==="tabla")?"grid":"none";
+  reajustarGrids();
+  if(v==="tarjetas") animarBarras();
+}
+function animarBarras(){
+  setTimeout(function(){
+    document.querySelectorAll("#vistaTarjetas .fill").forEach(function(el){ el.style.width=el.dataset.w+"%"; });
+  },120);
+}
+
+/* Una tarjeta por talla, agrupadas en un bloque por PO + estilo + color:
+   es la misma jerarquía en la que viene el reporte del sistema. */
+function renderTarjetas(D){
+  var m={}, orden=[];
+  D.forEach(function(x){
+    var k=x.po+"||"+x.estilo+"||"+x.codcolor+"||"+x.color;
+    if(!m[k]){ m[k]={po:x.po,estilo:x.estilo,codcolor:x.codcolor,color:x.color,
+                     req:0,enc:0,sal:0,tallas:[]}; orden.push(k); }
+    m[k].req+=x.req; m[k].enc+=x.enc; m[k].sal+=x.sal; m[k].tallas.push(x);
+  });
+  orden.sort(function(a,b){ return a.localeCompare(b,"es"); });
+
+  /* El tope de la barra es el mayor avance del filtro, para que el 100% no quede
+     siempre pegado al borde cuando casi todo lo supera. */
+  var tope=100;
+  D.forEach(function(x){ if(x.req){ var v=(x.pct===null?x.enc/x.req*100:x.pct); if(v>tope) tope=v; } });
+  tope=Math.max(110, Math.ceil(tope/5)*5);
+
+  $("vistaTarjetas").innerHTML = orden.map(function(k){
+    var g=m[k];
+    g.tallas.sort(function(a,b){ return ordenTalla(a.talla)-ordenTalla(b.talla); });
+    var chips = g.tallas.map(function(x){
+      var v    = x.req ? (x.pct===null ? x.enc/x.req*100 : x.pct) : null;
+      var bajo = (v!==null && v<100);
+      var w    = v===null ? 0 : Math.max(2, Math.min(100, v/tope*100));
+      return '<div class="tchip'+(bajo?' bajo':'')+'"><span class="banda"></span><div class="cuerpo">'+
+        '<div class="tl">Talla '+esc(x.talla)+'</div>'+
+        '<div class="tv">'+(v===null?"—":pctSistema(v,1))+'</div>'+
+        '<div class="ts">'+fmt(x.enc)+' encajadas de '+fmt(x.req)+'</div>'+
+        '<div class="track"><div class="fill" data-w="'+w.toFixed(1)+'"></div>'+
+          '<span class="cien" style="left:'+(100/tope*100).toFixed(1)+'%"></span></div>'+
+        (x.sal>0 ? '<div class="tsal">'+fmt(x.sal)+' de saldo sin encajar</div>' : '')+
+      '</div></div>';
+    }).join("");
+
+    return '<div class="gblock"><span class="tira"></span>'+
+      '<div class="ghead"><div>'+
+        '<div class="gt">'+esc(g.po)+' &middot; '+esc(g.estilo)+'</div>'+
+        '<div class="gs">'+esc((g.codcolor?g.codcolor+" ":"")+g.color)+' &middot; '+
+          g.tallas.length+' talla(s)'+(g.sal>0?' &middot; '+fmt(g.sal)+' de saldo':'')+'</div>'+
+      '</div><div class="gtot">'+
+        '<div class="gpct">'+pctTotal(g.enc,g.req,1)+'</div>'+
+        '<div class="gsub">'+fmt(g.enc)+' de '+fmt(g.req)+' prendas</div>'+
+      '</div></div>'+
+      '<div class="tchips">'+chips+'</div></div>';
+  }).join("");
+  animarBarras();
+}
+
+var charts=[];
+function destruirCharts(){ charts.forEach(function(c){ try{ c&&c.destroy(); }catch(e){} }); charts=[]; }
+
+function render(){
+  destruirCharts();
+  var D=filtrar();
+
+  $("hstate").textContent = fmt(D.length)+" de "+fmt(DATOS.length)+" filas";
+
+  if(!D.length){
+    $("kpis").innerHTML=""; $("cuerpo").style.display="none";
+    $("sinDatos").style.display="block";
+    $("sinDatosTxt").textContent="Ninguna fila coincide con los filtros elegidos. Quita alguno en la barra de arriba.";
+    return;
+  }
+  $("sinDatos").style.display="none"; $("cuerpo").style.display="block";
+
+  var req=0,enc=0,sal=0;
+  D.forEach(function(x){ req+=x.req; enc+=x.enc; sal+=x.sal; });
+
+  /* ---------- Tarjetas informativas (sin juicio: son cifras, no un veredicto) ---------- */
+  var pos=unicos(D,"po").length, colores=unicos(D,"color").length;
+  $("kpis").innerHTML =
+    '<div class="kpi hero"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Avance de las filas mostradas</div>'+
+      '<div class="row"><span class="v">'+pctTotal(enc,req,1)+'</span></div>'+
+      '<div class="s">suma de encajadas ÷ suma de requeridas de las '+fmt(D.length)+' filas del filtro</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Prendas requeridas</div>'+
+      '<div class="row"><span class="v">'+fmt(req)+'</span></div>'+
+      '<div class="s">'+pos+' PO · '+colores+' color(es) · '+unicos(D,"talla").length+' talla(s)</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Prendas encajadas</div>'+
+      '<div class="row"><span class="v">'+fmt(enc)+'</span></div>'+
+      '<div class="s">lo que el sistema reporta como ya encajado</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Saldos</div>'+
+      '<div class="row"><span class="v">'+fmt(sal)+'</span></div>'+
+      '<div class="s">prendas disponibles que aún no se han encajado</div>'+
+    '</div></div>';
+
+  $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
+    (ULTIMA_CARGA? " · última carga registrada: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
+    " · los porcentajes de cada fila son los que calcula el sistema; solo el total del pie y el de las tarjetas se suman aquí.";
+
+  /* ---------- Tabla ---------- */
+  var det=D.slice();
+  var c=ORD.campo, asc=ORD.asc?1:-1;
+  det.sort(function(a,b){
+    var va=a[c], vb=b[c];
+    if(c==="talla") return (ordenTalla(a.talla)-ordenTalla(b.talla))*asc;
+    if(va===null||va===undefined) va=-Infinity;
+    if(vb===null||vb===undefined) vb=-Infinity;
+    if(typeof va==="number"&&typeof vb==="number") return (va-vb)*asc;
+    return String(va).localeCompare(String(vb),"es")*asc;
+  });
+
+  var th=COLUMNAS.map(function(col){
+    var fl = ORD.campo===col.k ? ' <span class="fl">'+(ORD.asc?"▲":"▼")+'</span>' : '';
+    return '<th class="orden'+(col.num?' num':'')+'" onclick="ordenar(\''+col.k+'\')">'+col.t+fl+'</th>';
+  }).join("");
+
+  var tb=det.map(function(x){
+    return '<tr>'+
+      '<td>'+esc(x.po)+'</td>'+
+      '<td>'+esc(x.estilo)+'</td>'+
+      '<td>'+esc((x.codcolor?x.codcolor+" ":"")+x.color)+'</td>'+
+      '<td>'+esc(x.talla)+'</td>'+
+      '<td class="num">'+fmt(x.req)+'</td>'+
+      '<td class="num">'+fmt(x.enc)+'</td>'+
+      '<td class="num" style="font-weight:700;color:var(--sage)">'+
+        (x.pct===null?pctTotal(x.enc,x.req,2):pctSistema(x.pct,2))+'</td>'+
+      '<td class="num">'+fmt(x.sal)+'</td>'+
+      '<td class="num">'+
+        (x.pctsal===null?pctTotal(x.enc+x.sal,x.req,2):pctSistema(x.pctsal,2))+'</td>'+
+    '</tr>';
+  }).join("");
+
+  $("tblDetalle").innerHTML =
+    '<table><thead><tr>'+th+'</tr></thead><tbody>'+tb+'</tbody>'+
+    '<tfoot><tr>'+
+      '<td colspan="4">TOTAL de las filas mostradas</td>'+
+      '<td class="num">'+fmt(req)+'</td><td class="num">'+fmt(enc)+'</td>'+
+      '<td class="num">'+pctTotal(enc,req,2)+'</td>'+
+      '<td class="num">'+fmt(sal)+'</td>'+
+      '<td class="num">'+pctTotal(enc+sal,req,2)+'</td>'+
+    '</tr></tfoot></table>';
+
+  /* ---------- Vista de tarjetas ---------- */
+  renderTarjetas(D);
+
+  /* ---------- Gráficos: el mismo dato, en forma de barra ---------- */
+  var gT=agrupar(D,"talla"); gT.sort(function(a,b){ return ordenTalla(a.k)-ordenTalla(b.k); });
+  $("phTalla").textContent="Encajadas ÷ requeridas de cada talla, juntando las PO y colores del filtro. "+
+    "La línea punteada marca el 100%, donde lo encajado iguala lo requerido.";
+  charts.push(barras("cTalla", gT));
+
+  var gC=agrupar(D,"color"); gC.sort(function(a,b){ return b.pct-a.pct; });
+  var recorte = gC.length>12;
+  $("phColor").textContent="Encajadas ÷ requeridas de cada color"+
+    (recorte?" · se muestran los 12 de mayor avance de "+gC.length:"")+".";
+  charts.push(barras("cColor", recorte?gC.slice(0,12):gC));
+
+  $("vistaTarjetas").style.display = (VISTA==="tarjetas")?"block":"none";
+  $("vistaTabla").style.display    = (VISTA==="tabla")?"grid":"none";
+  reajustarGrids();
+}
+
+function agrupar(filas,k){
+  var m={};
+  filas.forEach(function(x){
+    if(!m[x[k]]) m[x[k]]={k:x[k],req:0,enc:0,sal:0,n:0};
+    m[x[k]].req+=x.req; m[x[k]].enc+=x.enc; m[x[k]].sal+=x.sal; m[x[k]].n++;
+  });
+  return Object.keys(m).map(function(kk){
+    var g=m[kk]; g.pct=g.req? g.enc/g.req*100 : 0; return g;
+  });
+}
+
+function barras(id, grupos){
+  if(!grupos.length) return null;
+  var datos=grupos.map(function(g){ return +g.pct.toFixed(1); });
+  var maxv=Math.max(110, Math.ceil(Math.max.apply(null,datos)/10)*10+10);
+  return new Chart($(id),{
+    type:"bar",
+    data:{ labels:grupos.map(function(g){ return g.k; }), datasets:[
+      { label:"% de avance", data:datos, backgroundColor:EMER, borderColor:EMER,
+        borderRadius:4, barThickness:16 },
+      { label:"100% de lo requerido", data:grupos.map(function(){ return 100; }), type:"line",
+        borderColor:TAN, borderWidth:1.5, borderDash:[6,5], pointRadius:0, fill:false, sinEtiquetas:true }
+    ]},
+    options:{
+      indexAxis:'y', animation:ANIM,
+      layout:{ padding:{ right:60 } },
+      plugins:{
+        legend:LEYENDA,
+        tooltip:{ callbacks:{ afterLabel:function(c){
+          var g=grupos[c.dataIndex];
+          return fmt(g.enc)+" encajadas de "+fmt(g.req)+" requeridas · "+g.n+" fila(s)";
+        } } },
+        etiquetasBarra:{ fmt:function(v){ return v.toFixed(1)+'%'; } }
+      },
+      scales:{ x:{ beginAtZero:true, max:maxv, ticks:{ callback:function(v){ return v+'%'; } } },
+               y:{ grid:{ display:false } } }
+    },
+    plugins:[etiquetasBarra]
+  });
+}
+
+/* ---------- Grilla y plegado en celular ---------- */
+function reajustarGrids(){
+  var spanOf=function(c){return c.classList.contains("col8")?8:c.classList.contains("col6")?6:c.classList.contains("col4")?4:12;};
+  document.querySelectorAll(".grid").forEach(function(g){
+    var vis=[].filter.call(g.children,function(c){return c.style.display!=="none";});
+    [].forEach.call(g.children,function(c){c.style.gridColumn="";});
+    var fila=[],acum=0;
+    var cerrar=function(){if(fila.length&&acum<12){var u=fila[fila.length-1];u.style.gridColumn="span "+(12-acum+spanOf(u));}fila=[];acum=0;};
+    vis.forEach(function(c){var sp=spanOf(c);if(acum+sp>12)cerrar();fila.push(c);acum+=sp;if(acum>=12){fila=[];acum=0;}});
+    cerrar();
+  });
+  plegarTablasEnCelular();
+}
+function plegarTablasEnCelular(){
+  var movil=window.matchMedia("(max-width:600px)").matches;
+  document.querySelectorAll(".panel").forEach(function(p){
+    if(!p.querySelector("table")) return;
+    if(!movil){ p.classList.remove("plegable","plegado");
+                var vb=p.querySelector(".verdet"); if(vb) vb.remove(); return; }
+    if(p.classList.contains("plegable")) return;
+    p.classList.add("plegable","plegado");
+    var b=document.createElement("button");
+    b.type="button"; b.className="verdet"; b.textContent="Ver tabla";
+    b.onclick=function(){ var sigue=p.classList.toggle("plegado"); b.textContent=sigue?"Ver tabla":"Ocultar tabla"; };
+    p.appendChild(b);
+  });
+}
+window.addEventListener("resize",function(){ reajustarGrids(); });
+
+/* ---------- Exportar ---------- */
+function exportarExcel(){
+  var D=filtrar();
+  if(!D.length){ mostrarErr("No hay filas para exportar con estos filtros."); return; }
+  var head=["CLIENTE","PO","ESTILO","COD_COLOR","COLOR","TALLA","REQUERIDAS","ENCAJADAS",
+            "PCT_AVANCE","SALDOS","PCT_AVANCE_SALDO"];
+  var filas=D.map(function(x){
+    return [x.cliente,x.po,x.estilo,x.codcolor,x.color,x.talla,x.req,x.enc,
+            x.pct===null?null:x.pct/100, x.sal, x.pctsal===null?null:x.pctsal/100];
+  });
+  var ws=XLSX.utils.aoa_to_sheet([head].concat(filas));
+  /* Las dos columnas de % salen como porcentaje de verdad, no como número suelto */
+  for(var r=1;r<=filas.length;r++){
+    ["I","K"].forEach(function(cl){
+      var cel=ws[cl+(r+1)]; if(cel && cel.v!==null && cel.v!==undefined) cel.z="0.00%";
+    });
+  }
+  var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Avance Encajado");
+  var d=new Date(), p=function(n){ return (n<10?"0":"")+n; };
+  XLSX.writeFile(wb,"avance_encajado_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
+}
+function recargar(){ if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); } else location.reload(); }
+
+/* ---------- Arranque ---------- */
+function arrancarApp(){ mostrarErr(""); $("app").style.display="block"; armarFiltros(); render(); }
+var drop=$("drop"), file=$("file");
+drop.onclick=function(){ file.click(); };
+file.onchange=function(e){ leerArchivos(e.target.files); file.value=""; };
+["dragenter","dragover"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add("over"); }); });
+["dragleave","drop"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
+drop.addEventListener("drop",function(e){ leerArchivos(e.dataTransfer.files); });
+
+if(CFG.SHEET_ID){ cargarDesdeSheet(); }
+else{
+  $("drop").style.display="block";
+  $("hstate").textContent="Modo archivo · sin Sheet configurado";
+  mostrarErr("Todavía no se ha configurado el Google Sheet (CFG.SHEET_ID está vacío). "+
+             "Mientras tanto puedes cargar los Excel a mano aquí abajo.");
+}
+</script>
+</body>
+</html>
