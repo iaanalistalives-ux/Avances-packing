@@ -190,12 +190,13 @@ display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s;}
 .tchip .tv{font-size:32px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1px;margin-top:6px;}
 .tchip.bajo .tv{color:var(--taupe);}
 .tchip .ts{font-size:11.5px;color:var(--stone);margin-top:5px;}
-.tchip .track{height:7px;background:var(--warm-light);border-radius:4px;margin-top:auto;overflow:hidden;position:relative;}
+.tchip .track{height:7px;background:var(--warm-light);border-radius:4px;margin-top:12px;overflow:hidden;position:relative;}
 .tchip .fill{height:100%;border-radius:4px;width:0;background:var(--emer);
 transition:width .9s cubic-bezier(.2,.8,.2,1);}
 .tchip.bajo .fill{background:var(--tan);}
 .tchip .cien{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--stone);opacity:.45;}
-.tchip .tsal{font-size:11px;color:var(--stone);margin-top:7px;}
+.tchip .pie{margin-top:auto;padding-top:7px;min-height:18px;}
+.tchip .tsal{font-size:11px;color:var(--stone);}
 
 @media(max-width:600px){
   .tchips{grid-template-columns:repeat(2,1fr)!important;gap:10px;}
@@ -950,8 +951,8 @@ function render(){
 
   $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
     (ULTIMA_CARGA? " · última carga: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
-    " · el avance se calcula aquí como encajadas ÷ requeridas; los porcentajes del Excel no se usan"+
-    " porque el reporte los exporta en dos escalas distintas."+
+    " · el avance se calcula aquí como encajadas ÷ requeridas, la misma división que hace el"+
+    " sistema; las Requeridas y Encajadas se guardan tal como vienen."+
     (talleres.length>1 ? " Cuando una talla se hizo en varios talleres, el requerido se cuenta una"+
       " sola vez y lo encajado se suma." : "");
 
@@ -1012,8 +1013,10 @@ function renderTarjetas(sku){
         '<div class="ts">'+fmt(g.enc)+' encajadas de '+fmt(g.req)+'</div>'+
         '<div class="track"><div class="fill" data-w="'+w.toFixed(1)+'"></div>'+
           '<span class="cien" style="left:'+(100/tope*100).toFixed(1)+'%"></span></div>'+
-        (g.sal>0 ? '<div class="tsal">'+fmt(g.sal)+' de saldo sin encajar</div>' : '')+
-        porTaller+
+        '<div class="pie">'+
+          (g.sal>0 ? '<div class="tsal">'+fmt(g.sal)+' de saldo sin encajar</div>' : '')+
+          porTaller+
+        '</div>'+
       '</div></div>';
     }).join("");
 
