@@ -139,6 +139,15 @@ details.help p{color:var(--stone);margin:8px 0 0;}
 }
 @media(max-width:600px){
   body{font-size:13.5px;}
+  /* En el celular la pantalla es para trabajar en el piso, no para analizar:
+     las cifras de arriba viven en el dashboard y aquí solo estorban. */
+  .kpis{display:none!important;}
+  /* Se dejan los filtros con los que ellas buscan: corte, cliente, grupo, OP,
+     estilo y avance. PO, color y talla se esconden para no tener que barrer
+     ocho selectores con el pulgar... salvo que estén puestos, porque entonces
+     hay datos filtrados y tiene que verse por qué. */
+  .solo-pc{display:none!important;}
+  .solo-pc.activo{display:inline-flex!important;}
   .header{min-height:auto;padding:12px 14px;gap:10px;}
   .header img{height:30px;} .divider{display:none;} .htitle{font-size:15px;}
   .hstate{margin-left:0;text-align:left;width:100%;}
@@ -285,14 +294,14 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
   <div id="app" style="display:none">
 
     <div class="bar">
+      <span class="flab">Corte</span><select id="fTaller"></select>
       <span class="flab">Cliente</span><select id="fCliente"></select>
       <span class="flab">Grupo</span><select id="fGrupo"></select>
-      <span class="flab">PO</span><select id="fPO"></select>
       <span class="flab">OP</span><select id="fOP"></select>
       <span class="flab">Estilo</span><select id="fEstilo"></select>
-      <span class="flab">Color</span><select id="fColor"></select>
-      <span class="flab">Talla</span><select id="fTalla"></select>
-      <span class="flab">Taller</span><select id="fTaller"></select>
+      <span class="flab solo-pc" data-de="po">PO</span><select id="fPO" class="solo-pc" data-de="po"></select>
+      <span class="flab solo-pc" data-de="color">Color</span><select id="fColor" class="solo-pc" data-de="color"></select>
+      <span class="flab solo-pc" data-de="talla">Talla</span><select id="fTalla" class="solo-pc" data-de="talla"></select>
       <span class="flab umbral">Avance</span>
       <select id="fUmbral" class="umbral">
         <option value="">Todo</option>
@@ -319,6 +328,7 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
     </div>
 
     <div class="kpis" id="kpis"></div>
+    <div class="aviso" id="avisoCorte" style="display:none"></div>
     <div class="aviso" id="avisoOps" style="display:none"></div>
     <div class="note" id="resumenAud" style="display:none"></div>
     <div class="note" id="fuente"></div>
@@ -362,15 +372,14 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       talla, con las prendas <i>requeridas</i> por la PO, las <i>encajadas</i> hasta el momento y
       los <i>saldos</i> (prendas disponibles que a&uacute;n no se han encajado). No hay
       n&uacute;mero de caja: esto es avance por talla, no contenido de caja.</p>
-      <p><b>Cuando una talla se hizo en varios talleres.</b> El reporte trae un cuadro por taller
-      y cada cuadro repite el requerido total de la PO. Por eso el requerido se cuenta
-      <b>una sola vez</b> y lo encajado <b>se suma</b>. Caso real de la PO 504431: la talla XS
-      pide 29; un taller encaj&oacute; 31 y el otro 3, o sea 34 de 29. Si se sumaran los dos
-      requeridos dir&iacute;a 58, que no es lo que pidi&oacute; el cliente. En la tarjeta de esa
-      talla aparece el desglose por taller.</p>
-      <p><b>El taller es informativo.</b> Sirve para saber qui&eacute;n produjo, no para agrupar.
-      Si se filtra por un taller, el requerido sigue siendo el de la PO completa y lo encajado
-      solo el de ese taller: as&iacute; se ve cu&aacute;nto del pedido lleva cada uno.</p>
+      <p><b>Los cortes.</b> El reporte de una PO se presenta repartido en los cortes que haga
+      falta &mdash; LIVES, un taller, ESPECIALES &mdash; y cada corte repite el requerido total de
+      la PO. Por eso el requerido se cuenta <b>una sola vez</b> y lo encajado <b>se suma</b>.
+      Caso real de la PO 504431: la talla XS pide 29; un corte llev&oacute; 31 y el otro 3, o sea
+      34 de 29. Si se sumaran los dos requeridos dir&iacute;a 58, que no es lo que pidi&oacute; el
+      cliente. En la tarjeta de cada talla aparece el desglose por corte.</p>
+      <p><b>Filtrar por corte.</b> El requerido sigue siendo el de la PO completa y lo encajado
+      solo el de ese corte, as&iacute; que se ve cu&aacute;nto del pedido lleva cada uno.</p>
       <p><b>De d&oacute;nde sale el porcentaje.</b> Se calcula aqu&iacute;, como
       <i>encajadas &divide; requeridas</i>, que es la misma divisi&oacute;n que hace el sistema:
       el n&uacute;mero es el mismo, pero as&iacute; no depende de en qu&eacute; escala venga la
@@ -416,6 +425,11 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       <p><b>La fila de cada PO y color se crea sola</b> al subir el Excel de encajado, con su
       Cantidad Lista ya calculada. Antes hab&iacute;a que teclearla en el formulario de
       Encajados, que ya no se usa.</p>
+      <p><b>En el celular se ve distinto.</b> No salen las cifras de arriba &mdash;esas est&aacute;n
+      en el dashboard&mdash; y de los filtros quedan los que se usan en el piso: corte, cliente,
+      grupo, OP, estilo y avance. Los de PO, color y talla se esconden para no tener que barrer
+      ocho selectores con el pulgar, pero si alguno qued&oacute; puesto desde la computadora
+      aparece igual, para que nunca haya datos filtrados sin saber por qu&eacute;.</p>
       <p><b>Los filtros se quedan puestos.</b> Al salir y volver, la pantalla vuelve como la
       dejaste. Arriba aparece un aviso naranja diciendo cu&aacute;ntos filtros hay puestos, para
       que nunca parezca que faltan datos cuando en realidad hay un filtro activo. <i>Quitar
@@ -1007,6 +1021,11 @@ function armarFiltros(){
     opciones($(d[1]), unicos(filtrar(over),d[0]), d[2], d[3]);
     $(d[1]).value=F[d[0]];
   });
+  /* Un filtro escondido en el celular pero con valor puesto se muestra igual:
+     si no, se verían datos filtrados sin nada que lo explique. */
+  document.querySelectorAll(".solo-pc").forEach(function(el){
+    el.classList.toggle("activo", !!F[el.getAttribute("data-de")]);
+  });
 }
 function limpiarFiltros(){
   CAMPOS.forEach(function(d){ F[d[0]]=""; });
@@ -1203,11 +1222,23 @@ function render(){
     $("resumenAud").style.display="block";
   } else $("resumenAud").style.display="none";
 
+  /* Con un corte filtrado, el requerido sigue siendo el de la PO completa: el
+     archivo no dice cuánto le asignaron a cada corte. Hay que decirlo o alguien
+     va a leer "LIVES al 20%" como si LIVES fuera el pedido. */
+  var avCorte = $("avisoCorte");
+  if(F.taller){
+    avCorte.innerHTML = "<b>Estás viendo solo el corte "+esc(F.taller)+".</b> "+
+      "Los porcentajes son sobre el pedido completo de la PO, no sobre lo que le toca a este "+
+      "corte: el reporte no dice cuánto se le asignó a cada uno. Así que un "+
+      "«20%» aquí significa que este corte lleva el 20% de todo el pedido, no que vaya atrasado.";
+    avCorte.style.display="block";
+  } else avCorte.style.display="none";
+
   $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
     (ULTIMA_CARGA? " · última carga: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
     " · el avance se calcula aquí como encajadas ÷ requeridas, la misma división que hace el"+
     " sistema; las Requeridas y Encajadas se guardan tal como vienen."+
-    (talleres.length>1 ? " Cuando una talla se hizo en varios talleres, el requerido se cuenta una"+
+    (talleres.length>1 ? " Cuando una talla viene en varios cortes, el requerido se cuenta una"+
       " sola vez y lo encajado se suma." : "");
 
   renderTarjetas(sku);
@@ -1415,7 +1446,7 @@ var COLUMNAS=[
   {k:"grupo",    t:"Grupo"},     {k:"estilo",   t:"Estilo"},
   {k:"estiloCli",t:"Estilo cliente"},
   {k:"color",    t:"Color"},     {k:"talla",    t:"Talla"},
-  {k:"taller",   t:"Taller"},
+  {k:"taller",   t:"Corte"},
   {k:"req",      t:"Requeridas", num:true},
   {k:"enc",      t:"Encajadas",  num:true},
   {k:"pct",      t:"% avance",   num:true},
@@ -1558,7 +1589,7 @@ window.addEventListener("resize",function(){ reajustarGrids(); });
 function exportarExcel(){
   if(!SKU_VISIBLE.length){ mostrarErr("No hay tallas para exportar con estos filtros."); return; }
   var head=["CLIENTE","GRUPO","PACKING","PO","OP","ESTILO","ESTILO_CLIENTE","COD_COLOR","COLOR",
-            "TALLA","TALLERES","REQUERIDAS","ENCAJADAS","PCT_AVANCE","SALDOS","MATCH_OPS","AVISOS",
+            "TALLA","CORTES","REQUERIDAS","ENCAJADAS","PCT_AVANCE","SALDOS","MATCH_OPS","AVISOS",
             "ESTATUS_CLIENTE"];
   var filas=SKU_VISIBLE.map(function(g){
     return [g.cliente,g.grupo,g.packing,g.po,g.op,g.estilo,g.estiloCli,g.codcolor,g.color,g.talla,
