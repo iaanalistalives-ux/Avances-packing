@@ -201,6 +201,23 @@ padding:3px 10px;border-radius:20px;background:var(--warm-light);color:var(--sto
 .proc .pr{font-weight:700;}
 .proc.apr{background:#E7F4EF;color:var(--sage-dark);}
 .proc.rec{background:#FCEBEB;color:var(--rose);}
+/* ---- Estatus del cliente ---- */
+.cli{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;
+padding:10px 12px;border-radius:8px;background:var(--warm-light);}
+.cli .cl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);}
+.cli .cv{font-size:13.5px;font-weight:700;color:var(--stone);}
+.cli.apr{background:#E7F4EF;} .cli.apr .cv{color:var(--sage-dark);}
+.cli.rec{background:#FCEBEB;} .cli.rec .cv{color:var(--rose);}
+.cli .cf{font-size:11.5px;color:var(--stone);font-weight:400;}
+.cli .acc{margin-left:auto;display:flex;gap:6px;}
+.cli .acc button{font-family:inherit;font-size:12px;font-weight:700;border-radius:6px;
+padding:6px 12px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--stone);}
+.cli .acc button.ok:hover{border-color:var(--sage);color:var(--sage-dark);}
+.cli .acc button.no:hover{border-color:var(--rose);color:var(--rose);}
+.cli .acc button[disabled]{opacity:.45;cursor:not-allowed;}
+@media(max-width:600px){ .cli .acc{margin-left:0;width:100%;}
+  .cli .acc button{flex:1;min-height:44px;font-size:13px;} }
+
 .audtab{width:100%;border-collapse:collapse;font-size:12px;}
 .audtab th{font-size:10px;padding:5px 6px;}
 .audtab td{padding:5px 6px;border-bottom:1px solid var(--warm-light);}
@@ -385,6 +402,15 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       <p><b>Si una PO no muestra auditor&iacute;as</b>, es que no hay ninguna registrada para esa
       combinaci&oacute;n exacta de PO y color. Se dice con todas sus letras, en vez de dejar el
       espacio en blanco.</p>
+      <p><b>El estatus del cliente.</b> Debajo de las auditor&iacute;as de cada PO y color
+      est&aacute; el estatus que marca Calidad, con dos botones para cambiarlo. Se puede
+      actualizar cuantas veces haga falta: si hoy se marca rechazado, queda rechazado hasta que
+      alguien lo cambie. Cada cambio se registra en el Historial con la fecha y el nombre de
+      quien lo marc&oacute;, que se pide la primera vez.</p>
+      <p><b>D&oacute;nde se guarda.</b> En el mismo Sheet de Avances Auditor&iacute;a de siempre,
+      as&iacute; que lo que se marque aqu&iacute; es lo mismo que se ve all&aacute;. La fila de
+      cada PO y color se crea sola al subir el Excel de encajado; antes hab&iacute;a que
+      teclearla en el formulario de Encajados, que ya no se usa.</p>
       <p><b>Los filtros se quedan puestos.</b> Al salir y volver, la pantalla vuelve como la
       dejaste. Arriba aparece un aviso naranja diciendo cu&aacute;ntos filtros hay puestos, para
       que nunca parezca que faltan datos cuando en realidad hay un filtro activo. <i>Quitar
@@ -748,6 +774,8 @@ function parseCSV(txt){
 
 var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
 var AUDITORIAS=null, AUD_ESTADO="", AUD_INFO="";   /* null = aún no pedidas */
+var ESTATUS=null;      /* Estatus del cliente por combinación, del Sheet de Avances Auditoría */
+var QUIEN="";          /* quién marca, para dejarlo en el Historial */
 
 /* Clave de cruce con el maestro. Igual que la del backend: aquí sí se quita la
    puntuación, porque entre sistemas la PO se escribe distinto. */
@@ -777,6 +805,43 @@ function jsonp(params, cb, errcb){
   sc.src=CFG.ENDPOINT+(CFG.ENDPOINT.indexOf("?")<0?"?":"&")+q.join("&");
   sc.onerror=function(){ limpiar(); errcb&&errcb("no se pudo contactar el servidor"); };
   document.body.appendChild(sc);
+}
+
+function pedirEstatus(){
+  if(!CFG.ENDPOINT){ ESTATUS={}; return; }
+  jsonp({accion:"estatus"}, function(r){
+    ESTATUS = (r && r.ok && r.estatus) ? r.estatus : {};
+    if($("app").style.display!=="none") render();
+  }, function(){ ESTATUS={}; if($("app").style.display!=="none") render(); });
+}
+
+/* Marca el estatus del cliente. Se puede cambiar cuantas veces haga falta: si hoy
+   se marca rechazado, queda rechazado hasta que alguien lo cambie. */
+function marcarCliente(btn, grupo, estilo, po, color, valor){
+  if(!QUIEN){
+    QUIEN = (prompt("¿Quién está marcando este estatus? (queda registrado en el Historial)")||"").trim();
+    if(!QUIEN) return;
+  }
+  var fila=btn.closest(".cli");
+  fila.querySelectorAll("button").forEach(function(b){ b.disabled=true; });
+  var antes=btn.textContent; btn.textContent="Guardando…";
+  jsonp({accion:"marcarCliente", grupo:grupo, estilo:estilo, po:po, color:color,
+         valor:valor, quien:QUIEN}, function(r){
+    if(r && r.ok){
+      ESTATUS = ESTATUS || {};
+      var k=claveAud(grupo,estilo,po,color), prev=ESTATUS[k]||{};
+      ESTATUS[k] = { e:r.valor, f:r.fecha, l:prev.l||0, p:prev.p||0 };
+      render();
+    }else{
+      btn.textContent=antes;
+      fila.querySelectorAll("button").forEach(function(b){ b.disabled=false; });
+      mostrarErr((r&&r.error)||"No se pudo guardar el estatus.");
+    }
+  }, function(msg){
+    btn.textContent=antes;
+    fila.querySelectorAll("button").forEach(function(b){ b.disabled=false; });
+    mostrarErr("No se pudo guardar el estatus ("+msg+").");
+  });
 }
 
 function pedirAuditorias(){
@@ -1187,6 +1252,16 @@ function render(){
       (rech?" · <span style='color:var(--rose);font-weight:700'>"+rech+" con la final rechazada</span>":"")+
       ". El detalle está dentro de cada PO, más abajo."+
       (AUD_INFO? " <span style='opacity:.7'>("+esc(AUD_INFO)+")</span>":"");
+    if(ESTATUS){
+      var ca=0, cr=0, cs=0;
+      Object.keys(combos).forEach(function(k){
+        var vv=((ESTATUS[k]||{}).e)||"";
+        if(vv==="APROBADO_CLIENTE") ca++; else if(vv==="RECHAZADO_CLIENTE") cr++; else cs++;
+      });
+      $("resumenAud").innerHTML += "<br><b>Estatus del cliente:</b> "+ca+" aprobada(s)"+
+        (cr? " · <span style='color:var(--rose);font-weight:700'>"+cr+" rechazada(s)</span>":"")+
+        " · "+cs+" sin marcar.";
+    }
     $("resumenAud").style.display="block";
   } else $("resumenAud").style.display="none";
 
@@ -1315,7 +1390,7 @@ function bloqueAuditorias(b){
   var lista=AUDITORIAS[clave]||[];
   if(!lista.length)
     return '<div class="audwrap"><div class="audvacio">Todavía no hay auditorías registradas '+
-           'para esta PO y color.</div></div>';
+           'para esta PO y color.</div>'+bloqueCliente(b,clave)+'</div>';
 
   /* Último resultado de cada proceso: lo que se necesita ver de un golpe.
      La lista viene ordenada de la más reciente a la más antigua. */
@@ -1336,7 +1411,31 @@ function bloqueAuditorias(b){
       '<button class="audver" onclick="verAud(this)">'+
       (abierta?'ocultar':'ver')+' las '+lista.length+'</button>'+
     '</div>'+
-    '<div class="auddet">'+(abierta?tablaAud(clave,AUD_ABIERTAS[clave]==="todas"):'')+'</div></div>';
+    '<div class="auddet">'+(abierta?tablaAud(clave,AUD_ABIERTAS[clave]==="todas"):'')+'</div>'+
+    bloqueCliente(b,clave)+'</div>';
+}
+
+/* Estatus del cliente: lo marca Calidad y se puede cambiar en cualquier momento.
+   Lo que quede es lo último que alguien decidió. */
+function bloqueCliente(b, clave){
+  if(ESTATUS===null)
+    return '<div class="cli"><span class="cl">Estatus del cliente</span>'+
+           '<span class="cv" style="font-weight:400">consultando…</span></div>';
+  var e=(ESTATUS[clave]||{}), v=e.e||"";
+  var cls = v==="APROBADO_CLIENTE" ? "apr" : (v==="RECHAZADO_CLIENTE" ? "rec" : "");
+  var txt = v==="APROBADO_CLIENTE" ? "Aprobado por el cliente"
+          : (v==="RECHAZADO_CLIENTE" ? "Rechazado por el cliente" : "Todavía sin marcar");
+  var arg="'"+[esc(b.grupo),esc(b.estilo),esc(b.po),esc(b.color)].join("','")+"'";
+  return '<div class="cli '+cls+'">'+
+    '<span class="cl">Estatus del cliente</span>'+
+    '<span class="cv">'+txt+'</span>'+
+    (e.f?'<span class="cf">desde el '+esc(String(e.f).replace("T"," ").substring(0,16))+'</span>':'')+
+    '<span class="acc">'+
+      '<button class="ok"'+(v==="APROBADO_CLIENTE"?' disabled':'')+
+        ' onclick="marcarCliente(this,'+arg+',\'APROBADO_CLIENTE\')">Aprobado</button>'+
+      '<button class="no"'+(v==="RECHAZADO_CLIENTE"?' disabled':'')+
+        ' onclick="marcarCliente(this,'+arg+',\'RECHAZADO_CLIENTE\')">Rechazado</button>'+
+    '</span></div>';
 }
 
 function tablaAud(clave, todas){
@@ -1386,11 +1485,20 @@ var COLUMNAS=[
   {k:"req",      t:"Requeridas", num:true},
   {k:"enc",      t:"Encajadas",  num:true},
   {k:"pct",      t:"% avance",   num:true},
-  {k:"sal",      t:"Saldos",     num:true}
+  {k:"sal",      t:"Saldos",     num:true},
+  {k:"cliente_st", t:"Estatus cliente"}
 ];
 function ordenar(campo){
   if(ORD.campo===campo) ORD.asc=!ORD.asc; else { ORD.campo=campo; ORD.asc=true; }
   render();
+}
+
+function chipCliente(clave){
+  if(ESTATUS===null) return '<span class="st low">…</span>';
+  var v=((ESTATUS[clave]||{}).e)||"";
+  if(v==="APROBADO_CLIENTE")  return '<span class="st bue">Aprobado</span>';
+  if(v==="RECHAZADO_CLIENTE") return '<span class="st ale">Rechazado</span>';
+  return '<span class="st low">Sin marcar</span>';
 }
 
 function renderTabla(sku, T){
@@ -1398,6 +1506,11 @@ function renderTabla(sku, T){
   det.sort(function(a,b){
     if(c==="talla")  return (ordenTalla(a.talla)-ordenTalla(b.talla))*asc;
     if(c==="taller") return String(a.talleres.join()).localeCompare(String(b.talleres.join()),"es")*asc;
+    if(c==="cliente_st"){
+      var ea=((ESTATUS||{})[claveAud(a.grupo,a.estilo,a.po,a.color)]||{}).e||"";
+      var eb=((ESTATUS||{})[claveAud(b.grupo,b.estilo,b.po,b.color)]||{}).e||"";
+      return ea.localeCompare(eb,"es")*asc;
+    }
     var va=a[c], vb=b[c];
     if(va===null||va===undefined) va=-Infinity;
     if(vb===null||vb===undefined) vb=-Infinity;
@@ -1423,6 +1536,7 @@ function renderTabla(sku, T){
       '<td class="num" style="font-weight:700;color:var(--sage)">'+
         (g.pct===null?"—":pctSistema(g.pct,2))+'</td>'+
       '<td class="num">'+fmt(g.sal)+'</td>'+
+      '<td>'+chipCliente(claveAud(g.grupo,g.estilo,g.po,g.color))+'</td>'+
     '</tr>';
   }).join("");
 
@@ -1431,7 +1545,7 @@ function renderTabla(sku, T){
     '<tfoot><tr><td colspan="8">TOTAL de las '+fmt(det.length)+' tallas mostradas</td>'+
       '<td class="num">'+fmt(T.req)+'</td><td class="num">'+fmt(T.enc)+'</td>'+
       '<td class="num">'+pctTotal(T.enc,T.req,2)+'</td>'+
-      '<td class="num">'+fmt(T.sal)+'</td></tr></tfoot></table>';
+      '<td class="num">'+fmt(T.sal)+'</td><td></td></tr></tfoot></table>';
 }
 
 function agrupar(sku,k){
@@ -1510,11 +1624,13 @@ window.addEventListener("resize",function(){ reajustarGrids(); });
 function exportarExcel(){
   if(!SKU_VISIBLE.length){ mostrarErr("No hay tallas para exportar con estos filtros."); return; }
   var head=["CLIENTE","GRUPO","PACKING","PO","OP","ESTILO","ESTILO_CLIENTE","COD_COLOR","COLOR",
-            "TALLA","TALLERES","REQUERIDAS","ENCAJADAS","PCT_AVANCE","SALDOS","MATCH_OPS","AVISOS"];
+            "TALLA","TALLERES","REQUERIDAS","ENCAJADAS","PCT_AVANCE","SALDOS","MATCH_OPS","AVISOS",
+            "ESTATUS_CLIENTE"];
   var filas=SKU_VISIBLE.map(function(g){
     return [g.cliente,g.grupo,g.packing,g.po,g.op,g.estilo,g.estiloCli,g.codcolor,g.color,g.talla,
             g.talleres.join(", "), g.req, g.enc,
-            g.req? g.enc/g.req : null, g.sal, g.match||"", g.avisos||""];
+            g.req? g.enc/g.req : null, g.sal, g.match||"", g.avisos||"",
+            (((ESTATUS||{})[claveAud(g.grupo,g.estilo,g.po,g.color)]||{}).e)||""];
   });
   var ws=XLSX.utils.aoa_to_sheet([head].concat(filas));
   /* La columna de % sale como porcentaje de verdad, no como número suelto */
@@ -1527,8 +1643,8 @@ function exportarExcel(){
   XLSX.writeFile(wb,"avance_encajado_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
 }
 function recargar(){
-  AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={};
-  if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); pedirAuditorias(); }
+  AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={}; ESTATUS=null;
+  if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); pedirAuditorias(); pedirEstatus(); }
   else location.reload();
 }
 
@@ -1546,6 +1662,7 @@ function arrancarApp(){
   render();
   guardarEstado();
   if(AUDITORIAS===null) pedirAuditorias();
+  if(ESTATUS===null) pedirEstatus();
   if(r.hubo && hayFiltros() && !r.deEnlace)
     $("chipTexto").textContent = "Se recuperaron tus filtros de la última vez";
 }
