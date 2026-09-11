@@ -116,6 +116,15 @@ td.num,th.num{text-align:right;}
 tfoot td{font-weight:700;border-top:2px solid var(--warm);border-bottom:none;background:var(--warm-light);}
 .vacio{color:var(--stone);font-size:13px;padding:14px 0;}
 
+#cargando{display:none;}
+#cargando.on{display:block;}
+.cargabox{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+padding:40px 24px;text-align:center;margin-bottom:14px;}
+.spin{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;
+border:3px solid var(--warm);border-top-color:var(--sage);animation:gira .8s linear infinite;}
+@keyframes gira{to{transform:rotate(360deg)}}
+.cargatxt{font-size:15px;font-weight:700;color:#333;}
+.cargasub{font-size:12.5px;color:var(--stone);margin-top:4px;}
 .drop{border:2px dashed var(--warm);border-radius:var(--r);background:var(--card);
 box-shadow:var(--sh);padding:34px 24px;text-align:center;cursor:pointer;transition:.15s;
 margin-bottom:14px;}
@@ -284,6 +293,14 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 <div class="wrap">
 
   <div class="err" id="err"></div>
+
+  <div id="cargando">
+    <div class="cargabox">
+      <div class="spin"></div>
+      <div class="cargatxt" id="cargatxt">Trayendo el avance de encajado…</div>
+      <div class="cargasub" id="cargasub">Un momento</div>
+    </div>
+  </div>
 
   <div class="drop" id="drop" style="display:none">
     <input type="file" id="file" accept=".xlsx,.xls" multiple style="display:none">
@@ -814,7 +831,7 @@ function jsonp(params, cb, errcb){
 
 function pedirEstatus(){
   if(!CFG.ENDPOINT){ ESTATUS={}; return; }
-  jsonp({accion:"estatus"}, function(r){
+  jsonp({accion:"estatus", forzar:AUD_FORZAR?1:0}, function(r){
     ESTATUS = (r && r.ok && r.estatus) ? r.estatus : {};
     if($("app").style.display!=="none") render();
   }, function(){ ESTATUS={}; if($("app").style.display!=="none") render(); });
@@ -855,16 +872,34 @@ function diagnostico(msg){
 
 /* Pide el detalle al Apps Script. Viene como arrays para que la respuesta no
    repita el nombre de cada campo en cada fila: con miles de filas, eso pesa. */
+/* Las tres consultas salen a la vez, no una detrás de otra: el avance, las
+   auditorías y el estatus del cliente no dependen entre sí. En cuanto llega el
+   avance se dibuja la pantalla; lo demás aparece cuando llega. */
 function cargarDesdeSheet(){
   if(!CFG.ENDPOINT){
+    $("cargando").classList.remove("on");
     $("drop").style.display="block";
     $("hstate").textContent="Sin conexi\u00f3n configurada";
     mostrarErr("No se ha configurado el enlace del Apps Script. Mientras tanto puedes "+
                "cargar los Excel a mano aqu\u00ed abajo.");
     return;
   }
+  $("cargando").classList.add("on");
+  $("app").style.display="none";
   $("hstate").textContent="Leyendo los datos\u2026";
-  jsonp({accion:"datosEncajado"}, function(r){
+
+  var t0 = Date.now();
+  var reloj = setInterval(function(){
+    var seg = Math.round((Date.now()-t0)/1000);
+    if(seg >= 4) $("cargasub").textContent = "Llevan "+seg+" s. La primera consulta del d\u00eda tarda m\u00e1s.";
+  }, 1000);
+
+  /* Auditorías y estatus salen ya, sin esperar al avance. */
+  pedirAuditorias();
+  pedirEstatus();
+
+  jsonp({accion:"datosEncajado", forzar:AUD_FORZAR?1:0}, function(r){
+    clearInterval(reloj);
     if(!r || !r.ok){ fallo((r&&r.error)||"respuesta inesperada"); return; }
     if(!r.filas || !r.filas.length){ fallo("no hay ning\u00fan reporte cargado"); return; }
     var c={}; r.cols.forEach(function(n,i){ c[n]=i; });
@@ -877,11 +912,14 @@ function cargarDesdeSheet(){
                fecha:f[c.fecha], archivo:"" };
     });
     ULTIMA_CARGA = r.ultimaCarga || null;
-    ORIGEN = "Sheet en l\u00ednea"+(r.ms? " ("+(r.ms/1000).toFixed(1)+" s)":"");
+    ORIGEN = "Sheet en l\u00ednea"+(r.ms? " ("+(r.ms/1000).toFixed(1)+" s"+(r.deCache?", guardado":"")+")":"");
+    $("cargando").classList.remove("on");
     arrancarApp();
-  }, function(msg){ fallo(msg); });
+  }, function(msg){ clearInterval(reloj); fallo(msg); });
 
   function fallo(msg){
+    clearInterval(reloj);
+    $("cargando").classList.remove("on");
     diagnostico(msg);
     $("drop").style.display="block";
     $("hstate").textContent="Sin conexi\u00f3n a los datos";
@@ -1610,7 +1648,7 @@ function exportarExcel(){
 function recargar(){
   AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={}; ESTATUS=null;
   mostrarErr(""); ULTIMA_CARGA=null;
-  cargarDesdeSheet(); pedirAuditorias(); pedirEstatus();
+  cargarDesdeSheet();
 }
 
 /* ---------- Arranque ---------- */
@@ -1626,8 +1664,6 @@ function arrancarApp(){
   $("vistaTabla").style.display    = (VISTA==="tabla")?"grid":"none";
   render();
   guardarEstado();
-  if(AUDITORIAS===null) pedirAuditorias();
-  if(ESTATUS===null) pedirEstatus();
   if(r.hubo && hayFiltros() && !r.deEnlace)
     $("chipTexto").textContent = "Se recuperaron tus filtros de la última vez";
 }
