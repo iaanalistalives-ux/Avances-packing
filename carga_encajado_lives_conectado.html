@@ -162,9 +162,10 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
     a la derecha de &laquo;Cliente:&raquo; (por ejemplo THY-1109 y THEORY), m&aacute;s el
     <i>packing</i> y la <i>OP</i>. Se buscan por su etiqueta, nunca por posici&oacute;n: el
     reporte cambia de columnas seg&uacute;n lo que traiga.</p>
-    <p><b>Varios cuadros en un archivo.</b> Un mismo reporte puede traer un cuadro por taller,
-    cada uno con su encabezado y el nombre del taller encima. El cargador los lee todos y guarda
-    el taller en cada fila.</p>
+    <p><b>Varios cuadros en un archivo.</b> El reporte de una PO se reparte en los cortes que
+    haga falta &mdash; LIVES, un taller, ESPECIALES&mdash;, cada uno con su encabezado y su
+    nombre encima. El cargador los lee todos y guarda el corte en cada fila, para que despu&eacute;s
+    se pueda filtrar por &eacute;l.</p>
     <p><b>La regla de suma que importa.</b> Cuando una talla aparece en dos talleres, el
     <i>requerido</i> se repite en los dos: es el mismo pedido, no uno nuevo. Por eso las
     requeridas se cuentan <b>una sola vez por talla</b> y las encajadas <b>s&iacute; se suman</b>.
@@ -179,11 +180,18 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
     <i>TOTAL GENERAL</i>: son sumas de las filas de detalle. El TOTAL GENERAL s&iacute; se usa,
     pero solo para contrastar. Como cada cuadro trae el suyo, <b>el cuadre se revisa cuadro por
     cuadro</b>: si falla, se dice en qu&eacute; taller, no solo que el archivo tiene algo raro.</p>
-    <p><b>Qu&eacute; pasa si subo la misma PO otra vez.</b> Se reemplaza: se borra todo lo
-    anterior de esa PO y queda solo lo del archivo nuevo. Por eso el archivo debe estar completo.
-    <b>Si alguien exporta el reporte filtrado a un solo taller, los dem&aacute;s talleres de esa
-    PO desaparecen.</b> La columna Cuadros de la tabla de arriba dice cu&aacute;ntos trae el
-    archivo: conviene mirarla antes de subir.</p>
+    <p><b>Qu&eacute; pasa si subo la misma PO otra vez.</b> Se reemplaza <b>color por color</b>,
+    no la PO entera. Los colores que trae el archivo se reescriben con lo nuevo; los que no
+    vienen conservan su &uacute;ltimo avance. Por eso esto es un avance: cada archivo puede traer
+    unos colores hoy y otros ma&ntilde;ana, y el sistema los va juntando.</p>
+    <p><b>Dentro de un color s&iacute; se reemplaza todo</b>, con todas sus tallas y todos sus
+    cortes. Si no, un corte que dej&oacute; de presentarse seguir&iacute;a sumando para siempre.
+    Antes de subir, la tabla <i>Qu&eacute; cambia en cada PO</i> dice exactamente qu&eacute; color
+    es nuevo, cu&aacute;l se actualiza y cu&aacute;l se queda como estaba.</p>
+    <p><b>Dos avisos que conviene mirar.</b> Si un color va a quedar con menos prendas que antes,
+    se avisa: el avance normalmente solo sube, as&iacute; que suele significar que al archivo le
+    falta un corte. Y si un color deja de traer un corte que antes ten&iacute;a, tambi&eacute;n se
+    dice, por si se reparti&oacute; distinto en vez de desaparecer.</p>
     <p><b>Si algo falla al enviar</b>, se reintenta solo hasta tres veces. Si aun as&iacute; no
     entra, el bot&oacute;n pasa a reenviar &uacute;nicamente las PO que quedaron pendientes.
     Reenviar nunca duplica: cada PO borra lo suyo antes de reescribirse.</p>
@@ -480,6 +488,59 @@ var LOTES = [];   /* archivos parseados */
 function $(id){ return document.getElementById(id); }
 function mostrarErr(t){ var e=$("err"); e.textContent=t; e.style.display=t?"block":"none"; }
 
+var RESUMEN = {};   /* lo que ya está guardado de cada PO, por color */
+
+/* Antes de subir se consulta qué hay guardado de cada PO, para poder decir qué
+   se reemplaza, qué se conserva y si algún color va a retroceder. Es la única
+   comprobación posible: el archivo no trae forma de saber si está completo. */
+function pedirResumenes(despues){
+  if(!CFG.ENDPOINT){ despues(); return; }
+  var pos = [];
+  LOTES.forEach(function(L){ if(L.ok) L.pos.forEach(function(p){
+    if(pos.indexOf(p)<0) pos.push(p); }); });
+  if(!pos.length){ despues(); return; }
+  var i=0;
+  (function paso(){
+    if(i>=pos.length){ despues(); return; }
+    jsonp({accion:"resumenPO", po:pos[i]}, function(r){
+      if(r && r.ok) RESUMEN[pos[i]] = r;
+      i++; setTimeout(paso, 120);
+    }, function(){ i++; setTimeout(paso, 120); });
+  })();
+}
+
+function claveCol(codcolor, color){
+  return ((codcolor?codcolor+" ":"")+color).replace(/\s+/g," ").trim().toUpperCase();
+}
+
+/* Compara lo que trae el archivo contra lo guardado de esa PO. */
+function compararPO(L, po){
+  var prev = RESUMEN[po];
+  if(!prev) return null;
+  var fp = L.filas.filter(function(x){ return x.po===po; });
+  var ahora = {};
+  fp.forEach(function(x){
+    var k = claveCol(x.codcolor, x.color);
+    if(!ahora[k]) ahora[k] = { enc:0, cortes:[] };
+    ahora[k].enc += x.enc;
+    if(x.taller && ahora[k].cortes.indexOf(x.taller)<0) ahora[k].cortes.push(x.taller);
+  });
+  var nuevos=[], actualiza=[], conserva=[], bajan=[], pierdenCorte=[];
+  Object.keys(ahora).forEach(function(k){
+    var a = prev.colores[k];
+    if(!a){ nuevos.push(k); return; }
+    actualiza.push(k);
+    if(ahora[k].enc < a.enc) bajan.push({c:k, antes:a.enc, ahora:ahora[k].enc});
+    var faltan = (a.cortes||[]).filter(function(x){ return ahora[k].cortes.indexOf(x)<0; });
+    if(faltan.length) pierdenCorte.push({c:k, cortes:faltan});
+  });
+  Object.keys(prev.colores||{}).forEach(function(k){
+    if(!ahora[k]) conserva.push({c:k, enc:prev.colores[k].enc, fecha:prev.colores[k].fecha});
+  });
+  return { nuevos:nuevos, actualiza:actualiza, conserva:conserva,
+           bajan:bajan, pierdenCorte:pierdenCorte, nuevaPO:prev.nuevo };
+}
+
 function render(){
   var cont = $("revision");
   if(!LOTES.length){ cont.innerHTML=""; $("hstate").textContent="Sin archivos cargados"; return; }
@@ -527,8 +588,8 @@ function render(){
   if(repes.length){
     h += '<div class="aviso"><b>La misma PO viene en dos archivos.</b> '+
          repes.map(function(p){ return esc(p)+' ('+porPO[p].map(esc).join(" y ")+')'; }).join(" · ")+
-         '. Como cada PO reemplaza todo lo suyo, el último en subir borra al anterior y solo '+
-         'queda uno. Sube uno solo de los dos, o súbelos por separado sabiendo cuál debe quedar.</div>';
+         '. Se reemplaza color por color, así que si los dos traen el mismo color, el último en '+
+         'subir es el que queda. Súbelos por separado si quieres controlar cuál manda.</div>';
   }
 
   var conf = LOTES.filter(function(L){ return L.ok && L.suma.conflictos.length; });
@@ -537,6 +598,58 @@ function render(){
          conf.map(function(L){ return esc(L.archivo)+' ('+L.suma.conflictos.length+' talla(s))'; }).join(", ")+
          ' una misma talla pide cantidades distintas según el cuadro. No debería pasar: '+
          'cada cuadro repite el requerido total de la PO. Se tomó el mayor.</div>';
+  }
+
+  /* ---------- Qué se reemplaza y qué se conserva ---------- */
+  var hayComp = LOTES.some(function(L){ return L.ok && L.pos.some(function(p){ return RESUMEN[p]; }); });
+  if(hayComp){
+    var filasComp = [];
+    LOTES.forEach(function(L){
+      if(!L.ok) return;
+      L.pos.forEach(function(po){
+        var c = compararPO(L, po);
+        if(!c) return;
+        if(c.nuevaPO){
+          filasComp.push('<tr><td>'+esc(po)+'</td><td colspan="3">'+
+            '<span class="st bue">PO nueva</span> se guarda todo lo del archivo</td></tr>');
+          return;
+        }
+        filasComp.push('<tr><td>'+esc(po)+'</td>'+
+          '<td>'+(c.nuevos.length ? c.nuevos.map(esc).join('<br>') : '—')+'</td>'+
+          '<td>'+(c.actualiza.length ? c.actualiza.map(esc).join('<br>') : '—')+'</td>'+
+          '<td>'+(c.conserva.length
+            ? c.conserva.map(function(x){ return esc(x.c)+' <span style="color:var(--stone)">('+
+                fmt(x.enc)+' encajadas del '+esc(String(x.fecha).substring(0,10))+')</span>'; }).join('<br>')
+            : '—')+'</td></tr>');
+      });
+    });
+    h += '<div class="panel"><span class="tira resultado"></span>';
+    h += '<div class="pt">Qué cambia en cada PO</div>';
+    h += '<div class="ph">Solo se reemplazan los colores que trae el archivo. Los que no vienen '+
+         'conservan su último avance: por eso esto es un avance y no una foto completa.</div>';
+    h += '<table><thead><tr><th>PO</th><th>Colores nuevos</th><th>Se actualizan</th>'+
+         '<th>Se conservan como estaban</th></tr></thead><tbody>'+filasComp.join('')+'</tbody></table></div>';
+
+    /* Avisos: retroceso y cortes que desaparecen */
+    var bajan=[], cortes=[];
+    LOTES.forEach(function(L){
+      if(!L.ok) return;
+      L.pos.forEach(function(po){
+        var c = compararPO(L, po); if(!c) return;
+        c.bajan.forEach(function(x){ bajan.push(esc(po)+' · '+esc(x.c)+': de '+fmt(x.antes)+' a '+fmt(x.ahora)); });
+        c.pierdenCorte.forEach(function(x){ cortes.push(esc(po)+' · '+esc(x.c)+': ya no trae '+x.cortes.map(esc).join(', ')); });
+      });
+    });
+    if(bajan.length){
+      h += '<div class="aviso"><b>Un color va a retroceder.</b> '+bajan.join(' · ')+
+           '. El avance normalmente solo sube. Si el archivo trae menos cortes de ese color que la '+
+           'vez pasada, lo que falte se va a perder. Revísalo antes de subir.</div>';
+    }
+    if(cortes.length){
+      h += '<div class="aviso"><b>Cortes que desaparecen.</b> '+cortes.join(' · ')+
+           '. Si ese corte ya no aplica, está bien; si solo se repartió distinto, sus cantidades '+
+           'deberían estar dentro de los otros cortes del mismo color.</div>';
+    }
   }
 
   /* ---------- Tarjeta 1: resumen por archivo ---------- */
@@ -637,6 +750,11 @@ function leerArchivos(lista){
   mostrarErr("");
   var pend = lista.length;
   if(!pend) return;
+  var tras = function(){
+    render();
+    $("hstate").textContent = "Consultando qué hay guardado…";
+    pedirResumenes(function(){ render(); });
+  };
   Array.prototype.forEach.call(lista, function(f){
     var rd = new FileReader();
     rd.onload = function(e){
@@ -647,11 +765,11 @@ function leerArchivos(lista){
       }catch(ex){
         LOTES.push({ok:false,archivo:f.name,error:"No se pudo abrir el archivo ("+ex.message+")."});
       }
-      if(--pend===0) render();
+      if(--pend===0) tras();
     };
     rd.onerror = function(){
       LOTES.push({ok:false,archivo:f.name,error:"No se pudo leer el archivo."});
-      if(--pend===0) render();
+      if(--pend===0) tras();
     };
     rd.readAsArrayBuffer(f);
   });
@@ -721,6 +839,13 @@ function enviar(){
   validos.forEach(function(L){
     L.pos.forEach(function(po){
       var fp = L.filas.filter(function(x){ return x.po===po; });
+      /* Los colores que trae este archivo para esta PO. Solo esos se reemplazan;
+         los demás conservan su último avance. */
+      var setCol={}, colores=[];
+      fp.forEach(function(x){
+        var k=((x.codcolor?x.codcolor+" ":"")+x.color).replace(/\s+/g," ").trim().toUpperCase();
+        if(!setCol[k]){ setCol[k]=1; colores.push(k); }
+      });
       /* Total de requeridas por color: el requerido de una talla se cuenta una vez
          aunque aparezca en varios talleres. */
       var uni={}, porColor={};
@@ -728,7 +853,8 @@ function enviar(){
         var k=x.color+"|"+x.estiloCli+"|"+x.codcolor+"|"+x.talla;
         if(uni[k]===undefined){ uni[k]=x.req; porColor[x.color]=(porColor[x.color]||0)+x.req; }
       });
-      tareas.push({ L:L, po:po, filas:fp, suma:totalizar(fp), reqPorColor:porColor });
+      tareas.push({ L:L, po:po, filas:fp, suma:totalizar(fp), reqPorColor:porColor,
+                    colores:colores });
     });
   });
   procesar(tareas, validos);
@@ -790,6 +916,7 @@ function enviarPO(t, intento, cb){
       cliente:t.L.cliente, grupo:t.L.grupo, packing:t.L.packing, po:t.po,
       estilo:t.L.estilo,
       primero:(k===0)?1:0, ultimo:esUltimo?1:0,
+      colores: JSON.stringify(t.colores),
       /* Requeridas totales por color, ya sumadas con la regla correcta (una vez por
          talla aunque venga en varios talleres). El backend las compara contra el
          PEDIDO de OPS, que también es por color. */
