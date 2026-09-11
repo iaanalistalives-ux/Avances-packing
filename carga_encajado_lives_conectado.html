@@ -113,7 +113,7 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
   <div class="divider"></div>
   <div>
     <div class="htitle">CARGA DE AVANCE DE ENCAJADO</div>
-    <div class="hsub">Sube los Excel "Avance Encajado" y actualiza el tablero de las auditoras</div>
+    <div class="hsub">Sube los Excel "Avance Encajado" y actualiza el visor de las auditoras</div>
   </div>
   <div class="hstate" id="hstate">Sin archivos cargados</div>
 </div>
@@ -148,27 +148,34 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
 
   <details class="help">
     <summary>&iquest;C&oacute;mo funciona esta carga?</summary>
-    <p><b>Qu&eacute; lee.</b> De cada Excel toma la hoja de Avance Encajado: el cliente de la
-    fila del encabezado, y luego una fila por combinaci&oacute;n de PO, estilo, color y talla,
-    con sus prendas requeridas, encajadas y saldos.</p>
+    <p><b>Qu&eacute; lee de la cabecera.</b> El <i>grupo</i> y el <i>cliente</i> de las dos celdas
+    a la derecha de &laquo;Cliente:&raquo; (por ejemplo THY-1109 y THEORY), m&aacute;s el
+    <i>packing</i> y la <i>OP</i>. Se buscan por su etiqueta, nunca por posici&oacute;n: el
+    reporte cambia de columnas seg&uacute;n lo que traiga.</p>
+    <p><b>Varios cuadros en un archivo.</b> Un mismo reporte puede traer un cuadro por taller,
+    cada uno con su encabezado y el nombre del taller encima. El cargador los lee todos y guarda
+    el taller en cada fila.</p>
+    <p><b>La regla de suma que importa.</b> Cuando una talla aparece en dos talleres, el
+    <i>requerido</i> se repite en los dos: es el mismo pedido, no uno nuevo. Por eso las
+    requeridas se cuentan <b>una sola vez por talla</b> y las encajadas <b>s&iacute; se suman</b>.
+    Caso real de la PO 504431: la talla XS pide 29; un taller encaj&oacute; 31 y el otro 3. Lo
+    correcto es 29 requeridas y 34 encajadas, no 58 y 34.</p>
+    <p><b>Los porcentajes del Excel no se guardan.</b> El reporte los exporta en dos escalas
+    distintas: en unos archivos la celda dice 104.54 y en otros dice 1.0454, porque ah&iacute; es
+    la f&oacute;rmula encajadas&divide;requeridas con formato de porcentaje. Guardar eso ser&iacute;a
+    guardar un n&uacute;mero que a veces est&aacute; multiplicado por cien. El visor lo recalcula
+    siempre.</p>
     <p><b>Qu&eacute; descarta.</b> Las filas de <i>Total</i> por color, <i>TOTAL</i> por estilo y
-    <i>TOTAL GENERAL</i> no se guardan: son sumas de las filas de detalle y guardarlas har&iacute;a
-    que cada prenda se contara tres veces. El tablero vuelve a sumarlas por su cuenta.</p>
-    <p><b>Control cruzado.</b> Antes de permitir el env&iacute;o, el cargador suma el detalle y lo
-    compara contra el <i>TOTAL GENERAL</i> que trae el propio archivo. Si no coincide, lo avisa y
-    dice en cu&aacute;ntas prendas difiere; ah&iacute; el archivo tiene un problema de origen y no
-    conviene subirlo sin revisarlo.</p>
-    <p><b>Los porcentajes son los del sistema.</b> Las columnas <i>%Avance</i> y
-    <i>%Avance m&aacute;s Saldo</i> se guardan tal como vienen del reporte, sin recalcularlas:
-    el visor solo las muestra con formato de porcentaje. Lo &uacute;nico que el visor s&iacute;
-    calcula son los totales de un grupo de filas, y lo hace como <i>suma de encajadas &divide;
-    suma de requeridas</i>, nunca promediando porcentajes.</p>
-    <p><b>Qu&eacute; pasa si subo la misma PO dos veces.</b> La carga <b>reemplaza</b>: al subir de
-    nuevo una PO, se borran sus filas anteriores y quedan solo las del archivo nuevo. Los archivos
-    no traen fecha de corte, as&iacute; que la &uacute;nica referencia de cu&aacute;l es m&aacute;s
-    reciente es la fecha y hora en que se sub&iacute;a, que la registra el servidor.</p>
-    <p><b>Normalizaci&oacute;n.</b> PO, estilo, c&oacute;digo de color, color y talla se guardan
-    sin espacios sobrantes y en MAY&Uacute;SCULAS, para que crucen con los datos de otras &aacute;reas.</p>
+    <i>TOTAL GENERAL</i>: son sumas de las filas de detalle. El TOTAL GENERAL s&iacute; se usa,
+    pero solo para contrastar: si la suma del detalle no le cuadra, se avisa antes de subir.</p>
+    <p><b>Qu&eacute; pasa si subo la misma PO otra vez.</b> Se reemplaza: se borra todo lo
+    anterior de esa PO y queda solo lo del archivo nuevo. Por eso el archivo debe estar completo.
+    <b>Si alguien exporta el reporte filtrado a un solo taller, los dem&aacute;s talleres de esa
+    PO desaparecen.</b> La columna Cuadros de la tabla de arriba dice cu&aacute;ntos trae el
+    archivo: conviene mirarla antes de subir.</p>
+    <p><b>Si algo falla al enviar</b>, se reintenta solo hasta tres veces. Si aun as&iacute; no
+    entra, el bot&oacute;n pasa a reenviar &uacute;nicamente las PO que quedaron pendientes.
+    Reenviar nunca duplica: cada PO borra lo suyo antes de reescribirse.</p>
   </details>
 
 </div>
@@ -181,158 +188,246 @@ var CFG = {
   /* URL del despliegue del Apps Script (Implementar > Aplicación web > Cualquier persona).
      Si queda vacío, el cargador funciona en MODO PRUEBA: valida pero no guarda. */
   ENDPOINT : "https://script.google.com/macros/s/AKfycbzBere_gFVnUazyE8XBcxK4QFoSo63fwi3Q7GOHo60ldcTYA9WNmzav18cBJrTRyOenPw/exec",
-  /* Filas por lote enviado. No subir de 30: la escritura va por JSONP (GET) y
+  /* Filas por lote enviado. No subir de 25: la escritura va por JSONP (GET) y
      una URL demasiado larga la rechaza el navegador. */
-  LOTE : 30
+  LOTE : 25
 };
 
 /* ============================================================
-   Parser del Excel de Avance Encajado
+   Utilidades de formato
    ============================================================ */
 var ORDEN_TALLA = ["P","XXS","XS","S","M","L","XL","XXL","XXXL","1X","2X","3X"];
-
-function norm(v){
-  if(v===null||v===undefined) return "";
-  return String(v).replace(/\s+/g," ").trim().toUpperCase();
-}
-function num(v){
-  if(v===null||v===undefined||v==="") return null;
-  var n = Number(String(v).replace(/[^0-9.\-]/g,""));
-  return isFinite(n) ? n : null;
-}
 function fmt(n,d){
   if(n===null||n===undefined||!isFinite(n)) return "—";
   return Number(n).toLocaleString("es-PE",{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
 }
-function pct(numr,den,d){
-  if(!den) return "—";
-  return (numr/den*100).toLocaleString("es-PE",{minimumFractionDigits:d===undefined?1:d,
-    maximumFractionDigits:d===undefined?1:d})+"%";
+function pct(a,b,d){
+  if(!b) return "—";
+  d=(d===undefined)?1:d;
+  return (a/b*100).toLocaleString("es-PE",{minimumFractionDigits:d,maximumFractionDigits:d})+"%";
+}
+function esc(t){ return String(t===null||t===undefined?"":t)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function ordenTalla(t){ var i=ORDEN_TALLA.indexOf(t); return i<0 ? 900+(t.charCodeAt(0)||0) : i; }
+
+/* ============================================================================
+   PARSER DEL REPORTE "AVANCE ENCAJADO"  ·  LIVES
+   ----------------------------------------------------------------------------
+   Este mismo bloque va, idéntico, dentro del cargador y del visor. No se toca
+   en uno sin tocarlo en el otro.
+
+   Lo que sabe leer:
+   - Cabecera: GRUPO y CLIENTE (celdas a la derecha de "Cliente:"), PACKING y OP.
+     Se buscan por etiqueta, nunca por coordenada: la posición cambia según
+     cuántas columnas traiga el reporte.
+   - Varios cuadros en un mismo archivo, uno por taller. Cada cuadro tiene su
+     propio encabezado y, encima, el nombre del taller y (en el formato nuevo)
+     su OP.
+   - Columnas variables: Saldos y %Avance+Saldo pueden no venir.
+
+   Lo que descarta:
+   - Filas "Total" por color, "TOTAL" por estilo y "TOTAL GENERAL": son sumas
+     de las filas de detalle. Se guardan aparte solo para el control cruzado.
+
+   Lo que NO lee:
+   - Las columnas de porcentaje. El reporte las exporta en dos escalas distintas
+     (104.54 en unos archivos, 1.0454 en otros, donde la celda es la fórmula
+     =Encajadas/Requeridas con formato de porcentaje). Guardar eso sería guardar
+     un dato que a veces está multiplicado por cien. Se recalcula siempre.
+
+   REGLA CRÍTICA DE SUMA:
+   - REQUERIDAS *no* se suma entre talleres. Cada cuadro repite el requerido
+     total de la PO para esa talla.
+   - ENCAJADAS *sí* se suma: cada cuadro trae lo que hizo ese taller.
+     Ejemplo real (504431, talla XS): pide 29; OSCAR VELIZ encajó 31 y LIVES 3.
+     El requerido es 29 y lo encajado 34, no 58 y 34.
+   ============================================================================ */
+
+function normTxt(v){
+  if(v===null||v===undefined) return "";
+  return String(v).replace(/\s+/g," ").trim().toUpperCase();
+}
+function numVal(v){
+  if(v===null||v===undefined||v==="") return null;
+  var n = Number(String(v).replace(/[^0-9.\-]/g,""));
+  return isFinite(n) ? n : null;
 }
 
-/* Devuelve {ok, error, cliente_cod, cliente, filas:[], totalArchivo:{req,enc,sal}, control:{} } */
+/* Devuelve:
+   { ok, error, archivo, cliente, grupo, packing, op,
+     filas:[{cliente,grupo,packing,po,op,estilo,codcolor,color,talla,taller,req,enc,sal}],
+     cuadros:[{taller,op,filas}], totalArchivo, control, cuadra }                     */
 function parsearLibro(wb, nombreArchivo){
-  var res = {ok:false,error:"",archivo:nombreArchivo,cliente_cod:"",cliente:"",
-             filas:[],totalArchivo:null,control:null};
-  var ws = null, hoja = "";
+  var res = { ok:false, error:"", archivo:nombreArchivo,
+              cliente:"", grupo:"", packing:"", op:"",
+              filas:[], cuadros:[], totalArchivo:null, control:null, cuadra:null };
+
+  var ws = null;
   for(var i=0;i<wb.SheetNames.length;i++){
-    var nm = wb.SheetNames[i];
-    if(norm(nm).indexOf("ENCAJADO")>=0){ ws = wb.Sheets[nm]; hoja = nm; break; }
+    if(normTxt(wb.SheetNames[i]).indexOf("ENCAJADO")>=0){ ws = wb.Sheets[wb.SheetNames[i]]; break; }
   }
-  if(!ws){ ws = wb.Sheets[wb.SheetNames[0]]; hoja = wb.SheetNames[0]; }
-  res.hoja = hoja;
+  if(!ws) ws = wb.Sheets[wb.SheetNames[0]];
 
   var m = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
   if(!m || !m.length){ res.error = "La hoja está vacía."; return res; }
 
-  /* Encabezado: fila que tenga "PO" y "REQUERIDAS" */
-  var hr = -1, col = {};
-  for(var r=0;r<Math.min(m.length,40);r++){
-    var fila = m[r]||[], tienePO=-1, tieneReq=-1;
-    for(var c=0;c<fila.length;c++){
-      var t = norm(fila[c]);
-      if(t==="PO") tienePO=c;
-      if(t==="REQUERIDAS") tieneReq=c;
+  /* ---------- 1. Localizar TODOS los encabezados de cuadro ---------- */
+  var heads = [];
+  for(var r=0;r<m.length;r++){
+    var f = m[r]||[], tienePO=false, tieneReq=false;
+    for(var c=0;c<f.length;c++){
+      var t = normTxt(f[c]);
+      if(t==="PO") tienePO=true;
+      if(t==="REQUERIDAS") tieneReq=true;
     }
-    if(tienePO>=0 && tieneReq>=0){
-      hr = r;
-      for(var c2=0;c2<fila.length;c2++){
-        var t2 = norm(fila[c2]);
-        if(t2==="PO") col.po=c2;
-        else if(t2.indexOf("ESTILO")>=0) col.estilo=c2;
-        else if(t2.indexOf("CODIGO COLOR")>=0||t2.indexOf("CÓDIGO COLOR")>=0) col.codcolor=c2;
-        else if(t2.indexOf("DESCRIPCION COLOR")>=0||t2.indexOf("DESCRIPCIÓN COLOR")>=0) col.color=c2;
-        else if(t2==="TALLA") col.talla=c2;
-        else if(t2==="REQUERIDAS") col.req=c2;
-        else if(t2.indexOf("ENCAJADAS")>=0) col.enc=c2;
-        else if(t2==="SALDOS"||t2==="SALDO") col.sal=c2;
-        else if(t2.indexOf("AVANCE")>=0 && t2.indexOf("SALDO")>=0) col.pctsal=c2;
-        else if(t2.indexOf("AVANCE")>=0) col.pct=c2;
+    if(tienePO && tieneReq) heads.push(r);
+  }
+  if(!heads.length){
+    res.error = "No se encontró ninguna fila de encabezados. Se esperaban las columnas PO y Requeridas.";
+    return res;
+  }
+
+  /* ---------- 2. Cabecera del archivo: grupo, cliente, packing, OP ---------- */
+  var tope = heads[0];
+  for(var r2=0;r2<tope;r2++){
+    var f2 = m[r2]||[];
+    for(var c2=0;c2<f2.length;c2++){
+      var t2 = normTxt(f2[c2]);
+      /* "Cliente:" -> a la derecha van GRUPO y luego el nombre del cliente.
+         Verificado con archivos reales: THY-1109 es el grupo, THEORY el cliente. */
+      if(t2.indexOf("CLIENTE")===0 && !res.grupo){
+        res.grupo   = normTxt(f2[c2+1]);
+        res.cliente = normTxt(f2[c2+2]);
+      }
+      if(t2==="PACKING" && !res.packing) res.packing = normTxt(f2[c2+1]);
+      if(t2==="OP"      && !res.op)      res.op      = normTxt(f2[c2+1]);
+    }
+  }
+  /* En el formato viejo el grupo venía como código de cliente (00059): no es
+     un grupo válido y no cruzaría contra OPS. Se marca para avisarlo. */
+  res.grupoDudoso = !!(res.grupo && /^\d+$/.test(res.grupo));
+
+  /* ---------- 3. Recorrer cada cuadro ---------- */
+  var totGen = null;
+
+  for(var h=0; h<heads.length; h++){
+    var hr  = heads[h];
+    var fin = (h+1 < heads.length) ? heads[h+1] : m.length;
+
+    /* Mapa de columnas de ESTE cuadro (pueden variar entre cuadros) */
+    var col = {}, fh = m[hr]||[];
+    for(var c3=0;c3<fh.length;c3++){
+      var t3 = normTxt(fh[c3]);
+      if(t3==="PO") col.po=c3;
+      else if(t3.indexOf("ESTILO")>=0) col.estilo=c3;
+      else if(t3.indexOf("CODIGO COLOR")>=0 || t3.indexOf("CÓDIGO COLOR")>=0) col.codcolor=c3;
+      else if(t3.indexOf("DESCRIPCION COLOR")>=0 || t3.indexOf("DESCRIPCIÓN COLOR")>=0) col.color=c3;
+      else if(t3==="TALLA") col.talla=c3;
+      else if(t3==="REQUERIDAS") col.req=c3;
+      else if(t3.indexOf("ENCAJADAS")>=0) col.enc=c3;
+      else if(t3==="SALDOS"||t3==="SALDO") col.sal=c3;
+    }
+    var faltan=[];
+    ["po","estilo","color","talla","req","enc"].forEach(function(k){ if(col[k]===undefined) faltan.push(k); });
+    if(faltan.length){
+      res.error = "Al encabezado del cuadro "+(h+1)+" le faltan columnas: "+faltan.join(", ")+".";
+      return res;
+    }
+
+    /* Taller y OP del cuadro: en la fila no vacía justo encima del encabezado.
+       La OP va a la derecha del taller, con o sin la etiqueta "OP" delante.
+       Si el archivo no la trae (formato actual), se usa la OP de la cabecera. */
+    var taller="", opCuadro="";
+    for(var rb=hr-1; rb>=0 && rb>(h===0?-1:heads[h-1]); rb--){
+      var fb=m[rb]||[], primera=-1;
+      for(var cb=0;cb<fb.length;cb++){ if(normTxt(fb[cb])!==""){ primera=cb; break; } }
+      if(primera<0) continue;                                   /* fila vacía: seguir subiendo */
+      var etiqueta = normTxt(fb[primera]);
+      if(etiqueta.indexOf("CLIENTE")===0 || etiqueta==="AVANCE ENCAJADO") break;  /* es la cabecera */
+      taller = etiqueta;
+      for(var cd=primera+1; cd<fb.length; cd++){
+        var td = normTxt(fb[cd]);
+        if(td==="OP"){ opCuadro = normTxt(fb[cd+1]); break; }
+        if(td!=="" && numVal(td)!==null){ opCuadro = td; break; }
       }
       break;
     }
-  }
-  if(hr<0){
-    res.error = "No se encontró la fila de encabezados. Se esperaban las columnas PO y Requeridas.";
-    return res;
-  }
-  var faltan = [];
-  ["po","estilo","color","talla","req","enc"].forEach(function(k){ if(col[k]===undefined) faltan.push(k); });
-  if(faltan.length){
-    res.error = "Al encabezado le faltan columnas: "+faltan.join(", ")+".";
-    return res;
-  }
+    if(!opCuadro) opCuadro = res.op;
 
-  /* Cliente: fila con "CLIENTE:" — la celda siguiente es el código y la otra el nombre */
-  for(var r3=0;r3<hr;r3++){
-    var f3 = m[r3]||[];
-    for(var c3=0;c3<f3.length;c3++){
-      if(norm(f3[c3]).indexOf("CLIENTE")===0){
-        res.cliente_cod = norm(f3[c3+1]);
-        res.cliente     = norm(f3[c3+2]);
-        break;
+    var filasCuadro=[];
+    for(var r4=hr+1; r4<fin; r4++){
+      var fr = m[r4]||[];
+      var talla = normTxt(fr[col.talla]);
+      var req = numVal(fr[col.req]), enc = numVal(fr[col.enc]);
+      var sal = col.sal!==undefined ? numVal(fr[col.sal]) : null;
+
+      if(fr.map(normTxt).join(" ").indexOf("TOTAL GENERAL")>=0){
+        if(req!==null) totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        continue;
       }
+      if(!talla || talla==="TOTAL") continue;      /* Total por color / TOTAL por estilo */
+      if(req===null && enc===null) continue;
+
+      filasCuadro.push({
+        cliente : res.cliente,
+        grupo   : res.grupo,
+        packing : res.packing,
+        po      : normTxt(fr[col.po]),
+        op      : opCuadro,
+        estilo  : normTxt(fr[col.estilo]),
+        codcolor: col.codcolor!==undefined ? normTxt(fr[col.codcolor]) : "",
+        color   : normTxt(fr[col.color]),
+        talla   : talla,
+        taller  : taller,
+        req     : req===null?0:req,
+        enc     : enc===null?0:enc,
+        sal     : sal===null?0:sal
+      });
     }
-    if(res.cliente) break;
+
+    if(filasCuadro.length){
+      res.cuadros.push({ taller:taller, op:opCuadro, filas:filasCuadro.length });
+      res.filas = res.filas.concat(filasCuadro);
+    }
   }
 
-  /* Detalle + captura del TOTAL GENERAL para el control cruzado */
-  var totGen = null;
-  for(var r4=hr+1;r4<m.length;r4++){
-    var f = m[r4]||[];
-    var talla = norm(f[col.talla]);
-    var req = num(f[col.req]), enc = num(f[col.enc]);
-    var sal = col.sal!==undefined ? num(f[col.sal]) : null;
+  if(!res.filas.length){ res.error = "No se encontró ninguna fila de detalle."; return res; }
 
-    var etiquetas = f.map(norm).join(" ");
-    var esTotalGeneral = etiquetas.indexOf("TOTAL GENERAL")>=0;
-    if(esTotalGeneral && req!==null){ totGen = {req:req, enc:(enc||0), sal:(sal||0)}; continue; }
-
-    /* Se descartan: Total por color (talla="TOTAL"), TOTAL por estilo (talla vacía) */
-    if(!talla || talla==="TOTAL") continue;
-    if(req===null && enc===null) continue;
-
-    res.filas.push({
-      po       : norm(f[col.po]),
-      estilo   : norm(f[col.estilo]),
-      codcolor : col.codcolor!==undefined ? norm(f[col.codcolor]) : "",
-      color    : norm(f[col.color]),
-      talla    : talla,
-      req      : req===null?0:req,
-      enc      : enc===null?0:enc,
-      sal      : sal===null?0:sal,
-      pct      : col.pct!==undefined    ? num(f[col.pct])    : null,
-      pctsal   : col.pctsal!==undefined ? num(f[col.pctsal]) : null
-    });
-  }
-
-  if(!res.filas.length){ res.error = "No se encontró ninguna fila de detalle bajo el encabezado."; return res; }
-
-  /* La PO se lee del contenido, no del nombre del archivo */
-  var pos = {};
-  res.filas.forEach(function(x){ if(x.po) pos[x.po]=1; });
+  var pos={}, ops={};
+  res.filas.forEach(function(x){ if(x.po) pos[x.po]=1; if(x.op) ops[x.op]=1; });
   res.pos = Object.keys(pos);
+  res.ops = Object.keys(ops);
   if(!res.pos.length){ res.error = "Las filas de detalle no traen número de PO."; return res; }
 
-  var sr=0, se=0, ss=0;
-  res.filas.forEach(function(x){ sr+=x.req; se+=x.enc; ss+=x.sal; });
-  res.suma = {req:sr, enc:se, sal:ss};
+  /* ---------- 4. Totales del archivo, con la regla de suma correcta ---------- */
+  res.suma = totalizar(res.filas);
   res.totalArchivo = totGen;
-
   if(totGen){
-    res.control = {
-      dif_req : sr - totGen.req,
-      dif_enc : se - totGen.enc,
-      dif_sal : ss - totGen.sal
-    };
-    res.cuadra = (res.control.dif_req===0 && res.control.dif_enc===0);
-  }else{
-    res.cuadra = null;   /* el archivo no trae TOTAL GENERAL: no se puede contrastar */
+    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc };
+    res.cuadra  = (res.control.dif_req===0 && res.control.dif_enc===0);
   }
-
   res.ok = true;
   return res;
 }
+
+/* Totaliza respetando la regla: el requerido de una talla se cuenta UNA vez
+   aunque aparezca en varios talleres; lo encajado se suma. */
+function totalizar(filas){
+  var uni={}, enc=0, sal=0, conflictos=[];
+  filas.forEach(function(x){
+    var k = x.po+"|"+x.estilo+"|"+x.codcolor+"|"+x.talla;
+    if(uni[k]===undefined) uni[k] = x.req;
+    else if(uni[k] !== x.req){
+      if(x.req > uni[k]) uni[k] = x.req;          /* se conserva el mayor */
+      if(conflictos.indexOf(k)<0) conflictos.push(k);
+    }
+    enc += x.enc; sal += x.sal;
+  });
+  var req=0; Object.keys(uni).forEach(function(k){ req += uni[k]; });
+  return { req:req, enc:enc, sal:sal, sku:Object.keys(uni).length, conflictos:conflictos };
+}
+
+
 
 /* ============================================================
    Estado y render
@@ -342,104 +437,136 @@ var LOTES = [];   /* archivos parseados */
 function $(id){ return document.getElementById(id); }
 function mostrarErr(t){ var e=$("err"); e.textContent=t; e.style.display=t?"block":"none"; }
 
-function ordenTalla(t){
-  var i = ORDEN_TALLA.indexOf(t);
-  return i<0 ? 900+t.charCodeAt(0) : i;
-}
-
 function render(){
   var cont = $("revision");
   if(!LOTES.length){ cont.innerHTML=""; $("hstate").textContent="Sin archivos cargados"; return; }
 
-  var totFilas=0, totReq=0, totEnc=0, totSal=0, hayProblema=false, pos={};
+  var totFilas=0, totSku=0, totReq=0, totEnc=0, totSal=0, pos={}, ops={}, talleres={};
   LOTES.forEach(function(L){
-    if(!L.ok){ hayProblema=true; return; }
-    totFilas+=L.filas.length; totReq+=L.suma.req; totEnc+=L.suma.enc; totSal+=L.suma.sal;
+    if(!L.ok) return;
+    totFilas+=L.filas.length; totSku+=L.suma.sku;
+    totReq+=L.suma.req; totEnc+=L.suma.enc; totSal+=L.suma.sal;
     L.pos.forEach(function(p){ pos[p]=1; });
-    if(L.cuadra===false) hayProblema=true;
+    L.ops.forEach(function(o){ ops[o]=1; });
+    L.cuadros.forEach(function(c){ if(c.taller) talleres[c.taller]=1; });
   });
+  var nTalleres=Object.keys(talleres).length;
 
   var h = '';
 
-  /* Tarjeta 1: resumen de lo leído */
+  /* ---------- Avisos ---------- */
+  var dudosos = LOTES.filter(function(L){ return L.ok && L.grupoDudoso; });
+  if(dudosos.length){
+    h += '<div class="aviso"><b>Grupo con formato antiguo.</b> En '+dudosos.length+
+         ' archivo(s) la celda del grupo trae un número ('+
+         dudosos.map(function(L){ return esc(L.grupo); }).join(", ")+
+         ') en vez de un código como THY-1109. Eso es el formato viejo del reporte, donde ahí '+
+         'iba el código de cliente. Se puede subir, pero ese grupo no va a cruzar contra OPS: '+
+         'conviene volver a exportar el reporte con el formato actual.</div>';
+  }
+  var malos = LOTES.filter(function(L){ return L.ok && L.cuadra===false; });
+  if(malos.length){
+    h += '<div class="aviso"><b>Revisar antes de subir.</b> En '+malos.length+
+         ' archivo(s) la suma del detalle no coincide con el TOTAL GENERAL del propio Excel: '+
+         malos.map(function(L){
+           return esc(L.archivo)+' ('+(L.control.dif_enc>0?"+":"")+fmt(L.control.dif_enc)+
+                  ' encajadas, '+(L.control.dif_req>0?"+":"")+fmt(L.control.dif_req)+' requeridas)';
+         }).join(" · ")+
+         '. Es un problema del archivo de origen. Puedes subirlo igual; se guardará el detalle.</div>';
+  }
+  /* Dos archivos de la misma tanda con la misma PO: el segundo borra al primero,
+     porque cada PO reemplaza todo lo suyo. Hay que decirlo antes, no después. */
+  var porPO={};
+  LOTES.forEach(function(L){ if(L.ok) L.pos.forEach(function(p){
+    if(!porPO[p]) porPO[p]=[]; porPO[p].push(L.archivo); }); });
+  var repes=Object.keys(porPO).filter(function(p){ return porPO[p].length>1; });
+  if(repes.length){
+    h += '<div class="aviso"><b>La misma PO viene en dos archivos.</b> '+
+         repes.map(function(p){ return esc(p)+' ('+porPO[p].map(esc).join(" y ")+')'; }).join(" · ")+
+         '. Como cada PO reemplaza todo lo suyo, el último en subir borra al anterior y solo '+
+         'queda uno. Sube uno solo de los dos, o súbelos por separado sabiendo cuál debe quedar.</div>';
+  }
+
+  var conf = LOTES.filter(function(L){ return L.ok && L.suma.conflictos.length; });
+  if(conf.length){
+    h += '<div class="aviso"><b>Requeridos distintos entre talleres.</b> En '+
+         conf.map(function(L){ return esc(L.archivo)+' ('+L.suma.conflictos.length+' talla(s))'; }).join(", ")+
+         ' una misma talla pide cantidades distintas según el cuadro. No debería pasar: '+
+         'cada cuadro repite el requerido total de la PO. Se tomó el mayor.</div>';
+  }
+
+  /* ---------- Tarjeta 1: resumen por archivo ---------- */
   h += '<div class="panel"><span class="tira volumen"></span>';
   h += '<div class="pt">Lo que se va a subir</div>';
   h += '<div class="ph">'+LOTES.length+' archivo(s) · '+Object.keys(pos).length+' PO · '+
-       totFilas+' combinaciones talla-color. Los totales del Excel no se suben: se recalculan.</div>';
-  h += '<table><thead><tr><th>Archivo</th><th>Cliente</th><th>PO</th>'+
-       '<th class="num">Filas</th><th class="num">Requeridas</th><th class="num">Encajadas</th>'+
-       '<th class="num">Saldos</th><th class="num">% avance</th><th>Cuadre</th></tr></thead><tbody>';
+       totSku+' combinaciones de talla'+
+       (nTalleres?' · '+nTalleres+' taller(es)':'')+
+       '. Las filas de totales del Excel no se suben: se recalculan.</div>';
+  h += '<table><thead><tr><th>Archivo</th><th>Grupo</th><th>Cliente</th><th>Packing</th>'+
+       '<th>PO</th><th>OP</th><th>Cuadros</th><th class="num">Tallas</th>'+
+       '<th class="num">Requeridas</th><th class="num">Encajadas</th>'+
+       '<th class="num">% avance</th><th>Cuadre</th></tr></thead><tbody>';
 
   LOTES.forEach(function(L){
     if(!L.ok){
-      h += '<tr><td>'+L.archivo+'</td><td colspan="7" style="color:var(--rose)">'+L.error+'</td>'+
-           '<td><span class="st ale">No se puede leer</span></td></tr>';
+      h += '<tr><td>'+esc(L.archivo)+'</td><td colspan="10" style="color:var(--rose)">'+
+           esc(L.error)+'</td><td><span class="st ale">No se puede leer</span></td></tr>';
       return;
     }
     var est, cls;
     if(L.cuadra===true){ est="Cuadra"; cls="bue"; }
-    else if(L.cuadra===false){ est="Difiere "+fmt(Math.abs(L.control.dif_enc))+" prendas"; cls="ale"; }
+    else if(L.cuadra===false){ est="Difiere "+fmt(Math.abs(L.control.dif_enc)); cls="ale"; }
     else { est="Sin TOTAL GENERAL"; cls="low"; }
     h += '<tr>'+
-      '<td>'+L.archivo+'</td>'+
-      '<td>'+(L.cliente||"—")+'</td>'+
-      '<td>'+L.pos.join(", ")+'</td>'+
-      '<td class="num">'+L.filas.length+'</td>'+
+      '<td>'+esc(L.archivo)+'</td>'+
+      '<td>'+esc(L.grupo||"—")+(L.grupoDudoso?' <span class="st rev">formato viejo</span>':'')+'</td>'+
+      '<td>'+esc(L.cliente||"—")+'</td>'+
+      '<td>'+esc(L.packing||"—")+'</td>'+
+      '<td>'+esc(L.pos.join(", "))+'</td>'+
+      '<td>'+esc(L.ops.join(", ")||"—")+'</td>'+
+      '<td>'+L.cuadros.map(function(c){ return esc(c.taller||"sin taller"); }).join(" + ")+'</td>'+
+      '<td class="num">'+L.suma.sku+'</td>'+
       '<td class="num">'+fmt(L.suma.req)+'</td>'+
       '<td class="num">'+fmt(L.suma.enc)+'</td>'+
-      '<td class="num">'+fmt(L.suma.sal)+'</td>'+
       '<td class="num">'+pct(L.suma.enc,L.suma.req)+'</td>'+
       '<td><span class="st '+cls+'">'+est+'</span></td>'+
     '</tr>';
   });
-  h += '<tr style="font-weight:700"><td colspan="3">TOTAL de esta carga</td>'+
-       '<td class="num">'+totFilas+'</td><td class="num">'+fmt(totReq)+'</td>'+
-       '<td class="num">'+fmt(totEnc)+'</td><td class="num">'+fmt(totSal)+'</td>'+
-       '<td class="num">'+pct(totEnc,totReq)+'</td><td></td></tr>';
+  h += '<tr style="font-weight:700"><td colspan="7">TOTAL de esta carga</td>'+
+       '<td class="num">'+totSku+'</td><td class="num">'+fmt(totReq)+'</td>'+
+       '<td class="num">'+fmt(totEnc)+'</td><td class="num">'+pct(totEnc,totReq)+'</td><td></td></tr>';
   h += '</tbody></table></div>';
 
-  /* Tarjeta 2: aviso de cuadre si algo falla */
-  var malos = LOTES.filter(function(L){ return L.ok && L.cuadra===false; });
-  if(malos.length){
-    h += '<div class="aviso"><b>Revisar antes de subir.</b> En '+malos.length+' archivo(s) la suma '+
-         'del detalle no coincide con el TOTAL GENERAL que trae el propio Excel: '+
-         malos.map(function(L){
-           return L.archivo+' ('+(L.control.dif_enc>0?"+":"")+fmt(L.control.dif_enc)+' encajadas, '+
-                  (L.control.dif_req>0?"+":"")+fmt(L.control.dif_req)+' requeridas)';
-         }).join(" · ")+
-         '. Eso es un problema del archivo de origen, no del cargador. Puedes subirlo igual, '+
-         'pero el tablero mostrará la suma del detalle.</div>';
-  }
-
-  /* Tarjeta 3: detalle por talla, para revisar antes de mandar */
+  /* ---------- Tarjeta 2: detalle fila por fila ---------- */
   var det = [];
   LOTES.forEach(function(L){ if(L.ok) L.filas.forEach(function(x){ det.push(x); }); });
   det.sort(function(a,b){
     return (a.po<b.po?-1:a.po>b.po?1:0) || (a.color<b.color?-1:a.color>b.color?1:0) ||
+           (a.taller<b.taller?-1:a.taller>b.taller?1:0) ||
            (ordenTalla(a.talla)-ordenTalla(b.talla));
   });
   h += '<div class="panel"><span class="tira resultado"></span>';
   h += '<div class="pt">Detalle que se guarda</div>';
-  h += '<div class="ph">Una fila por PO, estilo, color y talla. El % de avance es '+
-       'encajadas ÷ requeridas de esa misma fila.</div>';
-  h += '<table><thead><tr><th>PO</th><th>Estilo</th><th>Color</th><th>Talla</th>'+
-       '<th class="num">Requeridas</th><th class="num">Encajadas</th><th class="num">Saldos</th>'+
-       '<th class="num">% avance</th></tr></thead><tbody>';
+  h += '<div class="ph">Una fila por PO, OP, estilo, color, talla y taller — '+det.length+' en total. '+
+       'Cuando una talla aparece en varios talleres, el requerido se repite en cada uno: '+
+       'es el mismo pedido, no uno nuevo. Por eso arriba las tallas se cuentan una sola vez.</div>';
+  h += '<table><thead><tr><th>PO</th><th>OP</th><th>Estilo</th><th>Color</th><th>Talla</th>'+
+       '<th>Taller</th><th class="num">Requeridas</th><th class="num">Encajadas</th>'+
+       '<th class="num">Saldos</th><th class="num">% avance</th></tr></thead><tbody>';
   det.forEach(function(x){
-    h += '<tr><td>'+x.po+'</td><td>'+x.estilo+'</td><td>'+x.codcolor+' '+x.color+'</td>'+
-         '<td>'+x.talla+'</td><td class="num">'+fmt(x.req)+'</td><td class="num">'+fmt(x.enc)+'</td>'+
-         '<td class="num">'+fmt(x.sal)+'</td><td class="num">'+
-         (x.pct===null?pct(x.enc,x.req,2):fmt(x.pct,2)+'%')+'</td></tr>';
+    h += '<tr><td>'+esc(x.po)+'</td><td>'+esc(x.op||"—")+'</td><td>'+esc(x.estilo)+'</td>'+
+         '<td>'+esc((x.codcolor?x.codcolor+" ":"")+x.color)+'</td><td>'+esc(x.talla)+'</td>'+
+         '<td>'+esc(x.taller||"—")+'</td><td class="num">'+fmt(x.req)+'</td>'+
+         '<td class="num">'+fmt(x.enc)+'</td><td class="num">'+fmt(x.sal)+'</td>'+
+         '<td class="num">'+pct(x.enc,x.req)+'</td></tr>';
   });
   h += '</tbody></table></div>';
 
-  /* Acciones */
   h += '<div class="acciones">'+
        '<button class="btn primary" id="btnEnviar" onclick="enviar()">'+
-       (CFG.ENDPOINT ? 'Subir y actualizar el tablero' : 'Simular el envío (modo prueba)')+'</button>'+
+       (CFG.ENDPOINT ? 'Subir y actualizar el visor' : 'Simular el envío (modo prueba)')+'</button>'+
        '<button class="btn" onclick="reiniciar()">Limpiar</button>'+
-       '<span class="spacer"></span>'+
-       '</div>';
+       '<span class="spacer"></span></div>';
   h += '<div class="log" id="log"></div>';
 
   cont.innerHTML = h;
@@ -543,7 +670,8 @@ function enviar(){
   var tareas=[];
   validos.forEach(function(L){
     L.pos.forEach(function(po){
-      tareas.push({ L:L, po:po, filas:L.filas.filter(function(x){ return x.po===po; }) });
+      var fp = L.filas.filter(function(x){ return x.po===po; });
+      tareas.push({ L:L, po:po, filas:fp, suma:totalizar(fp) });
     });
   });
   procesar(tareas, validos);
@@ -599,14 +727,24 @@ function enviarPO(t, intento, cb){
   (function paso(){
     if(k>=lotes.length){ cb(true); return; }
     var chunk=lotes[k];
-    jsonp({
+    var esUltimo = (k===lotes.length-1);
+    var params = {
       accion:"lote", id_carga:COD_ACTUAL, archivo:t.L.archivo,
-      cliente_cod:t.L.cliente_cod, cliente:t.L.cliente, po:t.po,
-      primero:(k===0)?1:0, ultimo:(k===lotes.length-1)?1:0,
+      cliente:t.L.cliente, grupo:t.L.grupo, packing:t.L.packing, po:t.po,
+      primero:(k===0)?1:0, ultimo:esUltimo?1:0,
       filas: JSON.stringify(chunk.map(function(x){
-        return [x.estilo,x.codcolor,x.color,x.talla,x.req,x.enc,x.sal,x.pct,x.pctsal];
+        /* [po, op, estilo, cod_color, color, talla, taller, req, enc, sal] */
+        return [x.po,x.op,x.estilo,x.codcolor,x.color,x.talla,x.taller,x.req,x.enc,x.sal];
       }))
-    }, function(r){
+    };
+    if(esUltimo){
+      params.op         = t.L.ops.join(",");
+      params.cuadros    = t.L.cuadros.length;
+      params.totalFilas = t.filas.length;
+      params.totalReq   = t.suma.req;
+      params.totalEnc   = t.suma.enc;
+    }
+    jsonp(params, function(r){
       if(r && r.ok){ k++; setTimeout(paso, 120); }
       else fallo((r&&r.error)||"el servidor respondió algo inesperado");
     }, function(msg){ fallo(msg); });
@@ -626,12 +764,14 @@ function enviarPO(t, intento, cb){
 }
 
 function exito(cod, validos, prueba){
-  var fil=0, req=0, enc=0, pos={};
-  validos.forEach(function(L){ fil+=L.filas.length; req+=L.suma.req; enc+=L.suma.enc;
+  var fil=0, sku=0, req=0, enc=0, pos={};
+  validos.forEach(function(L){ fil+=L.filas.length; sku+=L.suma.sku;
+                               req+=L.suma.req; enc+=L.suma.enc;
                                L.pos.forEach(function(p){ pos[p]=1; }); });
   $("codCarga").textContent = cod;
   $("exitoDet").innerHTML = (prueba? "<b>Simulación.</b> No se guardó nada. " : "")+
-    fmt(fil)+" filas de "+Object.keys(pos).length+" PO ("+Object.keys(pos).join(", ")+")"+
+    fmt(fil)+" filas · "+sku+" combinaciones de talla · "+Object.keys(pos).length+" PO ("+
+    esc(Object.keys(pos).join(", "))+")"+
     "<br>"+fmt(enc)+" prendas encajadas de "+fmt(req)+" requeridas · "+pct(enc,req)+" de avance"+
     (prueba? "" : "<br>Las PO subidas reemplazaron a sus versiones anteriores.")+
     (REINTENTOS>0 ? "<br><span style=\"color:var(--taupe)\">El servidor falló "+REINTENTOS+
@@ -647,97 +787,7 @@ if(!CFG.ENDPOINT) $("modoAviso").style.display="block";
 render();
 </script>
 
-<!--
-================================================================================
-APPS SCRIPT DEL BACKEND — pegar en el Google Sheet de destino
-Extensiones > Apps Script > pegar > Implementar > Nueva implementación >
-Aplicación web > Ejecutar como: yo · Con acceso: Cualquier persona.
-Copiar la URL /exec y pegarla arriba en CFG.ENDPOINT.
-================================================================================
-
-var HOJA_DATA   = "DATA";
-var HOJA_CARGAS = "CARGAS";
-var ENC_DATA    = ["ID_CARGA","FECHA_CARGA","ARCHIVO","CLIENTE_COD","CLIENTE","PO",
-                   "ESTILO","COD_COLOR","COLOR","TALLA","REQUERIDAS","ENCAJADAS","SALDOS",
-                   "PCT_AVANCE","PCT_AVANCE_SALDO"];
-var ENC_CARGAS  = ["ID_CARGA","FECHA_CARGA","ARCHIVO","PO","FILAS","REQUERIDAS","ENCAJADAS"];
-
-function doGet(e){
-  var p = e.parameter || {}, cb = p.callback || "cb", out;
-  try { out = router(p); } catch(err){ out = {ok:false, error:String(err)}; }
-  return ContentService.createTextOutput(cb+"("+JSON.stringify(out)+")")
-    .setMimeType(ContentService.MimeType.JAVASCRIPT);
-}
-
-function hoja(nombre, encabezados){
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(nombre);
-  if(!sh){
-    sh = ss.insertSheet(nombre);
-    sh.getRange(1,1,1,encabezados.length).setValues([encabezados]).setFontWeight("bold");
-    sh.setFrozenRows(1);
-  }
-  return sh;
-}
-
-function router(p){
-  if(p.accion === "ping") return {ok:true, hora:new Date().toISOString()};
-  if(p.accion === "lote") return guardarLote(p);
-  return {ok:false, error:"acción no reconocida: "+p.accion};
-}
-
-function guardarLote(p){
-  var lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try{
-    var sh    = hoja(HOJA_DATA, ENC_DATA);
-    var po    = String(p.po||"").trim().toUpperCase();
-    if(!po) return {ok:false, error:"falta la PO"};
-    var filas = JSON.parse(p.filas || "[]");
-    var ahora = new Date();
-
-    // El primer lote de una PO borra sus filas anteriores: la carga reemplaza, no acumula.
-    if(String(p.primero) === "1" && sh.getLastRow() > 1){
-      var n    = sh.getLastRow() - 1;
-      var cols = sh.getRange(2, 6, n, 1).getValues();   // columna 6 = PO
-      for(var r = n - 1; r >= 0; r--){
-        if(String(cols[r][0]).trim().toUpperCase() === po) sh.deleteRow(r + 2);
-      }
-    }
-
-    if(filas.length){
-      var out = filas.map(function(f){
-        // f = [estilo, cod_color, color, talla, requeridas, encajadas, saldos, %avance, %avance+saldo]
-        // Los dos porcentajes son los que calcula el sistema: se guardan tal cual, no se recalculan.
-        return [p.id_carga, ahora, p.archivo, p.cliente_cod, p.cliente, po,
-                f[0], f[1], f[2], f[3], Number(f[4])||0, Number(f[5])||0, Number(f[6])||0,
-                (f[7]===null||f[7]===undefined)?"":Number(f[7]),
-                (f[8]===null||f[8]===undefined)?"":Number(f[8])];
-      });
-      sh.getRange(sh.getLastRow()+1, 1, out.length, ENC_DATA.length).setValues(out);
-    }
-
-    if(String(p.ultimo) === "1"){
-      var shc = hoja(HOJA_CARGAS, ENC_CARGAS);
-      var tr = 0, te = 0;
-      filas.forEach(function(f){ tr += Number(f[4])||0; te += Number(f[5])||0; });
-      shc.appendRow([p.id_carga, ahora, p.archivo, po, filas.length, tr, te]);
-    }
-
-    return {ok:true, po:po, filas:filas.length};
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-================================================================================
-DESPUÉS DE DESPLEGAR
-1. Compartir el Sheet como "Cualquier persona con el enlace · Lector" para que el
-   tablero de las auditoras pueda leerlo.
-2. Copiar el ID del Sheet (el tramo entre /d/ y /edit de la URL) y pegarlo en
-   CFG.SHEET_ID del archivo visor_avance_encajado_lives.html.
-================================================================================
--->
+<!-- El backend va en apps_script_encajado_lives_v3.gs, aparte. -->
 
 </body>
 </html>
