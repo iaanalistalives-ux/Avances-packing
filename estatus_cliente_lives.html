@@ -129,6 +129,19 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
 .navlinks a:hover{color:#fff;border-color:var(--emer);}
 @media(max-width:600px){ .navlinks{order:3;width:100%;} .navlinks a{flex:1;text-align:center;min-height:38px;
   display:flex;align-items:center;justify-content:center;} }
+#op-resultados{margin-top:10px;}
+#op-resultados .opr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+padding:10px 12px;border:1px solid var(--warm);border-radius:8px;background:#fff;
+margin-bottom:6px;cursor:pointer;transition:.12s;}
+#op-resultados .opr:hover{border-color:var(--sage);background:var(--warm-light);}
+#op-resultados .opr .p{font-size:13.5px;font-weight:700;}
+#op-resultados .opr .c{font-size:12.5px;color:var(--stone);}
+#op-resultados .opr .e{margin-left:auto;font-size:11px;font-weight:700;
+padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--stone);}
+#op-resultados .opr .e.apr{background:#E7F4EF;color:var(--sage-dark);}
+#op-resultados .opr .e.rec{background:#FCEBEB;color:var(--rose);}
+#op-resultados .vacio{font-size:12.5px;color:var(--stone);padding:6px 0;}
+@media(max-width:600px){ #op-resultados .opr{min-height:56px;} #op-resultados .opr .e{margin-left:0;} }
 </style>
 </head>
 <body>
@@ -154,6 +167,19 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
     </div>
     <div id="loading-search" class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span><br><br>Cargando datos...</div>
     <div class="field-grid" id="field-grid" style="display:none">
+      <div class="field" style="grid-column:1/-1">
+        <label>Buscar por OP <span style="opacity:.55;text-transform:none;font-weight:400">(el camino corto)</span></label>
+        <div class="ac-wrap">
+          <input id="inp-op" class="ac-input" type="text" placeholder="Escribe la OP, por ejemplo 25229"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" inputmode="numeric">
+          <div class="ac-list" id="list-op"></div>
+        </div>
+        <div id="op-resultados"></div>
+      </div>
+      <div class="field" style="grid-column:1/-1;border-top:1px solid var(--warm);padding-top:12px;margin-top:2px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--stone)">
+          o buscar paso a paso</span>
+      </div>
       <div class="field"><label>Cliente <span style="opacity:.55;text-transform:none;font-weight:400">(opcional)</span></label><div class="ac-wrap"><input id="inp-cliente" class="ac-input" type="text" placeholder="Todos los clientes" autocomplete="off" autocorrect="off" autocapitalize="off"><div class="ac-list" id="list-cliente"></div></div></div>
       <div class="field"><label>Grupo</label><div class="ac-wrap"><input id="inp-grupo" class="ac-input" type="text" placeholder="Escribe para buscar..." autocomplete="off" autocorrect="off" autocapitalize="off"><div class="ac-list" id="list-grupo"></div></div></div>
       <div class="field"><label>Estilo</label><div class="ac-wrap"><input id="inp-estilo" class="ac-input" type="text" placeholder="Primero selecciona Grupo" autocomplete="off" autocorrect="off" autocapitalize="off" disabled><div class="ac-list" id="list-estilo"></div></div></div>
@@ -175,7 +201,7 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
     <div class="section-label">Historial de auditorías</div>
     <div class="aud-table-wrap">
       <table class="aud-table" id="aud-table" style="display:none">
-        <thead><tr><th>Fecha</th><th>Auditor</th><th>Resultado</th><th>Lote</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th><th>Taller</th><th>Auditor</th><th>Lote</th></tr></thead>
         <tbody id="aud-tbody"></tbody>
       </table>
       <div class="aud-empty" id="aud-empty">Aún no hay auditorías registradas para esta combinación.</div>
@@ -299,8 +325,74 @@ function resetFrom(level) {
   document.getElementById('inp-estilo').placeholder = 'Primero selecciona Grupo';
   document.getElementById('inp-po').placeholder = 'Primero selecciona Estilo';
   document.getElementById('inp-color').placeholder = 'Primero selecciona PO';
+  const or = document.getElementById('op-resultados');
+  if (or) or.innerHTML = '';
   ocultarRegistro();
 }
+
+/* Búsqueda por OP. Las auditoras trabajan con la OP, no con grupo y estilo, así
+   que este es el camino directo: se escribe la OP y se elige cuál de sus PO y
+   colores se va a actualizar. La cascada de abajo sigue estando para quien
+   prefiera llegar por grupo. */
+function opsDisponibles(){
+  return [...new Set(DATOS.map(r => r.op).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'es',{numeric:true}));
+}
+function etiquetaEstatus(r){
+  if (r.statusCliente === 'APROBADO_CLIENTE')  return ['Aprobado por cliente','apr'];
+  if (r.statusCliente === 'RECHAZADO_CLIENTE') return ['Rechazado por cliente','rec'];
+  if (r.estatusAuditoria === 'RECHAZADO')      return ['Rechazado en auditoría','rec'];
+  if (r.estatusAuditoria === 'APROBADO')       return ['Pendiente de cliente',''];
+  return ['Sin auditar',''];
+}
+function mostrarResultadosOP(op){
+  const cont = document.getElementById('op-resultados');
+  const filas = DATOS.filter(r => String(r.op) === String(op));
+  if (!filas.length){
+    cont.innerHTML = '<div class="vacio">La OP ' + op + ' no está en el Sheet. ' +
+      'Si es nueva, primero hay que subir su reporte de encajado.</div>';
+    return;
+  }
+  /* Con un solo registro no hace falta elegir: se abre directo. */
+  if (filas.length === 1){
+    cont.innerHTML = '';
+    abrirRegistro(filas[0]);
+    return;
+  }
+  cont.innerHTML = '<div class="vacio">La OP ' + op + ' tiene ' + filas.length +
+    ' registros. Elige el que vas a actualizar:</div>' +
+    filas.map((r, i) => {
+      const e = etiquetaEstatus(r);
+      return '<div class="opr" data-i="' + i + '">' +
+        '<span class="p">' + r.color + '</span>' +
+        '<span class="c">PO ' + r.po + ' · ' + r.grupo + ' · estilo ' + r.estilo + '</span>' +
+        '<span class="e ' + e[1] + '">' + e[0] + '</span></div>';
+    }).join('');
+  cont.querySelectorAll('.opr').forEach(el => {
+    el.addEventListener('click', () => abrirRegistro(filas[+el.dataset.i]));
+  });
+}
+/* Deja la cascada sincronizada con lo que se eligió por OP, para que no queden
+   los dos caminos mostrando cosas distintas. */
+function abrirRegistro(r){
+  st.cliente = r.cliente; st.grupo = r.grupo; st.estilo = r.estilo;
+  st.po = r.po; st.color = r.color;
+  const set = (id, val, ph) => {
+    const i = document.getElementById(id);
+    i.value = val || ''; i.disabled = false;
+    if (ph) i.placeholder = ph;
+  };
+  set('inp-cliente', r.cliente);
+  set('inp-grupo',   r.grupo);
+  set('inp-estilo',  r.estilo, 'Escribe para buscar...');
+  set('inp-po',      r.po,     'Escribe para buscar...');
+  set('inp-color',   r.color,  'Escribe para buscar...');
+  cargarRegistro();
+}
+
+setupAC('inp-op','list-op', () => opsDisponibles(), val => {
+  document.getElementById('inp-op').value = val;
+  mostrarResultadosOP(val);
+});
 
 setupAC('inp-cliente','list-cliente', () => [...new Set(DATOS.map(r=>r.cliente).filter(Boolean))].sort(), val => {
   st.cliente = val;
@@ -362,19 +454,30 @@ function renderRegistro(d) {
   } else {
     box.className = 'estatus-box'; badge.className = 'estatus-badge'; badge.textContent = 'Sin auditar';
   }
-  detalle.innerHTML = d.numAuditorias > 0
-    ? `<b>${d.numAuditorias}</b> auditoría(s) registrada(s) · resultado más reciente mostrado arriba`
+  const nTodas = d.numAuditoriasTodas || d.numAuditorias || 0;
+  detalle.innerHTML = nTodas > 0
+    ? `<b>${d.numAuditorias}</b> auditoría(s) final(es) — el resultado de arriba es la más reciente` +
+      (nTodas > d.numAuditorias
+        ? ` · ${nTodas} en total contando costura y acabados, abajo el detalle`
+        : '')
     : 'Todavía no hay ninguna auditoría para esta combinación.';
 
   // Historial de auditorías
   const tabla = document.getElementById('aud-table');
   const tbody = document.getElementById('aud-tbody');
   const vacio = document.getElementById('aud-empty');
-  if (d.auditorias && d.auditorias.length) {
+  /* Se muestran los tres procesos (costura, acabados y final) si el backend los
+     manda. El Estatus Auditoría de arriba sigue siendo el de la última final:
+     son dos cosas distintas y conviene no mezclarlas. */
+  const lista = (d.auditoriasTodas && d.auditoriasTodas.length) ? d.auditoriasTodas : (d.auditorias || []);
+  if (lista.length) {
     tabla.style.display = ''; vacio.style.display = 'none';
-    tbody.innerHTML = d.auditorias.map(a => `<tr>
-      <td>${a.fecha}</td><td>${a.auditor || '—'}</td>
+    tbody.innerHTML = lista.map(a => `<tr>
+      <td>${a.fecha}</td>
+      <td>${a.proceso || '—'}</td>
       <td><span class="badge-res ${a.resultado==='APROBADO'?'aprobado':'rechazado'}">${a.resultado}</span></td>
+      <td>${a.taller || '—'}</td>
+      <td>${a.auditor || '—'}</td>
       <td>${a.lote}</td>
     </tr>`).join('');
   } else {
@@ -501,6 +604,10 @@ function limpiarFormulario() {
   st = { cliente: st.cliente, grupo:null, estilo:null, po:null, color:null };
   ocultarRegistro();
   window.scrollTo({top:0, behavior:'smooth'});
+  const op = document.getElementById('inp-op');
+  if (op) op.value = '';
+  const opr = document.getElementById('op-resultados');
+  if (opr) opr.innerHTML = '';
 }
 
 function showToast(msg, error=false) {
