@@ -422,6 +422,11 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       filtros</i> lo borra todo. Adem&aacute;s los filtros quedan en la direcci&oacute;n de la
       p&aacute;gina: copiando el enlace de la barra del navegador se lo puedes pasar a alguien y
       lo ver&aacute; igual que t&uacute;.</p>
+      <p><b>De d&oacute;nde vienen los datos.</b> Todo est&aacute; en un solo Google Sheet, el
+      mismo de Avances Auditor&iacute;a. El visor no lo abre directamente: se los pide al
+      servidor, que es lo que permite que ese Sheet siga siendo privado. Ah&iacute; dentro
+      tambi&eacute;n est&aacute;n el Estatus Cliente y el Historial, y no conviene que queden a
+      la vista de cualquiera con el enlace.</p>
       <p><b>Actualizaci&oacute;n.</b> Los reportes no traen fecha de corte. La fecha que aparece
       bajo las tarjetas es la de la &uacute;ltima carga registrada. Cuando alguien vuelve a subir
       una PO, todo lo anterior de esa PO se reemplaza.</p>
@@ -437,13 +442,11 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
    CFG — lo único que se toca al instalar
    ============================================================ */
 var CFG = {
-  /* ID del Google Sheet (el tramo entre /d/ y /edit de su URL).
-     Si queda vacío, la consulta arranca en modo archivo: se cargan los Excel a mano. */
-  SHEET_ID : "19-hZFD1BoJ_D8677es0iy4TVJWKy8ARQ20qCNFLo-EM",
-  HOJA     : "ENCAJADO",
-  /* Mismo endpoint del cargador. Sirve para pedir el historial de auditorías, que
-     se lee en el momento: una auditoría de hace cinco minutos aparece sin volver a
-     subir ningún Excel. Si queda vacío, el visor funciona igual pero sin auditorías. */
+  /* Único valor a configurar: el endpoint del Apps Script del encajado.
+     Por aquí se piden las tres cosas — el detalle del encajado, el historial de
+     auditorías y el estatus del cliente. El Sheet ya no se abre por enlace
+     público, así que puede quedarse privado: dentro de ese mismo archivo están
+     también el Estatus Cliente y el Historial. */
   ENDPOINT : "https://script.google.com/macros/s/AKfycbzBere_gFVnUazyE8XBcxK4QFoSo63fwi3Q7GOHo60ldcTYA9WNmzav18cBJrTRyOenPw/exec"
 };
 
@@ -757,25 +760,9 @@ function totalizar(filas){
 
 
 /* ============================================================
-   Lectura del Sheet (CSV — gviz en JSON pierde celdas)
+   Lectura de los datos, a través del Apps Script
    ============================================================ */
-function parseCSV(txt){
-  var filas=[],f=[],campo="",dentro=false;
-  for(var i=0;i<txt.length;i++){
-    var ch=txt[i];
-    if(dentro){
-      if(ch==='"'){ if(txt[i+1]==='"'){ campo+='"'; i++; } else dentro=false; }
-      else campo+=ch;
-    }else{
-      if(ch==='"') dentro=true;
-      else if(ch===","){ f.push(campo); campo=""; }
-      else if(ch==="\n"){ f.push(campo); filas.push(f); f=[]; campo=""; }
-      else if(ch!=="\r") campo+=ch;
-    }
-  }
-  if(campo!==""||f.length){ f.push(campo); filas.push(f); }
-  return filas;
-}
+
 
 var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
 var AUDITORIAS=null, AUD_ESTADO="", AUD_INFO="";   /* null = aún no pedidas */
@@ -838,77 +825,53 @@ function pedirAuditorias(){
   });
 }
 
-function urlSheet(){
-  return "https://docs.google.com/spreadsheets/d/"+CFG.SHEET_ID+
-         "/gviz/tq?tqx=out:csv&sheet="+encodeURIComponent(CFG.HOJA);
-}
 function diagnostico(msg){
-  var local = (location.protocol==="file:");
-  var h = "<b>No se pudo leer el Sheet.</b> ";
-  if(msg.indexOf("no existe todav\u00eda")>=0){
-    h += "La hoja \u00ab"+CFG.HOJA+"\u00bb no existe en ese Sheet. Sube primero un Excel con el cargador: "+
-         "la hoja se crea sola en esa primera carga.";
-  }else if(msg.indexOf("inicio de sesi\u00f3n")>=0){
-    h += "El Sheet pidi\u00f3 iniciar sesi\u00f3n en vez de entregar los datos. \u00c1brelo y comparte: "+
-         "\u00abCualquier usuario que tenga el enlace \u00b7 Lector\u00bb.";
-  }else if(local){
-    h += "Esta p\u00e1gina est\u00e1 abierta desde el disco (file:///), y desde ah\u00ed el navegador "+
-         "bloquea la lectura de Google Sheets. S\u00fabela a GitHub Pages y \u00e1brela por su enlace. "+
-         "Mientras tanto puedes cargar los Excel a mano aqu\u00ed abajo.";
+  var h = "<b>No se pudieron traer los datos.</b> ";
+  if(msg.indexOf("ning\u00fan reporte")>=0){
+    h += "Todav\u00eda no se ha subido ning\u00fan reporte de encajado. "+
+         "S\u00fabelo en la p\u00e1gina de carga y vuelve aqu\u00ed.";
   }else{
-    h += "Las causas, de la m\u00e1s probable a la menos: <b>1)</b> el Sheet no est\u00e1 compartido como "+
-         "\u00abCualquier usuario que tenga el enlace \u00b7 Lector\u00bb. <b>2)</b> la hoja \u00ab"+CFG.HOJA+
-         "\u00bb todav\u00eda no existe porque no se ha subido ning\u00fan Excel. <b>3)</b> el ID est\u00e1 mal copiado.";
+    h += "El servidor no respondi\u00f3 como se esperaba. Suele ser porque el Apps Script "+
+         "cambi\u00f3 y falta volver a desplegarlo como <i>Nueva versi\u00f3n</i>. "+
+         "Mientras tanto puedes cargar los Excel a mano aqu\u00ed abajo.";
   }
-  h += " <a href=\""+urlSheet()+"\" target=\"_blank\" style=\"color:inherit;font-weight:700\">"+
-       "Abrir el enlace del Sheet para comprobarlo</a>"+
-       " <span style=\"opacity:.7\">(detalle t\u00e9cnico: "+esc(msg)+")</span>";
+  h += " <span style=\"opacity:.7\">(detalle t\u00e9cnico: "+esc(msg)+")</span>";
   var e=$("err"); e.innerHTML=h; e.style.display="block";
 }
 
+/* Pide el detalle al Apps Script. Viene como arrays para que la respuesta no
+   repita el nombre de cada campo en cada fila: con miles de filas, eso pesa. */
 function cargarDesdeSheet(){
-  var url=urlSheet()+"&t="+Date.now();
-  $("hstate").textContent="Leyendo el Sheet\u2026";
-  fetch(url).then(function(r){
-    if(r.status===400) throw new Error("la hoja \u00ab"+CFG.HOJA+"\u00bb no existe todav\u00eda en ese Sheet");
-    if(!r.ok) throw new Error("el Sheet respondi\u00f3 "+r.status);
-    return r.text();
-  }).then(function(txt){
-    if(/<html/i.test(txt.substring(0,400)))
-      throw new Error("el Sheet devolvi\u00f3 una p\u00e1gina de inicio de sesi\u00f3n en vez de datos");
-    var f=parseCSV(txt);
-    if(f.length<2) throw new Error("la hoja "+CFG.HOJA+" no tiene filas");
-    var head=f[0].map(norm), ix={};
-    head.forEach(function(h,i){ ix[h]=i; });
-    var need=["PO","ESTILO","COLOR","TALLA","REQUERIDAS","ENCAJADAS"];
-    var falta=need.filter(function(c){ return ix[c]===undefined; });
-    if(falta.length) throw new Error("a la hoja le faltan las columnas "+falta.join(", "));
-    var G=function(r,c){ return ix[c]===undefined?null:r[ix[c]]; };
-    var out=[];
-    for(var i=1;i<f.length;i++){
-      var r2=f[i]; if(!r2||!norm(G(r2,"PO"))) continue;
-      var fe=G(r2,"FECHA_CARGA")||"";
-      if(fe && (!ULTIMA_CARGA || String(fe)>String(ULTIMA_CARGA))) ULTIMA_CARGA=fe;
-      out.push({
-        cliente:norm(G(r2,"CLIENTE")), grupo:norm(G(r2,"GRUPO")), packing:norm(G(r2,"PACKING")),
-        po:norm(G(r2,"PO")), op:norm(G(r2,"OP")), estilo:norm(G(r2,"ESTILO")),
-        estiloCli:norm(G(r2,"ESTILO_CLIENTE")),
-        codcolor:norm(G(r2,"COD_COLOR")), color:norm(G(r2,"COLOR")), talla:norm(G(r2,"TALLA")),
-        taller:norm(G(r2,"TALLER")),
-        req:numv(G(r2,"REQUERIDAS"))||0, enc:numv(G(r2,"ENCAJADAS"))||0, sal:numv(G(r2,"SALDOS"))||0,
-        pedidoOps:numv(G(r2,"PEDIDO_OPS")), match:norm(G(r2,"MATCH_OPS")),
-        avisos:String(G(r2,"AVISOS")||""),
-        fecha:fe, archivo:String(G(r2,"ARCHIVO")||"")
-      });
-    }
-    if(!out.length) throw new Error("la hoja no tiene filas con PO");
-    DATOS=out; ORIGEN="Sheet en l\u00ednea";
-    arrancarApp();
-  }).catch(function(e){
-    diagnostico(e.message);
+  if(!CFG.ENDPOINT){
     $("drop").style.display="block";
-    $("hstate").textContent="Sin conexi\u00f3n al Sheet";
-  });
+    $("hstate").textContent="Sin conexi\u00f3n configurada";
+    mostrarErr("No se ha configurado el enlace del Apps Script. Mientras tanto puedes "+
+               "cargar los Excel a mano aqu\u00ed abajo.");
+    return;
+  }
+  $("hstate").textContent="Leyendo los datos\u2026";
+  jsonp({accion:"datosEncajado"}, function(r){
+    if(!r || !r.ok){ fallo((r&&r.error)||"respuesta inesperada"); return; }
+    if(!r.filas || !r.filas.length){ fallo("no hay ning\u00fan reporte cargado"); return; }
+    var c={}; r.cols.forEach(function(n,i){ c[n]=i; });
+    DATOS = r.filas.map(function(f){
+      return { cliente:f[c.cliente], grupo:f[c.grupo], packing:f[c.packing], po:f[c.po],
+               op:f[c.op], estilo:String(f[c.estilo]||""), estiloCli:f[c.estiloCli],
+               codcolor:f[c.codcolor], color:f[c.color], talla:f[c.talla], taller:f[c.taller],
+               req:f[c.req]||0, enc:f[c.enc]||0, sal:f[c.sal]||0,
+               pedidoOps:f[c.pedidoOps], match:f[c.match], avisos:f[c.avisos],
+               fecha:f[c.fecha], archivo:"" };
+    });
+    ULTIMA_CARGA = r.ultimaCarga || null;
+    ORIGEN = "Sheet en l\u00ednea"+(r.ms? " ("+(r.ms/1000).toFixed(1)+" s)":"");
+    arrancarApp();
+  }, function(msg){ fallo(msg); });
+
+  function fallo(msg){
+    diagnostico(msg);
+    $("drop").style.display="block";
+    $("hstate").textContent="Sin conexi\u00f3n a los datos";
+  }
 }
 
 /* ============================================================
@@ -1615,8 +1578,8 @@ function exportarExcel(){
 }
 function recargar(){
   AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={}; ESTATUS=null;
-  if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); pedirAuditorias(); pedirEstatus(); }
-  else location.reload();
+  mostrarErr(""); ULTIMA_CARGA=null;
+  cargarDesdeSheet(); pedirAuditorias(); pedirEstatus();
 }
 
 /* ---------- Arranque ---------- */
@@ -1646,13 +1609,7 @@ file.onchange=function(e){ leerArchivos(e.target.files); file.value=""; };
   drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
 drop.addEventListener("drop",function(e){ leerArchivos(e.dataTransfer.files); });
 
-if(CFG.SHEET_ID){ cargarDesdeSheet(); }
-else{
-  $("drop").style.display="block";
-  $("hstate").textContent="Modo archivo · sin Sheet configurado";
-  mostrarErr("Todavía no se ha configurado el Google Sheet (CFG.SHEET_ID está vacío). "+
-             "Mientras tanto puedes cargar los Excel a mano aquí abajo.");
-}
+cargarDesdeSheet();
 </script>
 </body>
 </html>
