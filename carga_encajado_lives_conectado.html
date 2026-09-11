@@ -218,7 +218,8 @@ function ordenTalla(t){ var i=ORDEN_TALLA.indexOf(t); return i<0 ? 900+(t.charCo
    en uno sin tocarlo en el otro.
 
    Lo que sabe leer:
-   - Cabecera: GRUPO y CLIENTE (celdas a la derecha de "Cliente:"), PACKING y OP.
+   - Cabecera: GRUPO y CLIENTE (celdas a la derecha de "Cliente:"), PACKING, el
+     ESTILO PROPIO de LIVES (a la derecha del packing) y la OP.
      Se buscan por etiqueta, nunca por coordenada: la posición cambia según
      cuántas columnas traiga el reporte.
    - Varios cuadros en un mismo archivo, uno por taller. Cada cuadro tiene su
@@ -255,12 +256,12 @@ function numVal(v){
 }
 
 /* Devuelve:
-   { ok, error, archivo, cliente, grupo, packing, op,
-     filas:[{cliente,grupo,packing,po,op,estilo,codcolor,color,talla,taller,req,enc,sal}],
+   { ok, error, archivo, cliente, grupo, packing, op, estilo,
+     filas:[{cliente,grupo,packing,po,op,estilo,estiloCli,codcolor,color,talla,taller,req,enc,sal}],
      cuadros:[{taller,op,filas}], totalArchivo, control, cuadra }                     */
 function parsearLibro(wb, nombreArchivo){
   var res = { ok:false, error:"", archivo:nombreArchivo,
-              cliente:"", grupo:"", packing:"", op:"",
+              cliente:"", grupo:"", packing:"", op:"", estilo:"",
               filas:[], cuadros:[], totalArchivo:null, control:null, cuadra:null };
 
   var ws = null;
@@ -300,8 +301,16 @@ function parsearLibro(wb, nombreArchivo){
         res.grupo   = normTxt(f2[c2+1]);
         res.cliente = normTxt(f2[c2+2]);
       }
-      if(t2==="PACKING" && !res.packing) res.packing = normTxt(f2[c2+1]);
-      if(t2==="OP"      && !res.op)      res.op      = normTxt(f2[c2+1]);
+      if(t2==="PACKING" && !res.packing){
+        res.packing = normTxt(f2[c2+1]);
+        /* A la derecha del packing va el ESTILO PROPIO de LIVES. Es distinto del
+           "Estilo Cliente" de la columna del cuadro, y es el que cruza contra OPS
+           y contra las auditor\u00edas. Puede venir vac\u00edo mientras no lo llenen. */
+        if(!res.estilo) res.estilo = normTxt(f2[c2+2]);
+      }
+      if(t2==="OP" && !res.op) res.op = normTxt(f2[c2+1]);
+      /* Si alg\u00fan d\u00eda lo rotulan, la etiqueta manda sobre la posici\u00f3n. */
+      if(t2.indexOf("ESTILO")===0 && t2.indexOf("CLIENTE")<0) res.estilo = normTxt(f2[c2+1]);
     }
   }
   /* En el formato viejo el grupo venía como código de cliente (00059): no es
@@ -382,7 +391,8 @@ function parsearLibro(wb, nombreArchivo){
         packing : res.packing,
         po      : normTxt(fr[col.po]),
         op      : opCuadro,
-        estilo  : normTxt(fr[col.estilo]),
+        estilo  : res.estilo,                        /* propio de LIVES, de la cabecera */
+        estiloCli: normTxt(fr[col.estilo]),          /* el del cliente, de la columna */
         codcolor: col.codcolor!==undefined ? normTxt(fr[col.codcolor]) : "",
         color   : normTxt(fr[col.color]),
         talla   : talla,
@@ -438,7 +448,7 @@ function parsearLibro(wb, nombreArchivo){
 function totalizar(filas){
   var uni={}, enc=0, sal=0, conflictos=[];
   filas.forEach(function(x){
-    var k = x.po+"|"+x.estilo+"|"+x.codcolor+"|"+x.talla;
+    var k = x.po+"|"+x.estiloCli+"|"+x.codcolor+"|"+x.talla;
     if(uni[k]===undefined) uni[k] = x.req;
     else if(uni[k] !== x.req){
       if(x.req > uni[k]) uni[k] = x.req;          /* se conserva el mayor */
@@ -701,7 +711,14 @@ function enviar(){
   validos.forEach(function(L){
     L.pos.forEach(function(po){
       var fp = L.filas.filter(function(x){ return x.po===po; });
-      tareas.push({ L:L, po:po, filas:fp, suma:totalizar(fp) });
+      /* Total de requeridas por color: el requerido de una talla se cuenta una vez
+         aunque aparezca en varios talleres. */
+      var uni={}, porColor={};
+      fp.forEach(function(x){
+        var k=x.color+"|"+x.estiloCli+"|"+x.codcolor+"|"+x.talla;
+        if(uni[k]===undefined){ uni[k]=x.req; porColor[x.color]=(porColor[x.color]||0)+x.req; }
+      });
+      tareas.push({ L:L, po:po, filas:fp, suma:totalizar(fp), reqPorColor:porColor });
     });
   });
   procesar(tareas, validos);
@@ -761,10 +778,15 @@ function enviarPO(t, intento, cb){
     var params = {
       accion:"lote", id_carga:COD_ACTUAL, archivo:t.L.archivo,
       cliente:t.L.cliente, grupo:t.L.grupo, packing:t.L.packing, po:t.po,
+      estilo:t.L.estilo,
       primero:(k===0)?1:0, ultimo:esUltimo?1:0,
+      /* Requeridas totales por color, ya sumadas con la regla correcta (una vez por
+         talla aunque venga en varios talleres). El backend las compara contra el
+         PEDIDO de OPS, que también es por color. */
+      reqPorColor: JSON.stringify(t.reqPorColor),
       filas: JSON.stringify(chunk.map(function(x){
-        /* [po, op, estilo, cod_color, color, talla, taller, req, enc, sal] */
-        return [x.po,x.op,x.estilo,x.codcolor,x.color,x.talla,x.taller,x.req,x.enc,x.sal];
+        /* [po, op, estilo, estilo_cliente, cod_color, color, talla, taller, req, enc, sal] */
+        return [x.po,x.op,x.estilo,x.estiloCli,x.codcolor,x.color,x.talla,x.taller,x.req,x.enc,x.sal];
       }))
     };
     if(esUltimo){
