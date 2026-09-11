@@ -42,6 +42,8 @@ cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage);}
 .btn.primary{background:var(--sage);color:#fff;border-color:var(--sage);}
 .btn.primary:hover{background:var(--sage-dark);}
 .spacer{margin-left:auto;}
+.umbral{color:var(--taupe)!important;border-color:var(--tan)!important;}
+.flab.umbral{color:var(--taupe);}
 .flab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);}
 
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px;}
@@ -213,7 +215,7 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
   <div class="divider"></div>
   <div>
     <div class="htitle">AVANCE DE ENCAJADO &middot; CONSULTA</div>
-    <div class="hsub">Lo que reporta el sistema, filtrable por PO, estilo, color y talla</div>
+    <div class="hsub">Avance por talla, filtrable por cliente, grupo, PO, OP, estilo, color, talla y taller</div>
   </div>
   <div class="hstate" id="hstate">Cargando&hellip;</div>
 </div>
@@ -232,10 +234,22 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 
     <div class="bar">
       <span class="flab">Cliente</span><select id="fCliente"></select>
+      <span class="flab">Grupo</span><select id="fGrupo"></select>
       <span class="flab">PO</span><select id="fPO"></select>
+      <span class="flab">OP</span><select id="fOP"></select>
       <span class="flab">Estilo</span><select id="fEstilo"></select>
       <span class="flab">Color</span><select id="fColor"></select>
       <span class="flab">Talla</span><select id="fTalla"></select>
+      <span class="flab">Taller</span><select id="fTaller"></select>
+      <span class="flab umbral">Avance</span>
+      <select id="fUmbral" class="umbral">
+        <option value="">Todo</option>
+        <option value="75">75% o más</option>
+        <option value="85">85% o más</option>
+        <option value="90">90% o más</option>
+        <option value="100">100% o más</option>
+        <option value="-100">Menos de 100%</option>
+      </select>
       <input type="search" id="fBusca" placeholder="Buscar…">
       <button class="btn" onclick="limpiarFiltros()">Quitar filtros</button>
       <span class="spacer"></span>
@@ -286,34 +300,32 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 
     <details class="help">
       <summary>&iquest;C&oacute;mo leo esta consulta?</summary>
-      <p><b>Qu&eacute; es una fila.</b> Cada fila es una combinaci&oacute;n de PO, estilo,
-      c&oacute;digo de color y talla, con las prendas <i>requeridas</i> por la PO, las
-      <i>encajadas</i> hasta el momento y los <i>saldos</i> (prendas disponibles que
-      todav&iacute;a no se han encajado). No hay n&uacute;mero de caja: esto es avance por talla,
-      no contenido de caja.</p>
-      <p><b>De d&oacute;nde salen los porcentajes.</b> <i>% avance</i> y <i>% avance + saldo</i>
-      son los que calcula el sistema y vienen dentro del Excel. Aqu&iacute; no se recalculan:
-      solo se muestran con el signo de porcentaje, porque en el Excel salen como n&uacute;mero
-      suelto (103.44 en vez de 103.44%).</p>
-      <p><b>La &uacute;nica cifra que calcula esta pantalla</b> es el total del pie de la tabla y
-      el de las tarjetas de arriba, cuando se juntan varias filas. Se calcula como
-      <i>suma de encajadas &divide; suma de requeridas</i>, nunca promediando los porcentajes de
-      cada fila: promediarlos le dar&iacute;a el mismo peso a una talla de 8 prendas que a una de
-      800.</p>
-      <p><b>Qu&eacute; no se carga.</b> Las filas de <i>Total</i> por color, <i>TOTAL</i> por
-      estilo y <i>TOTAL GENERAL</i> del Excel no entran: son sumas de las filas de detalle y
-      contarlas duplicar&iacute;a cada prenda. Los totales se vuelven a sumar aqu&iacute;.</p>
+      <p><b>Qu&eacute; es una talla aqu&iacute;.</b> Una combinaci&oacute;n de PO, estilo, color y
+      talla, con las prendas <i>requeridas</i> por la PO, las <i>encajadas</i> hasta el momento y
+      los <i>saldos</i> (prendas disponibles que a&uacute;n no se han encajado). No hay
+      n&uacute;mero de caja: esto es avance por talla, no contenido de caja.</p>
+      <p><b>Cuando una talla se hizo en varios talleres.</b> El reporte trae un cuadro por taller
+      y cada cuadro repite el requerido total de la PO. Por eso el requerido se cuenta
+      <b>una sola vez</b> y lo encajado <b>se suma</b>. Caso real de la PO 504431: la talla XS
+      pide 29; un taller encaj&oacute; 31 y el otro 3, o sea 34 de 29. Si se sumaran los dos
+      requeridos dir&iacute;a 58, que no es lo que pidi&oacute; el cliente. En la tarjeta de esa
+      talla aparece el desglose por taller.</p>
+      <p><b>El taller es informativo.</b> Sirve para saber qui&eacute;n produjo, no para agrupar.
+      Si se filtra por un taller, el requerido sigue siendo el de la PO completa y lo encajado
+      solo el de ese taller: as&iacute; se ve cu&aacute;nto del pedido lleva cada uno.</p>
+      <p><b>De d&oacute;nde sale el porcentaje.</b> Se calcula aqu&iacute;, como
+      <i>encajadas &divide; requeridas</i>. Los porcentajes que trae el Excel no se usan porque el
+      reporte los exporta en dos escalas distintas: en unos archivos la celda dice 104.54 y en
+      otros dice 1.0454. Los totales se calculan como <i>suma &divide; suma</i>, nunca promediando
+      los porcentajes de cada talla.</p>
+      <p><b>El filtro de Avance.</b> Deja ver solo las tallas que ya llegaron a cierto punto
+      —75%, 85%, 90%— para saber cu&aacute;les est&aacute;n listas para auditar. Se aplica a la
+      talla completa, juntando sus talleres, no a cada cuadro por separado.</p>
       <p><b>Actualizaci&oacute;n.</b> Los reportes no traen fecha de corte. La fecha que aparece
-      abajo de las tarjetas es la de la &uacute;ltima carga registrada. Cuando alguien vuelve a
-      subir una PO, los datos anteriores de esa PO se reemplazan por completo.</p>
-      <p><b>Las dos vistas muestran lo mismo.</b> En <i>Tarjetas</i> hay una tarjeta por talla,
-      agrupadas por PO, estilo y color, con la barra de avance y una marca vertical en el 100%.
-      En <i>Tabla</i> est&aacute;n las mismas filas para buscar y ordenar. El color de la tarjeta
-      solo distingue si esa talla ya lleg&oacute; al 100% de lo requerido (verde) o todav&iacute;a
-      no (&aacute;mbar); no es un sem&aacute;foro de cumplimiento, porque nadie ha declarado
-      qu&eacute; tolerancia se acepta.</p>
-      <p><b>Si con los filtros elegidos no queda ninguna fila</b>, la pantalla lo dice y esconde
-      la tabla y los gr&aacute;ficos, en vez de mostrar ceros.</p>
+      bajo las tarjetas es la de la &uacute;ltima carga registrada. Cuando alguien vuelve a subir
+      una PO, todo lo anterior de esa PO se reemplaza.</p>
+      <p><b>Si con los filtros elegidos no queda ninguna talla</b>, la pantalla lo dice y
+      distingue si es porque no hay datos o porque ninguna llega al avance pedido.</p>
     </details>
 
   </div>
@@ -327,7 +339,7 @@ var CFG = {
   /* ID del Google Sheet (el tramo entre /d/ y /edit de su URL).
      Si queda vacío, la consulta arranca en modo archivo: se cargan los Excel a mano. */
   SHEET_ID : "19-hZFD1BoJ_D8677es0iy4TVJWKy8ARQ20qCNFLo-EM",
-  HOJA     : "DATA"
+  HOJA     : "ENCAJADO"
 };
 
 var SAGE="#0F7A5A", EMER="#10B981", SLATE="#4E6B78", STONE="#5F726C", TAN="#F59E0B", WARM="#F1F6F4";
@@ -374,9 +386,7 @@ var etiquetasBarra = {
    Utilidades
    ============================================================ */
 function $(id){ return document.getElementById(id); }
-function norm(v){ if(v===null||v===undefined) return ""; return String(v).replace(/\s+/g," ").trim().toUpperCase(); }
-function numv(v){ if(v===null||v===undefined||v==="") return null;
-  var n=Number(String(v).replace(/[^0-9.\-]/g,"")); return isFinite(n)?n:null; }
+var norm = normTxt, numv = numVal;   /* el parser ya los define */
 function fmt(n,d){ if(n===null||n===undefined||!isFinite(n)) return "—";
   return Number(n).toLocaleString("es-PE",{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
 /* Un porcentaje que ya viene calculado, solo se le pone el signo */
@@ -390,71 +400,224 @@ function mostrarErr(t){ var e=$("err"); e.textContent=t; e.style.display=t?"bloc
 function esc(t){ return String(t===null||t===undefined?"":t)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-/* ============================================================
-   Parser del Excel (mismo que usa el cargador)
-   ============================================================ */
-function parsearLibro(wb, nombreArchivo){
-  var res={ok:false,error:"",archivo:nombreArchivo,cliente:"",filas:[]};
-  var ws=null;
-  for(var i=0;i<wb.SheetNames.length;i++){
-    if(norm(wb.SheetNames[i]).indexOf("ENCAJADO")>=0){ ws=wb.Sheets[wb.SheetNames[i]]; break; }
-  }
-  if(!ws) ws=wb.Sheets[wb.SheetNames[0]];
-  var m=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
-  if(!m||!m.length){ res.error="La hoja está vacía."; return res; }
+/* ============================================================================
+   PARSER DEL REPORTE "AVANCE ENCAJADO"  ·  LIVES
+   ----------------------------------------------------------------------------
+   Este mismo bloque va, idéntico, dentro del cargador y del visor. No se toca
+   en uno sin tocarlo en el otro.
 
-  var hr=-1, col={};
-  for(var r=0;r<Math.min(m.length,40);r++){
-    var f=m[r]||[], a=-1,b=-1;
-    for(var c=0;c<f.length;c++){ var t=norm(f[c]); if(t==="PO")a=c; if(t==="REQUERIDAS")b=c; }
-    if(a>=0&&b>=0){
-      hr=r;
-      for(var c2=0;c2<f.length;c2++){
-        var t2=norm(f[c2]);
-        if(t2==="PO")col.po=c2;
-        else if(t2.indexOf("ESTILO")>=0)col.estilo=c2;
-        else if(t2.indexOf("CODIGO COLOR")>=0||t2.indexOf("CÓDIGO COLOR")>=0)col.codcolor=c2;
-        else if(t2.indexOf("DESCRIPCION COLOR")>=0||t2.indexOf("DESCRIPCIÓN COLOR")>=0)col.color=c2;
-        else if(t2==="TALLA")col.talla=c2;
-        else if(t2==="REQUERIDAS")col.req=c2;
-        else if(t2.indexOf("ENCAJADAS")>=0)col.enc=c2;
-        else if(t2==="SALDOS"||t2==="SALDO")col.sal=c2;
-        else if(t2.indexOf("AVANCE")>=0&&t2.indexOf("SALDO")>=0)col.pctsal=c2;
-        else if(t2.indexOf("AVANCE")>=0)col.pct=c2;
+   Lo que sabe leer:
+   - Cabecera: GRUPO y CLIENTE (celdas a la derecha de "Cliente:"), PACKING y OP.
+     Se buscan por etiqueta, nunca por coordenada: la posición cambia según
+     cuántas columnas traiga el reporte.
+   - Varios cuadros en un mismo archivo, uno por taller. Cada cuadro tiene su
+     propio encabezado y, encima, el nombre del taller y (en el formato nuevo)
+     su OP.
+   - Columnas variables: Saldos y %Avance+Saldo pueden no venir.
+
+   Lo que descarta:
+   - Filas "Total" por color, "TOTAL" por estilo y "TOTAL GENERAL": son sumas
+     de las filas de detalle. Se guardan aparte solo para el control cruzado.
+
+   Lo que NO lee:
+   - Las columnas de porcentaje. El reporte las exporta en dos escalas distintas
+     (104.54 en unos archivos, 1.0454 en otros, donde la celda es la fórmula
+     =Encajadas/Requeridas con formato de porcentaje). Guardar eso sería guardar
+     un dato que a veces está multiplicado por cien. Se recalcula siempre.
+
+   REGLA CRÍTICA DE SUMA:
+   - REQUERIDAS *no* se suma entre talleres. Cada cuadro repite el requerido
+     total de la PO para esa talla.
+   - ENCAJADAS *sí* se suma: cada cuadro trae lo que hizo ese taller.
+     Ejemplo real (504431, talla XS): pide 29; OSCAR VELIZ encajó 31 y LIVES 3.
+     El requerido es 29 y lo encajado 34, no 58 y 34.
+   ============================================================================ */
+
+function normTxt(v){
+  if(v===null||v===undefined) return "";
+  return String(v).replace(/\s+/g," ").trim().toUpperCase();
+}
+function numVal(v){
+  if(v===null||v===undefined||v==="") return null;
+  var n = Number(String(v).replace(/[^0-9.\-]/g,""));
+  return isFinite(n) ? n : null;
+}
+
+/* Devuelve:
+   { ok, error, archivo, cliente, grupo, packing, op,
+     filas:[{cliente,grupo,packing,po,op,estilo,codcolor,color,talla,taller,req,enc,sal}],
+     cuadros:[{taller,op,filas}], totalArchivo, control, cuadra }                     */
+function parsearLibro(wb, nombreArchivo){
+  var res = { ok:false, error:"", archivo:nombreArchivo,
+              cliente:"", grupo:"", packing:"", op:"",
+              filas:[], cuadros:[], totalArchivo:null, control:null, cuadra:null };
+
+  var ws = null;
+  for(var i=0;i<wb.SheetNames.length;i++){
+    if(normTxt(wb.SheetNames[i]).indexOf("ENCAJADO")>=0){ ws = wb.Sheets[wb.SheetNames[i]]; break; }
+  }
+  if(!ws) ws = wb.Sheets[wb.SheetNames[0]];
+
+  var m = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  if(!m || !m.length){ res.error = "La hoja está vacía."; return res; }
+
+  /* ---------- 1. Localizar TODOS los encabezados de cuadro ---------- */
+  var heads = [];
+  for(var r=0;r<m.length;r++){
+    var f = m[r]||[], tienePO=false, tieneReq=false;
+    for(var c=0;c<f.length;c++){
+      var t = normTxt(f[c]);
+      if(t==="PO") tienePO=true;
+      if(t==="REQUERIDAS") tieneReq=true;
+    }
+    if(tienePO && tieneReq) heads.push(r);
+  }
+  if(!heads.length){
+    res.error = "No se encontró ninguna fila de encabezados. Se esperaban las columnas PO y Requeridas.";
+    return res;
+  }
+
+  /* ---------- 2. Cabecera del archivo: grupo, cliente, packing, OP ---------- */
+  var tope = heads[0];
+  for(var r2=0;r2<tope;r2++){
+    var f2 = m[r2]||[];
+    for(var c2=0;c2<f2.length;c2++){
+      var t2 = normTxt(f2[c2]);
+      /* "Cliente:" -> a la derecha van GRUPO y luego el nombre del cliente.
+         Verificado con archivos reales: THY-1109 es el grupo, THEORY el cliente. */
+      if(t2.indexOf("CLIENTE")===0 && !res.grupo){
+        res.grupo   = normTxt(f2[c2+1]);
+        res.cliente = normTxt(f2[c2+2]);
+      }
+      if(t2==="PACKING" && !res.packing) res.packing = normTxt(f2[c2+1]);
+      if(t2==="OP"      && !res.op)      res.op      = normTxt(f2[c2+1]);
+    }
+  }
+  /* En el formato viejo el grupo venía como código de cliente (00059): no es
+     un grupo válido y no cruzaría contra OPS. Se marca para avisarlo. */
+  res.grupoDudoso = !!(res.grupo && /^\d+$/.test(res.grupo));
+
+  /* ---------- 3. Recorrer cada cuadro ---------- */
+  var totGen = null;
+
+  for(var h=0; h<heads.length; h++){
+    var hr  = heads[h];
+    var fin = (h+1 < heads.length) ? heads[h+1] : m.length;
+
+    /* Mapa de columnas de ESTE cuadro (pueden variar entre cuadros) */
+    var col = {}, fh = m[hr]||[];
+    for(var c3=0;c3<fh.length;c3++){
+      var t3 = normTxt(fh[c3]);
+      if(t3==="PO") col.po=c3;
+      else if(t3.indexOf("ESTILO")>=0) col.estilo=c3;
+      else if(t3.indexOf("CODIGO COLOR")>=0 || t3.indexOf("CÓDIGO COLOR")>=0) col.codcolor=c3;
+      else if(t3.indexOf("DESCRIPCION COLOR")>=0 || t3.indexOf("DESCRIPCIÓN COLOR")>=0) col.color=c3;
+      else if(t3==="TALLA") col.talla=c3;
+      else if(t3==="REQUERIDAS") col.req=c3;
+      else if(t3.indexOf("ENCAJADAS")>=0) col.enc=c3;
+      else if(t3==="SALDOS"||t3==="SALDO") col.sal=c3;
+    }
+    var faltan=[];
+    ["po","estilo","color","talla","req","enc"].forEach(function(k){ if(col[k]===undefined) faltan.push(k); });
+    if(faltan.length){
+      res.error = "Al encabezado del cuadro "+(h+1)+" le faltan columnas: "+faltan.join(", ")+".";
+      return res;
+    }
+
+    /* Taller y OP del cuadro: en la fila no vacía justo encima del encabezado.
+       La OP va a la derecha del taller, con o sin la etiqueta "OP" delante.
+       Si el archivo no la trae (formato actual), se usa la OP de la cabecera. */
+    var taller="", opCuadro="";
+    for(var rb=hr-1; rb>=0 && rb>(h===0?-1:heads[h-1]); rb--){
+      var fb=m[rb]||[], primera=-1;
+      for(var cb=0;cb<fb.length;cb++){ if(normTxt(fb[cb])!==""){ primera=cb; break; } }
+      if(primera<0) continue;                                   /* fila vacía: seguir subiendo */
+      var etiqueta = normTxt(fb[primera]);
+      if(etiqueta.indexOf("CLIENTE")===0 || etiqueta==="AVANCE ENCAJADO") break;  /* es la cabecera */
+      taller = etiqueta;
+      for(var cd=primera+1; cd<fb.length; cd++){
+        var td = normTxt(fb[cd]);
+        if(td==="OP"){ opCuadro = normTxt(fb[cd+1]); break; }
+        if(td!=="" && numVal(td)!==null){ opCuadro = td; break; }
       }
       break;
     }
-  }
-  if(hr<0){ res.error="No se encontró la fila de encabezados (PO y Requeridas)."; return res; }
+    if(!opCuadro) opCuadro = res.op;
 
-  for(var r3=0;r3<hr;r3++){
-    var f3=m[r3]||[];
-    for(var c3=0;c3<f3.length;c3++){
-      if(norm(f3[c3]).indexOf("CLIENTE")===0){ res.cliente=norm(f3[c3+2]); break; }
+    var filasCuadro=[];
+    for(var r4=hr+1; r4<fin; r4++){
+      var fr = m[r4]||[];
+      var talla = normTxt(fr[col.talla]);
+      var req = numVal(fr[col.req]), enc = numVal(fr[col.enc]);
+      var sal = col.sal!==undefined ? numVal(fr[col.sal]) : null;
+
+      if(fr.map(normTxt).join(" ").indexOf("TOTAL GENERAL")>=0){
+        if(req!==null) totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        continue;
+      }
+      if(!talla || talla==="TOTAL") continue;      /* Total por color / TOTAL por estilo */
+      if(req===null && enc===null) continue;
+
+      filasCuadro.push({
+        cliente : res.cliente,
+        grupo   : res.grupo,
+        packing : res.packing,
+        po      : normTxt(fr[col.po]),
+        op      : opCuadro,
+        estilo  : normTxt(fr[col.estilo]),
+        codcolor: col.codcolor!==undefined ? normTxt(fr[col.codcolor]) : "",
+        color   : normTxt(fr[col.color]),
+        talla   : talla,
+        taller  : taller,
+        req     : req===null?0:req,
+        enc     : enc===null?0:enc,
+        sal     : sal===null?0:sal
+      });
     }
-    if(res.cliente) break;
+
+    if(filasCuadro.length){
+      res.cuadros.push({ taller:taller, op:opCuadro, filas:filasCuadro.length });
+      res.filas = res.filas.concat(filasCuadro);
+    }
   }
 
-  for(var r4=hr+1;r4<m.length;r4++){
-    var fr=m[r4]||[], talla=norm(fr[col.talla]);
-    var req=numv(fr[col.req]), enc=numv(fr[col.enc]);
-    var sal=col.sal!==undefined?numv(fr[col.sal]):null;
-    if(fr.map(norm).join(" ").indexOf("TOTAL GENERAL")>=0) continue;
-    if(!talla||talla==="TOTAL") continue;
-    if(req===null&&enc===null) continue;
-    res.filas.push({
-      cliente:res.cliente, po:norm(fr[col.po]), estilo:norm(fr[col.estilo]),
-      codcolor:col.codcolor!==undefined?norm(fr[col.codcolor]):"",
-      color:norm(fr[col.color]), talla:talla,
-      req:req===null?0:req, enc:enc===null?0:enc, sal:sal===null?0:sal,
-      pct:    col.pct!==undefined    ? numv(fr[col.pct])    : null,
-      pctsal: col.pctsal!==undefined ? numv(fr[col.pctsal]) : null,
-      fecha:"", archivo:nombreArchivo
-    });
+  if(!res.filas.length){ res.error = "No se encontró ninguna fila de detalle."; return res; }
+
+  var pos={}, ops={};
+  res.filas.forEach(function(x){ if(x.po) pos[x.po]=1; if(x.op) ops[x.op]=1; });
+  res.pos = Object.keys(pos);
+  res.ops = Object.keys(ops);
+  if(!res.pos.length){ res.error = "Las filas de detalle no traen número de PO."; return res; }
+
+  /* ---------- 4. Totales del archivo, con la regla de suma correcta ---------- */
+  res.suma = totalizar(res.filas);
+  res.totalArchivo = totGen;
+  if(totGen){
+    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc };
+    res.cuadra  = (res.control.dif_req===0 && res.control.dif_enc===0);
   }
-  if(!res.filas.length){ res.error="No se encontró detalle bajo el encabezado."; return res; }
-  res.ok=true; return res;
+  res.ok = true;
+  return res;
 }
+
+/* Totaliza respetando la regla: el requerido de una talla se cuenta UNA vez
+   aunque aparezca en varios talleres; lo encajado se suma. */
+function totalizar(filas){
+  var uni={}, enc=0, sal=0, conflictos=[];
+  filas.forEach(function(x){
+    var k = x.po+"|"+x.estilo+"|"+x.codcolor+"|"+x.talla;
+    if(uni[k]===undefined) uni[k] = x.req;
+    else if(uni[k] !== x.req){
+      if(x.req > uni[k]) uni[k] = x.req;          /* se conserva el mayor */
+      if(conflictos.indexOf(k)<0) conflictos.push(k);
+    }
+    enc += x.enc; sal += x.sal;
+  });
+  var req=0; Object.keys(uni).forEach(function(k){ req += uni[k]; });
+  return { req:req, enc:enc, sal:sal, sku:Object.keys(uni).length, conflictos:conflictos };
+}
+
+
 
 /* ============================================================
    Lectura del Sheet (CSV — gviz en JSON pierde celdas)
@@ -483,47 +646,40 @@ function urlSheet(){
   return "https://docs.google.com/spreadsheets/d/"+CFG.SHEET_ID+
          "/gviz/tq?tqx=out:csv&sheet="+encodeURIComponent(CFG.HOJA);
 }
-function abrirSheet(){ window.open(urlSheet(),"_blank"); }
-
-/* Un fallo de lectura tiene tres causas muy distintas y el navegador las reporta todas
-   igual ("Failed to fetch"). En vez de un mensaje genérico, se dice cuál es la más
-   probable según desde dónde se abrió la página. */
 function diagnostico(msg){
   var local = (location.protocol==="file:");
   var h = "<b>No se pudo leer el Sheet.</b> ";
-  /* Si el servidor ya dijo qué pasa, se dice eso y no una lista de sospechosos. */
-  if(msg.indexOf("no existe todavía")>=0){
-    h += "La hoja «"+CFG.HOJA+"» no existe en ese Sheet. Sube primero un Excel con el cargador: "+
+  if(msg.indexOf("no existe todav\u00eda")>=0){
+    h += "La hoja \u00ab"+CFG.HOJA+"\u00bb no existe en ese Sheet. Sube primero un Excel con el cargador: "+
          "la hoja se crea sola en esa primera carga.";
-  }else if(msg.indexOf("inicio de sesión")>=0){
-    h += "El Sheet pidió iniciar sesión en vez de entregar los datos. Ábrelo y comparte: "+
-         "«Cualquier usuario que tenga el enlace · Lector».";
+  }else if(msg.indexOf("inicio de sesi\u00f3n")>=0){
+    h += "El Sheet pidi\u00f3 iniciar sesi\u00f3n en vez de entregar los datos. \u00c1brelo y comparte: "+
+         "\u00abCualquier usuario que tenga el enlace \u00b7 Lector\u00bb.";
   }else if(local){
-    h += "Esta página está abierta desde el disco (file:///), y desde ahí el navegador "+
-         "bloquea la lectura de Google Sheets. Súbela a GitHub Pages y ábrela por su enlace: "+
-         "así funciona. Mientras tanto puedes cargar los Excel a mano aquí abajo.";
+    h += "Esta p\u00e1gina est\u00e1 abierta desde el disco (file:///), y desde ah\u00ed el navegador "+
+         "bloquea la lectura de Google Sheets. S\u00fabela a GitHub Pages y \u00e1brela por su enlace. "+
+         "Mientras tanto puedes cargar los Excel a mano aqu\u00ed abajo.";
   }else{
-    h += "Las causas, de la más probable a la menos: "+
-         "<b>1)</b> el Sheet no está compartido como «Cualquier usuario que tenga el enlace · Lector». "+
-         "<b>2)</b> la hoja «"+CFG.HOJA+"» todavía no existe porque no se ha subido ningún Excel con el cargador. "+
-         "<b>3)</b> el ID del Sheet está mal copiado.";
+    h += "Las causas, de la m\u00e1s probable a la menos: <b>1)</b> el Sheet no est\u00e1 compartido como "+
+         "\u00abCualquier usuario que tenga el enlace \u00b7 Lector\u00bb. <b>2)</b> la hoja \u00ab"+CFG.HOJA+
+         "\u00bb todav\u00eda no existe porque no se ha subido ning\u00fan Excel. <b>3)</b> el ID est\u00e1 mal copiado.";
   }
   h += " <a href=\""+urlSheet()+"\" target=\"_blank\" style=\"color:inherit;font-weight:700\">"+
        "Abrir el enlace del Sheet para comprobarlo</a>"+
-       " <span style=\"opacity:.7\">(detalle técnico: "+esc(msg)+")</span>";
+       " <span style=\"opacity:.7\">(detalle t\u00e9cnico: "+esc(msg)+")</span>";
   var e=$("err"); e.innerHTML=h; e.style.display="block";
 }
 
 function cargarDesdeSheet(){
   var url=urlSheet()+"&t="+Date.now();
-  $("hstate").textContent="Leyendo el Sheet…";
+  $("hstate").textContent="Leyendo el Sheet\u2026";
   fetch(url).then(function(r){
-    if(r.status===400) throw new Error("la hoja «"+CFG.HOJA+"» no existe todavía en ese Sheet");
-    if(!r.ok) throw new Error("el Sheet respondió "+r.status);
+    if(r.status===400) throw new Error("la hoja \u00ab"+CFG.HOJA+"\u00bb no existe todav\u00eda en ese Sheet");
+    if(!r.ok) throw new Error("el Sheet respondi\u00f3 "+r.status);
     return r.text();
   }).then(function(txt){
     if(/<html/i.test(txt.substring(0,400)))
-      throw new Error("el Sheet devolvió una página de inicio de sesión en vez de datos");
+      throw new Error("el Sheet devolvi\u00f3 una p\u00e1gina de inicio de sesi\u00f3n en vez de datos");
     var f=parseCSV(txt);
     if(f.length<2) throw new Error("la hoja "+CFG.HOJA+" no tiene filas");
     var head=f[0].map(norm), ix={};
@@ -538,20 +694,21 @@ function cargarDesdeSheet(){
       var fe=G(r2,"FECHA_CARGA")||"";
       if(fe && (!ULTIMA_CARGA || String(fe)>String(ULTIMA_CARGA))) ULTIMA_CARGA=fe;
       out.push({
-        cliente:norm(G(r2,"CLIENTE")), po:norm(G(r2,"PO")), estilo:norm(G(r2,"ESTILO")),
+        cliente:norm(G(r2,"CLIENTE")), grupo:norm(G(r2,"GRUPO")), packing:norm(G(r2,"PACKING")),
+        po:norm(G(r2,"PO")), op:norm(G(r2,"OP")), estilo:norm(G(r2,"ESTILO")),
         codcolor:norm(G(r2,"COD_COLOR")), color:norm(G(r2,"COLOR")), talla:norm(G(r2,"TALLA")),
+        taller:norm(G(r2,"TALLER")),
         req:numv(G(r2,"REQUERIDAS"))||0, enc:numv(G(r2,"ENCAJADAS"))||0, sal:numv(G(r2,"SALDOS"))||0,
-        pct:numv(G(r2,"PCT_AVANCE")), pctsal:numv(G(r2,"PCT_AVANCE_SALDO")),
         fecha:fe, archivo:String(G(r2,"ARCHIVO")||"")
       });
     }
     if(!out.length) throw new Error("la hoja no tiene filas con PO");
-    DATOS=out; ORIGEN="Sheet en línea";
+    DATOS=out; ORIGEN="Sheet en l\u00ednea";
     arrancarApp();
   }).catch(function(e){
     diagnostico(e.message);
     $("drop").style.display="block";
-    $("hstate").textContent="Sin conexión al Sheet";
+    $("hstate").textContent="Sin conexi\u00f3n al Sheet";
   });
 }
 
@@ -588,8 +745,14 @@ function leerArchivos(lista){
 /* ============================================================
    Filtros
    ============================================================ */
-var F={cliente:"",po:"",estilo:"",color:"",talla:"",busca:""};
+var F={cliente:"",grupo:"",po:"",op:"",estilo:"",color:"",talla:"",taller:"",busca:""};
+var UMBRAL="";
 var ULTIMO_TOCADO="";
+var CAMPOS=[["cliente","fCliente","Todos",null],["grupo","fGrupo","Todos",null],
+            ["po","fPO","Todas",null],["op","fOP","Todas",null],
+            ["estilo","fEstilo","Todos",null],["color","fColor","Todos",null],
+            ["talla","fTalla","Todas",function(a,b){ return ordenTalla(a)-ordenTalla(b); }],
+            ["taller","fTaller","Todos",null]];
 
 function unicos(arr,k){ var s={}; arr.forEach(function(x){ if(x[k]) s[x[k]]=1; }); return Object.keys(s); }
 function opciones(sel, valores, etiqueta, ordenar){
@@ -602,65 +765,90 @@ function filtrar(over){
   if(over) for(var k2 in over) f[k2]=over[k2];
   var q=f.busca?norm(f.busca):"";
   return DATOS.filter(function(x){
-    if(f.cliente && x.cliente!==f.cliente) return false;
-    if(f.po      && x.po     !==f.po)      return false;
-    if(f.estilo  && x.estilo !==f.estilo)  return false;
-    if(f.color   && x.color  !==f.color)   return false;
-    if(f.talla   && x.talla  !==f.talla)   return false;
-    if(q && (x.po+" "+x.estilo+" "+x.codcolor+" "+x.color+" "+x.talla).indexOf(q)<0) return false;
+    for(var i=0;i<CAMPOS.length;i++){
+      var c=CAMPOS[i][0];
+      if(f[c] && x[c]!==f[c]) return false;
+    }
+    if(q && (x.po+" "+x.op+" "+x.grupo+" "+x.estilo+" "+x.codcolor+" "+x.color+" "+
+             x.talla+" "+x.taller).indexOf(q)<0) return false;
     return true;
   });
 }
 function armarFiltros(){
-  /* Cada select ofrece lo que existe con los OTROS filtros aplicados: nunca opciones vacías.
-     Si un filtro elegido antes deja de tener sentido con el que se acaba de tocar, se suelta
-     ESE, no el recién elegido: quien cambia de PO espera cambiar de PO, no perderla. */
-  var defs=[["cliente","fCliente","Todos",null],["po","fPO","Todas",null],
-            ["estilo","fEstilo","Todos",null],["color","fColor","Todos",null],
-            ["talla","fTalla","Todas",function(a,b){ return ordenTalla(a)-ordenTalla(b); }]];
-  defs.forEach(function(d){
+  /* Cada select ofrece lo que existe con los OTROS filtros aplicados. Si un filtro
+     elegido antes deja de tener sentido con el que se acaba de tocar, se suelta ESE,
+     no el recién elegido. */
+  CAMPOS.forEach(function(d){
     if(d[0]===ULTIMO_TOCADO || !F[d[0]]) return;
     var over={}; over[d[0]]="";
     if(unicos(filtrar(over),d[0]).indexOf(F[d[0]])<0) F[d[0]]="";
   });
-  defs.forEach(function(d){
+  CAMPOS.forEach(function(d){
     var over={}; over[d[0]]="";
     opciones($(d[1]), unicos(filtrar(over),d[0]), d[2], d[3]);
     $(d[1]).value=F[d[0]];
   });
 }
 function limpiarFiltros(){
-  F={cliente:"",po:"",estilo:"",color:"",talla:"",busca:""};
-  ULTIMO_TOCADO=""; $("fBusca").value=""; armarFiltros(); render();
+  CAMPOS.forEach(function(d){ F[d[0]]=""; });
+  F.busca=""; UMBRAL=""; ULTIMO_TOCADO="";
+  $("fBusca").value=""; $("fUmbral").value="";
+  armarFiltros(); render();
 }
-["fCliente","fPO","fEstilo","fColor","fTalla"].forEach(function(id){
-  $(id).addEventListener("change",function(){
-    ULTIMO_TOCADO={fCliente:"cliente",fPO:"po",fEstilo:"estilo",fColor:"color",fTalla:"talla"}[id];
-    F.cliente=$("fCliente").value; F.po=$("fPO").value; F.estilo=$("fEstilo").value;
-    F.color=$("fColor").value;     F.talla=$("fTalla").value;
+CAMPOS.forEach(function(d){
+  $(d[1]).addEventListener("change",function(){
+    ULTIMO_TOCADO=d[0];
+    CAMPOS.forEach(function(c){ F[c[0]]=$(c[1]).value; });
     armarFiltros(); render();
   });
 });
 $("fBusca").addEventListener("input",function(){ F.busca=this.value; render(); });
+$("fUmbral").addEventListener("change",function(){ UMBRAL=this.value; render(); });
 
 /* ============================================================
-   Orden de la tabla
+   Agregación
+   ------------------------------------------------------------
+   Las filas del Sheet son por taller. Lo que la auditora mira es la talla.
+   Al juntar los talleres de una misma talla:
+     REQUERIDAS  se cuenta UNA vez — cada taller repite el requerido de la PO.
+     ENCAJADAS   se suma.
    ============================================================ */
-var ORD={campo:"po", asc:true};
-var COLUMNAS=[
-  {k:"po",     t:"PO",            num:false},
-  {k:"estilo", t:"Estilo",        num:false},
-  {k:"color",  t:"Color",         num:false},
-  {k:"talla",  t:"Talla",         num:false},
-  {k:"req",    t:"Requeridas",    num:true},
-  {k:"enc",    t:"Encajadas",     num:true},
-  {k:"pct",    t:"% avance",      num:true},
-  {k:"sal",    t:"Saldos",        num:true},
-  {k:"pctsal", t:"% avance + saldo", num:true}
-];
-function ordenar(campo){
-  if(ORD.campo===campo) ORD.asc=!ORD.asc; else { ORD.campo=campo; ORD.asc=true; }
-  render();
+function agregarSKU(filas){
+  var m={}, orden=[];
+  filas.forEach(function(x){
+    var k=x.po+"||"+x.estilo+"||"+x.codcolor+"||"+x.color+"||"+x.talla;
+    if(!m[k]){
+      m[k]={ k:k, cliente:x.cliente, grupo:x.grupo, packing:x.packing, po:x.po, op:x.op,
+             estilo:x.estilo, codcolor:x.codcolor, color:x.color, talla:x.talla,
+             req:0, enc:0, sal:0, talleres:[], detalle:[] };
+      orden.push(k);
+    }
+    var g=m[k];
+    if(x.req > g.req) g.req = x.req;      /* requerido único, no suma */
+    g.enc += x.enc; g.sal += x.sal;
+    if(x.taller && g.talleres.indexOf(x.taller)<0) g.talleres.push(x.taller);
+    g.detalle.push(x);
+  });
+  return orden.map(function(k){
+    var g=m[k]; g.pct = g.req ? g.enc/g.req*100 : null; return g;
+  });
+}
+function aplicarUmbral(sku){
+  if(!UMBRAL) return sku;
+  var u=Number(UMBRAL);
+  if(u<0) return sku.filter(function(g){ return g.pct!==null && g.pct < -u; });
+  return sku.filter(function(g){ return g.pct!==null && g.pct >= u; });
+}
+function textoUmbral(){
+  if(!UMBRAL) return "";
+  var u=Number(UMBRAL);
+  return u<0 ? "por debajo del "+(-u)+"%" : "al "+u+"% o más";
+}
+/* Totaliza un conjunto de SKU ya agregados */
+function totales(sku){
+  var r={req:0,enc:0,sal:0};
+  sku.forEach(function(g){ r.req+=g.req; r.enc+=g.enc; r.sal+=g.sal; });
+  return r;
 }
 
 /* ============================================================
@@ -682,109 +870,170 @@ function animarBarras(){
   },120);
 }
 
-/* Una tarjeta por talla, agrupadas en un bloque por PO + estilo + color:
-   es la misma jerarquía en la que viene el reporte del sistema. */
-function renderTarjetas(D){
+var charts=[];
+function destruirCharts(){ charts.forEach(function(c){ try{ c&&c.destroy(); }catch(e){} }); charts=[]; }
+
+var SKU_VISIBLE=[];
+
+function render(){
+  destruirCharts();
+  var D = filtrar();
+  var sku = aplicarUmbral(agregarSKU(D));
+  SKU_VISIBLE = sku;
+
+  $("hstate").textContent = fmt(sku.length)+" tallas · "+fmt(D.length)+" filas del sistema";
+
+  if(!sku.length){
+    $("kpis").innerHTML=""; $("cuerpo").style.display="none";
+    $("vistaTarjetas").innerHTML=""; $("tblDetalle").innerHTML="";
+    $("sinDatos").style.display="block";
+    $("sinDatosTxt").textContent = D.length
+      ? ("Hay "+fmt(D.length)+" filas con esos filtros, pero ninguna talla está "+textoUmbral()+
+         ". Cambia el filtro de Avance en la barra de arriba.")
+      : "Ninguna fila coincide con los filtros elegidos. Quita alguno en la barra de arriba.";
+    return;
+  }
+  $("sinDatos").style.display="none"; $("cuerpo").style.display="block";
+
+  var T = totales(sku);
+  var pos=unicos(sku,"po").length, cols=unicos(sku,"color").length;
+  var talleres=[]; sku.forEach(function(g){ g.talleres.forEach(function(t){
+    if(talleres.indexOf(t)<0) talleres.push(t); }); });
+
+  /* ---------- Tarjetas de cifras ---------- */
+  $("kpis").innerHTML =
+    '<div class="kpi hero"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Avance de lo que se ve</div>'+
+      '<div class="row"><span class="v">'+pctTotal(T.enc,T.req,1)+'</span></div>'+
+      '<div class="s">suma de encajadas ÷ suma de requeridas de las '+fmt(sku.length)+
+        ' tallas del filtro'+(UMBRAL?' ('+textoUmbral()+')':'')+'</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Prendas requeridas</div>'+
+      '<div class="row"><span class="v">'+fmt(T.req)+'</span></div>'+
+      '<div class="s">'+pos+' PO · '+cols+' color(es) · '+unicos(sku,"talla").length+' talla(s)'+
+        (talleres.length?' · '+talleres.length+' taller(es)':'')+'</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Prendas encajadas</div>'+
+      '<div class="row"><span class="v">'+fmt(T.enc)+'</span></div>'+
+      '<div class="s">lo que el sistema reporta como ya encajado</div>'+
+    '</div></div>'+
+    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
+      '<div class="l">Saldos</div>'+
+      '<div class="row"><span class="v">'+fmt(T.sal)+'</span></div>'+
+      '<div class="s">prendas disponibles que aún no se han encajado</div>'+
+    '</div></div>';
+
+  $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
+    (ULTIMA_CARGA? " · última carga: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
+    " · el avance se calcula aquí como encajadas ÷ requeridas; los porcentajes del Excel no se usan"+
+    " porque el reporte los exporta en dos escalas distintas."+
+    (talleres.length>1 ? " Cuando una talla se hizo en varios talleres, el requerido se cuenta una"+
+      " sola vez y lo encajado se suma." : "");
+
+  renderTarjetas(sku);
+  renderTabla(sku, T);
+
+  /* ---------- Gráficos ---------- */
+  var gT=agrupar(sku,"talla"); gT.sort(function(a,b){ return ordenTalla(a.k)-ordenTalla(b.k); });
+  $("phTalla").textContent="Encajadas ÷ requeridas de cada talla, juntando las PO y colores del filtro. "+
+    "La línea punteada marca el 100%.";
+  charts.push(barras("cTalla", gT));
+
+  var gC=agrupar(sku,"color"); gC.sort(function(a,b){ return b.pct-a.pct; });
+  var recorte=gC.length>12;
+  $("phColor").textContent="Encajadas ÷ requeridas de cada color"+
+    (recorte?" · se muestran los 12 de mayor avance de "+gC.length:"")+".";
+  charts.push(barras("cColor", recorte?gC.slice(0,12):gC));
+
+  $("vistaTarjetas").style.display = (VISTA==="tarjetas")?"block":"none";
+  $("vistaTabla").style.display    = (VISTA==="tabla")?"grid":"none";
+  reajustarGrids();
+}
+
+/* Una tarjeta por talla, agrupadas por PO + estilo + color */
+function renderTarjetas(sku){
   var m={}, orden=[];
-  D.forEach(function(x){
-    var k=x.po+"||"+x.estilo+"||"+x.codcolor+"||"+x.color;
-    if(!m[k]){ m[k]={po:x.po,estilo:x.estilo,codcolor:x.codcolor,color:x.color,
-                     req:0,enc:0,sal:0,tallas:[]}; orden.push(k); }
-    m[k].req+=x.req; m[k].enc+=x.enc; m[k].sal+=x.sal; m[k].tallas.push(x);
+  sku.forEach(function(g){
+    var k=g.po+"||"+g.estilo+"||"+g.codcolor+"||"+g.color;
+    if(!m[k]){ m[k]={ po:g.po, op:g.op, grupo:g.grupo, estilo:g.estilo, codcolor:g.codcolor,
+                      color:g.color, req:0, enc:0, sal:0, tallas:[], talleres:[] };
+               orden.push(k); }
+    var b=m[k];
+    b.req+=g.req; b.enc+=g.enc; b.sal+=g.sal; b.tallas.push(g);
+    g.talleres.forEach(function(t){ if(b.talleres.indexOf(t)<0) b.talleres.push(t); });
   });
   orden.sort(function(a,b){ return a.localeCompare(b,"es"); });
 
-  /* El tope de la barra es el mayor avance del filtro, para que el 100% no quede
-     siempre pegado al borde cuando casi todo lo supera. */
+  /* El tope de la barra es el mayor avance visible: si el 100% fuera el tope,
+     con casi todo por encima todas las barras se verían llenas por igual. */
   var tope=100;
-  D.forEach(function(x){ if(x.req){ var v=(x.pct===null?x.enc/x.req*100:x.pct); if(v>tope) tope=v; } });
+  sku.forEach(function(g){ if(g.pct!==null && g.pct>tope) tope=g.pct; });
   tope=Math.max(110, Math.ceil(tope/5)*5);
 
   $("vistaTarjetas").innerHTML = orden.map(function(k){
-    var g=m[k];
-    g.tallas.sort(function(a,b){ return ordenTalla(a.talla)-ordenTalla(b.talla); });
-    var chips = g.tallas.map(function(x){
-      var v    = x.req ? (x.pct===null ? x.enc/x.req*100 : x.pct) : null;
-      var bajo = (v!==null && v<100);
-      var w    = v===null ? 0 : Math.max(2, Math.min(100, v/tope*100));
+    var b=m[k];
+    b.tallas.sort(function(x,y){ return ordenTalla(x.talla)-ordenTalla(y.talla); });
+    var chips=b.tallas.map(function(g){
+      var bajo = (g.pct!==null && g.pct<100);
+      var w = g.pct===null ? 0 : Math.max(2, Math.min(100, g.pct/tope*100));
+      var porTaller = "";
+      if(g.talleres.length>1){
+        porTaller = '<div class="tsal">'+g.detalle.map(function(x){
+          return esc(x.taller)+" "+fmt(x.enc); }).join(" · ")+'</div>';
+      }
       return '<div class="tchip'+(bajo?' bajo':'')+'"><span class="banda"></span><div class="cuerpo">'+
-        '<div class="tl">Talla '+esc(x.talla)+'</div>'+
-        '<div class="tv">'+(v===null?"—":pctSistema(v,1))+'</div>'+
-        '<div class="ts">'+fmt(x.enc)+' encajadas de '+fmt(x.req)+'</div>'+
+        '<div class="tl">Talla '+esc(g.talla)+'</div>'+
+        '<div class="tv">'+(g.pct===null?"—":pctSistema(g.pct,1))+'</div>'+
+        '<div class="ts">'+fmt(g.enc)+' encajadas de '+fmt(g.req)+'</div>'+
         '<div class="track"><div class="fill" data-w="'+w.toFixed(1)+'"></div>'+
           '<span class="cien" style="left:'+(100/tope*100).toFixed(1)+'%"></span></div>'+
-        (x.sal>0 ? '<div class="tsal">'+fmt(x.sal)+' de saldo sin encajar</div>' : '')+
+        (g.sal>0 ? '<div class="tsal">'+fmt(g.sal)+' de saldo sin encajar</div>' : '')+
+        porTaller+
       '</div></div>';
     }).join("");
 
     return '<div class="gblock"><span class="tira"></span>'+
       '<div class="ghead"><div>'+
-        '<div class="gt">'+esc(g.po)+' &middot; '+esc(g.estilo)+'</div>'+
-        '<div class="gs">'+esc((g.codcolor?g.codcolor+" ":"")+g.color)+' &middot; '+
-          g.tallas.length+' talla(s)'+(g.sal>0?' &middot; '+fmt(g.sal)+' de saldo':'')+'</div>'+
+        '<div class="gt">'+esc(b.po)+' &middot; '+esc(b.estilo)+'</div>'+
+        '<div class="gs">'+esc((b.codcolor?b.codcolor+" ":"")+b.color)+
+          (b.op?' &middot; OP '+esc(b.op):'')+
+          (b.grupo?' &middot; '+esc(b.grupo):'')+
+          ' &middot; '+b.tallas.length+' talla(s)'+
+          (b.talleres.length?' &middot; '+b.talleres.map(esc).join(", "):'')+
+          (b.sal>0?' &middot; '+fmt(b.sal)+' de saldo':'')+'</div>'+
       '</div><div class="gtot">'+
-        '<div class="gpct">'+pctTotal(g.enc,g.req,1)+'</div>'+
-        '<div class="gsub">'+fmt(g.enc)+' de '+fmt(g.req)+' prendas</div>'+
+        '<div class="gpct">'+pctTotal(b.enc,b.req,1)+'</div>'+
+        '<div class="gsub">'+fmt(b.enc)+' de '+fmt(b.req)+' prendas</div>'+
       '</div></div>'+
       '<div class="tchips">'+chips+'</div></div>';
   }).join("");
   animarBarras();
 }
 
-var charts=[];
-function destruirCharts(){ charts.forEach(function(c){ try{ c&&c.destroy(); }catch(e){} }); charts=[]; }
+var ORD={campo:"po", asc:true};
+var COLUMNAS=[
+  {k:"po",       t:"PO"},        {k:"op",     t:"OP"},
+  {k:"grupo",    t:"Grupo"},     {k:"estilo", t:"Estilo"},
+  {k:"color",    t:"Color"},     {k:"talla",  t:"Talla"},
+  {k:"taller",   t:"Taller"},
+  {k:"req",      t:"Requeridas", num:true},
+  {k:"enc",      t:"Encajadas",  num:true},
+  {k:"pct",      t:"% avance",   num:true},
+  {k:"sal",      t:"Saldos",     num:true}
+];
+function ordenar(campo){
+  if(ORD.campo===campo) ORD.asc=!ORD.asc; else { ORD.campo=campo; ORD.asc=true; }
+  render();
+}
 
-function render(){
-  destruirCharts();
-  var D=filtrar();
-
-  $("hstate").textContent = fmt(D.length)+" de "+fmt(DATOS.length)+" filas";
-
-  if(!D.length){
-    $("kpis").innerHTML=""; $("cuerpo").style.display="none";
-    $("sinDatos").style.display="block";
-    $("sinDatosTxt").textContent="Ninguna fila coincide con los filtros elegidos. Quita alguno en la barra de arriba.";
-    return;
-  }
-  $("sinDatos").style.display="none"; $("cuerpo").style.display="block";
-
-  var req=0,enc=0,sal=0;
-  D.forEach(function(x){ req+=x.req; enc+=x.enc; sal+=x.sal; });
-
-  /* ---------- Tarjetas informativas (sin juicio: son cifras, no un veredicto) ---------- */
-  var pos=unicos(D,"po").length, colores=unicos(D,"color").length;
-  $("kpis").innerHTML =
-    '<div class="kpi hero"><span class="banda"></span><div class="cuerpo">'+
-      '<div class="l">Avance de las filas mostradas</div>'+
-      '<div class="row"><span class="v">'+pctTotal(enc,req,1)+'</span></div>'+
-      '<div class="s">suma de encajadas ÷ suma de requeridas de las '+fmt(D.length)+' filas del filtro</div>'+
-    '</div></div>'+
-    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
-      '<div class="l">Prendas requeridas</div>'+
-      '<div class="row"><span class="v">'+fmt(req)+'</span></div>'+
-      '<div class="s">'+pos+' PO · '+colores+' color(es) · '+unicos(D,"talla").length+' talla(s)</div>'+
-    '</div></div>'+
-    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
-      '<div class="l">Prendas encajadas</div>'+
-      '<div class="row"><span class="v">'+fmt(enc)+'</span></div>'+
-      '<div class="s">lo que el sistema reporta como ya encajado</div>'+
-    '</div></div>'+
-    '<div class="kpi neutro"><span class="banda"></span><div class="cuerpo">'+
-      '<div class="l">Saldos</div>'+
-      '<div class="row"><span class="v">'+fmt(sal)+'</span></div>'+
-      '<div class="s">prendas disponibles que aún no se han encajado</div>'+
-    '</div></div>';
-
-  $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
-    (ULTIMA_CARGA? " · última carga registrada: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
-    " · los porcentajes de cada fila son los que calcula el sistema; solo el total del pie y el de las tarjetas se suman aquí.";
-
-  /* ---------- Tabla ---------- */
-  var det=D.slice();
-  var c=ORD.campo, asc=ORD.asc?1:-1;
+function renderTabla(sku, T){
+  var det=sku.slice(), c=ORD.campo, asc=ORD.asc?1:-1;
   det.sort(function(a,b){
+    if(c==="talla")  return (ordenTalla(a.talla)-ordenTalla(b.talla))*asc;
+    if(c==="taller") return String(a.talleres.join()).localeCompare(String(b.talleres.join()),"es")*asc;
     var va=a[c], vb=b[c];
-    if(c==="talla") return (ordenTalla(a.talla)-ordenTalla(b.talla))*asc;
     if(va===null||va===undefined) va=-Infinity;
     if(vb===null||vb===undefined) vb=-Infinity;
     if(typeof va==="number"&&typeof vb==="number") return (va-vb)*asc;
@@ -796,57 +1045,36 @@ function render(){
     return '<th class="orden'+(col.num?' num':'')+'" onclick="ordenar(\''+col.k+'\')">'+col.t+fl+'</th>';
   }).join("");
 
-  var tb=det.map(function(x){
+  var tb=det.map(function(g){
     return '<tr>'+
-      '<td>'+esc(x.po)+'</td>'+
-      '<td>'+esc(x.estilo)+'</td>'+
-      '<td>'+esc((x.codcolor?x.codcolor+" ":"")+x.color)+'</td>'+
-      '<td>'+esc(x.talla)+'</td>'+
-      '<td class="num">'+fmt(x.req)+'</td>'+
-      '<td class="num">'+fmt(x.enc)+'</td>'+
+      '<td>'+esc(g.po)+'</td><td>'+esc(g.op||"—")+'</td><td>'+esc(g.grupo||"—")+'</td>'+
+      '<td>'+esc(g.estilo)+'</td>'+
+      '<td>'+esc((g.codcolor?g.codcolor+" ":"")+g.color)+'</td>'+
+      '<td>'+esc(g.talla)+'</td>'+
+      '<td>'+esc(g.talleres.join(", ")||"—")+'</td>'+
+      '<td class="num">'+fmt(g.req)+'</td>'+
+      '<td class="num">'+fmt(g.enc)+'</td>'+
       '<td class="num" style="font-weight:700;color:var(--sage)">'+
-        (x.pct===null?pctTotal(x.enc,x.req,2):pctSistema(x.pct,2))+'</td>'+
-      '<td class="num">'+fmt(x.sal)+'</td>'+
-      '<td class="num">'+
-        (x.pctsal===null?pctTotal(x.enc+x.sal,x.req,2):pctSistema(x.pctsal,2))+'</td>'+
+        (g.pct===null?"—":pctSistema(g.pct,2))+'</td>'+
+      '<td class="num">'+fmt(g.sal)+'</td>'+
     '</tr>';
   }).join("");
 
   $("tblDetalle").innerHTML =
     '<table><thead><tr>'+th+'</tr></thead><tbody>'+tb+'</tbody>'+
-    '<tfoot><tr>'+
-      '<td colspan="4">TOTAL de las filas mostradas</td>'+
-      '<td class="num">'+fmt(req)+'</td><td class="num">'+fmt(enc)+'</td>'+
-      '<td class="num">'+pctTotal(enc,req,2)+'</td>'+
-      '<td class="num">'+fmt(sal)+'</td>'+
-      '<td class="num">'+pctTotal(enc+sal,req,2)+'</td>'+
-    '</tr></tfoot></table>';
-
-  /* ---------- Vista de tarjetas ---------- */
-  renderTarjetas(D);
-
-  /* ---------- Gráficos: el mismo dato, en forma de barra ---------- */
-  var gT=agrupar(D,"talla"); gT.sort(function(a,b){ return ordenTalla(a.k)-ordenTalla(b.k); });
-  $("phTalla").textContent="Encajadas ÷ requeridas de cada talla, juntando las PO y colores del filtro. "+
-    "La línea punteada marca el 100%, donde lo encajado iguala lo requerido.";
-  charts.push(barras("cTalla", gT));
-
-  var gC=agrupar(D,"color"); gC.sort(function(a,b){ return b.pct-a.pct; });
-  var recorte = gC.length>12;
-  $("phColor").textContent="Encajadas ÷ requeridas de cada color"+
-    (recorte?" · se muestran los 12 de mayor avance de "+gC.length:"")+".";
-  charts.push(barras("cColor", recorte?gC.slice(0,12):gC));
-
-  $("vistaTarjetas").style.display = (VISTA==="tarjetas")?"block":"none";
-  $("vistaTabla").style.display    = (VISTA==="tabla")?"grid":"none";
-  reajustarGrids();
+    '<tfoot><tr><td colspan="7">TOTAL de las '+fmt(det.length)+' tallas mostradas</td>'+
+      '<td class="num">'+fmt(T.req)+'</td><td class="num">'+fmt(T.enc)+'</td>'+
+      '<td class="num">'+pctTotal(T.enc,T.req,2)+'</td>'+
+      '<td class="num">'+fmt(T.sal)+'</td></tr></tfoot></table>';
 }
 
-function agrupar(filas,k){
+function agrupar(sku,k){
+  /* Recibe SKU ya agregados por talla, así que aquí SÍ se suman las requeridas:
+     cada SKU trae su requerido único, contado una sola vez. */
   var m={};
-  filas.forEach(function(x){
-    if(!m[x[k]]) m[x[k]]={k:x[k],req:0,enc:0,sal:0,n:0};
-    m[x[k]].req+=x.req; m[x[k]].enc+=x.enc; m[x[k]].sal+=x.sal; m[x[k]].n++;
+  sku.forEach(function(g){
+    if(!m[g[k]]) m[g[k]]={k:g[k],req:0,enc:0,sal:0,n:0};
+    m[g[k]].req+=g.req; m[g[k]].enc+=g.enc; m[g[k]].sal+=g.sal; m[g[k]].n++;
   });
   return Object.keys(m).map(function(kk){
     var g=m[kk]; g.pct=g.req? g.enc/g.req*100 : 0; return g;
@@ -872,7 +1100,7 @@ function barras(id, grupos){
         legend:LEYENDA,
         tooltip:{ callbacks:{ afterLabel:function(c){
           var g=grupos[c.dataIndex];
-          return fmt(g.enc)+" encajadas de "+fmt(g.req)+" requeridas · "+g.n+" fila(s)";
+          return fmt(g.enc)+" encajadas de "+fmt(g.req)+" requeridas · "+g.n+" talla(s)";
         } } },
         etiquetasBarra:{ fmt:function(v){ return v.toFixed(1)+'%'; } }
       },
@@ -914,20 +1142,19 @@ window.addEventListener("resize",function(){ reajustarGrids(); });
 
 /* ---------- Exportar ---------- */
 function exportarExcel(){
-  var D=filtrar();
-  if(!D.length){ mostrarErr("No hay filas para exportar con estos filtros."); return; }
-  var head=["CLIENTE","PO","ESTILO","COD_COLOR","COLOR","TALLA","REQUERIDAS","ENCAJADAS",
-            "PCT_AVANCE","SALDOS","PCT_AVANCE_SALDO"];
-  var filas=D.map(function(x){
-    return [x.cliente,x.po,x.estilo,x.codcolor,x.color,x.talla,x.req,x.enc,
-            x.pct===null?null:x.pct/100, x.sal, x.pctsal===null?null:x.pctsal/100];
+  if(!SKU_VISIBLE.length){ mostrarErr("No hay tallas para exportar con estos filtros."); return; }
+  var head=["CLIENTE","GRUPO","PACKING","PO","OP","ESTILO","COD_COLOR","COLOR","TALLA",
+            "TALLERES","REQUERIDAS","ENCAJADAS","PCT_AVANCE","SALDOS"];
+  var filas=SKU_VISIBLE.map(function(g){
+    return [g.cliente,g.grupo,g.packing,g.po,g.op,g.estilo,g.codcolor,g.color,g.talla,
+            g.talleres.join(", "), g.req, g.enc,
+            g.req? g.enc/g.req : null, g.sal];
   });
   var ws=XLSX.utils.aoa_to_sheet([head].concat(filas));
-  /* Las dos columnas de % salen como porcentaje de verdad, no como número suelto */
+  /* La columna de % sale como porcentaje de verdad, no como número suelto */
   for(var r=1;r<=filas.length;r++){
-    ["I","K"].forEach(function(cl){
-      var cel=ws[cl+(r+1)]; if(cel && cel.v!==null && cel.v!==undefined) cel.z="0.00%";
-    });
+    var cel=ws["M"+(r+1)];
+    if(cel && cel.v!==null && cel.v!==undefined) cel.z="0.00%";
   }
   var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Avance Encajado");
   var d=new Date(), p=function(n){ return (n<10?"0":"")+n; };
