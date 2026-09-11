@@ -209,14 +209,7 @@ padding:10px 12px;border-radius:8px;background:var(--warm-light);}
 .cli.apr{background:#E7F4EF;} .cli.apr .cv{color:var(--sage-dark);}
 .cli.rec{background:#FCEBEB;} .cli.rec .cv{color:var(--rose);}
 .cli .cf{font-size:11.5px;color:var(--stone);font-weight:400;}
-.cli .acc{margin-left:auto;display:flex;gap:6px;}
-.cli .acc button{font-family:inherit;font-size:12px;font-weight:700;border-radius:6px;
-padding:6px 12px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--stone);}
-.cli .acc button.ok:hover{border-color:var(--sage);color:var(--sage-dark);}
-.cli .acc button.no:hover{border-color:var(--rose);color:var(--rose);}
-.cli .acc button[disabled]{opacity:.45;cursor:not-allowed;}
-@media(max-width:600px){ .cli .acc{margin-left:0;width:100%;}
-  .cli .acc button{flex:1;min-height:44px;font-size:13px;} }
+@media(max-width:600px){ .cli .cf{margin-left:0!important;} }
 
 .audtab{width:100%;border-collapse:collapse;font-size:12px;}
 .audtab th{font-size:10px;padding:5px 6px;}
@@ -403,14 +396,15 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       combinaci&oacute;n exacta de PO y color. Se dice con todas sus letras, en vez de dejar el
       espacio en blanco.</p>
       <p><b>El estatus del cliente.</b> Debajo de las auditor&iacute;as de cada PO y color
-      est&aacute; el estatus que marca Calidad, con dos botones para cambiarlo. Se puede
-      actualizar cuantas veces haga falta: si hoy se marca rechazado, queda rechazado hasta que
-      alguien lo cambie. Cada cambio se registra en el Historial con la fecha y el nombre de
-      quien lo marc&oacute;, que se pide la primera vez.</p>
-      <p><b>D&oacute;nde se guarda.</b> En el mismo Sheet de Avances Auditor&iacute;a de siempre,
-      as&iacute; que lo que se marque aqu&iacute; es lo mismo que se ve all&aacute;. La fila de
-      cada PO y color se crea sola al subir el Excel de encajado; antes hab&iacute;a que
-      teclearla en el formulario de Encajados, que ya no se usa.</p>
+      aparece el estatus que marcan las auditoras. Aqu&iacute; solo se muestra: se marca en el
+      formulario de Calidad, que es donde vive ese dato. Si hoy se marca rechazado, aqu&iacute;
+      se ver&aacute; rechazado hasta que alguien lo cambie all&aacute;.</p>
+      <p><b>Se lee al abrir la p&aacute;gina</b>, del mismo Sheet de Avances Auditor&iacute;a que
+      usa el formulario, as&iacute; que lo que se ve aqu&iacute; es lo mismo que se ve
+      all&aacute;. Si acaban de marcarlo, el bot&oacute;n <i>Actualizar</i> lo trae.</p>
+      <p><b>La fila de cada PO y color se crea sola</b> al subir el Excel de encajado, con su
+      Cantidad Lista ya calculada. Antes hab&iacute;a que teclearla en el formulario de
+      Encajados, que ya no se usa.</p>
       <p><b>Los filtros se quedan puestos.</b> Al salir y volver, la pantalla vuelve como la
       dejaste. Arriba aparece un aviso naranja diciendo cu&aacute;ntos filtros hay puestos, para
       que nunca parezca que faltan datos cuando en realidad hay un filtro activo. <i>Quitar
@@ -775,7 +769,6 @@ function parseCSV(txt){
 var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
 var AUDITORIAS=null, AUD_ESTADO="", AUD_INFO="";   /* null = aún no pedidas */
 var ESTATUS=null;      /* Estatus del cliente por combinación, del Sheet de Avances Auditoría */
-var QUIEN="";          /* quién marca, para dejarlo en el Historial */
 
 /* Clave de cruce con el maestro. Igual que la del backend: aquí sí se quita la
    puntuación, porque entre sistemas la PO se escribe distinto. */
@@ -813,35 +806,6 @@ function pedirEstatus(){
     ESTATUS = (r && r.ok && r.estatus) ? r.estatus : {};
     if($("app").style.display!=="none") render();
   }, function(){ ESTATUS={}; if($("app").style.display!=="none") render(); });
-}
-
-/* Marca el estatus del cliente. Se puede cambiar cuantas veces haga falta: si hoy
-   se marca rechazado, queda rechazado hasta que alguien lo cambie. */
-function marcarCliente(btn, grupo, estilo, po, color, valor){
-  if(!QUIEN){
-    QUIEN = (prompt("¿Quién está marcando este estatus? (queda registrado en el Historial)")||"").trim();
-    if(!QUIEN) return;
-  }
-  var fila=btn.closest(".cli");
-  fila.querySelectorAll("button").forEach(function(b){ b.disabled=true; });
-  var antes=btn.textContent; btn.textContent="Guardando…";
-  jsonp({accion:"marcarCliente", grupo:grupo, estilo:estilo, po:po, color:color,
-         valor:valor, quien:QUIEN}, function(r){
-    if(r && r.ok){
-      ESTATUS = ESTATUS || {};
-      var k=claveAud(grupo,estilo,po,color), prev=ESTATUS[k]||{};
-      ESTATUS[k] = { e:r.valor, f:r.fecha, l:prev.l||0, p:prev.p||0 };
-      render();
-    }else{
-      btn.textContent=antes;
-      fila.querySelectorAll("button").forEach(function(b){ b.disabled=false; });
-      mostrarErr((r&&r.error)||"No se pudo guardar el estatus.");
-    }
-  }, function(msg){
-    btn.textContent=antes;
-    fila.querySelectorAll("button").forEach(function(b){ b.disabled=false; });
-    mostrarErr("No se pudo guardar el estatus ("+msg+").");
-  });
 }
 
 function pedirAuditorias(){
@@ -1425,17 +1389,14 @@ function bloqueCliente(b, clave){
   var cls = v==="APROBADO_CLIENTE" ? "apr" : (v==="RECHAZADO_CLIENTE" ? "rec" : "");
   var txt = v==="APROBADO_CLIENTE" ? "Aprobado por el cliente"
           : (v==="RECHAZADO_CLIENTE" ? "Rechazado por el cliente" : "Todavía sin marcar");
-  var arg="'"+[esc(b.grupo),esc(b.estilo),esc(b.po),esc(b.color)].join("','")+"'";
+  /* Solo se muestra. Se marca en el formulario de Calidad, que es donde vive ese
+     dato: tenerlo en dos sitios llevaría a que nadie sepa cuál mandó. */
   return '<div class="cli '+cls+'">'+
     '<span class="cl">Estatus del cliente</span>'+
     '<span class="cv">'+txt+'</span>'+
     (e.f?'<span class="cf">desde el '+esc(String(e.f).replace("T"," ").substring(0,16))+'</span>':'')+
-    '<span class="acc">'+
-      '<button class="ok"'+(v==="APROBADO_CLIENTE"?' disabled':'')+
-        ' onclick="marcarCliente(this,'+arg+',\'APROBADO_CLIENTE\')">Aprobado</button>'+
-      '<button class="no"'+(v==="RECHAZADO_CLIENTE"?' disabled':'')+
-        ' onclick="marcarCliente(this,'+arg+',\'RECHAZADO_CLIENTE\')">Rechazado</button>'+
-    '</span></div>';
+    '<span class="cf" style="margin-left:auto">se marca en el formulario de Calidad</span>'+
+  '</div>';
 }
 
 function tablaAud(clave, todas){
