@@ -314,10 +314,11 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       Si se filtra por un taller, el requerido sigue siendo el de la PO completa y lo encajado
       solo el de ese taller: as&iacute; se ve cu&aacute;nto del pedido lleva cada uno.</p>
       <p><b>De d&oacute;nde sale el porcentaje.</b> Se calcula aqu&iacute;, como
-      <i>encajadas &divide; requeridas</i>. Los porcentajes que trae el Excel no se usan porque el
-      reporte los exporta en dos escalas distintas: en unos archivos la celda dice 104.54 y en
-      otros dice 1.0454. Los totales se calculan como <i>suma &divide; suma</i>, nunca promediando
-      los porcentajes de cada talla.</p>
+      <i>encajadas &divide; requeridas</i>, que es la misma divisi&oacute;n que hace el sistema:
+      el n&uacute;mero es el mismo, pero as&iacute; no depende de en qu&eacute; escala venga la
+      celda del Excel. Los totales se calculan como <i>suma &divide; suma</i>, nunca promediando
+      los porcentajes de cada talla: eso le dar&iacute;a el mismo peso a una talla de 8 prendas
+      que a una de 800.</p>
       <p><b>El filtro de Avance.</b> Deja ver solo las tallas que ya llegaron a cierto punto
       —75%, 85%, 90%— para saber cu&aacute;les est&aacute;n listas para auditar. Se aplica a la
       talla completa, juntando sus talleres, no a cada cuadro por separado.</p>
@@ -544,15 +545,22 @@ function parsearLibro(wb, nombreArchivo){
     }
     if(!opCuadro) opCuadro = res.op;
 
-    var filasCuadro=[];
+    var filasCuadro=[], totCuadro=null;
     for(var r4=hr+1; r4<fin; r4++){
       var fr = m[r4]||[];
       var talla = normTxt(fr[col.talla]);
       var req = numVal(fr[col.req]), enc = numVal(fr[col.enc]);
       var sal = col.sal!==undefined ? numVal(fr[col.sal]) : null;
 
+      /* Cada cuadro trae su propio TOTAL GENERAL. El control se hace cuadro por
+         cuadro: comparar la suma de todos contra el de uno solo dar\u00eda un falso
+         "difiere" en cuanto haya m\u00e1s de un taller. */
       if(fr.map(normTxt).join(" ").indexOf("TOTAL GENERAL")>=0){
-        if(req!==null) totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        if(req!==null){
+          totCuadro = { req:req, enc:(enc||0), sal:(sal||0) };
+          if(totGen) { totGen.req = Math.max(totGen.req, req); totGen.enc += (enc||0); totGen.sal += (sal||0); }
+          else totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        }
         continue;
       }
       if(!talla || talla==="TOTAL") continue;      /* Total por color / TOTAL por estilo */
@@ -576,7 +584,14 @@ function parsearLibro(wb, nombreArchivo){
     }
 
     if(filasCuadro.length){
-      res.cuadros.push({ taller:taller, op:opCuadro, filas:filasCuadro.length });
+      var sc = totalizar(filasCuadro);
+      var cuadroInfo = { taller:taller, op:opCuadro, filas:filasCuadro.length,
+                         req:sc.req, enc:sc.enc, total:totCuadro, cuadra:null, control:null };
+      if(totCuadro){
+        cuadroInfo.control = { dif_req: sc.req - totCuadro.req, dif_enc: sc.enc - totCuadro.enc };
+        cuadroInfo.cuadra  = (cuadroInfo.control.dif_req===0 && cuadroInfo.control.dif_enc===0);
+      }
+      res.cuadros.push(cuadroInfo);
       res.filas = res.filas.concat(filasCuadro);
     }
   }
@@ -592,9 +607,17 @@ function parsearLibro(wb, nombreArchivo){
   /* ---------- 4. Totales del archivo, con la regla de suma correcta ---------- */
   res.suma = totalizar(res.filas);
   res.totalArchivo = totGen;
-  if(totGen){
-    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc };
-    res.cuadra  = (res.control.dif_req===0 && res.control.dif_enc===0);
+
+  /* El archivo cuadra si cuadran todos sus cuadros. Si ninguno trae TOTAL GENERAL,
+     no hay contra qu\u00e9 contrastar y se dice, en vez de dar un visto bueno falso. */
+  var conTotal = res.cuadros.filter(function(c){ return c.cuadra!==null; });
+  if(conTotal.length){
+    var malos = conTotal.filter(function(c){ return !c.cuadra; });
+    res.cuadra  = (malos.length===0);
+    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc,
+                    cuadrosMalos: malos.map(function(c){ return (c.taller||"sin taller")+
+                      " ("+(c.control.dif_enc>0?"+":"")+c.control.dif_enc+" encajadas)"; }) };
+    res.sinTotal = res.cuadros.length - conTotal.length;
   }
   res.ok = true;
   return res;
