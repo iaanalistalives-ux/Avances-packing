@@ -181,8 +181,13 @@ color:var(--stone);padding:6px 14px;border-radius:6px;cursor:pointer;}
 position:relative;overflow:hidden;padding:20px 18px 18px;margin-bottom:14px;}
 .gblock .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--sage);}
 .ghead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
-.ghead .gt{font-size:16px;font-weight:700;line-height:1.2;}
-.ghead .gs{font-size:11.5px;color:var(--stone);margin-top:2px;}
+.ghead .gt{font-size:20px;font-weight:700;line-height:1.15;letter-spacing:-.3px;}
+.ghead .gt .sep{color:var(--warm);font-weight:400;margin:0 6px;}
+.ghead .gt .op{color:var(--sage-dark);}
+.ghead .gm{font-size:14px;font-weight:700;color:#333;margin-top:4px;}
+.ghead .gm .po{color:var(--slate);font-weight:700;}
+.ghead .gs{font-size:11.5px;color:var(--stone);margin-top:3px;}
+@media(max-width:600px){ .ghead .gt{font-size:17px;} .ghead .gm{font-size:13px;} }
 .ghead .gtot{margin-left:auto;text-align:right;}
 .ghead .gpct{font-size:30px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1px;}
 .ghead .gsub{font-size:11.5px;color:var(--stone);margin-top:3px;}
@@ -366,9 +371,14 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       de auditor&iacute;as de esa combinaci&oacute;n de PO y color: fecha, proceso (costura,
       acabados o acabados final), resultado, taller, auditor y el lote revisado. Arriba se
       resume el &uacute;ltimo resultado de cada proceso, para verlo de un golpe.</p>
-      <p><b>Se leen en el momento, no se guardan.</b> Una auditor&iacute;a registrada hace cinco
-      minutos aparece aqu&iacute; sin que nadie vuelva a subir ning&uacute;n Excel. Vienen del
-      mismo maestro donde las registran las auditoras.</p>
+      <p><b>Se leen en el momento, no se guardan.</b> Vienen del mismo maestro donde las
+      registran las auditoras. Para que abrir la p&aacute;gina no cueste una espera cada vez, la
+      consulta se guarda cinco minutos: si entras dos veces seguidas, la segunda es
+      instant&aacute;nea. El bot&oacute;n <i>Actualizar</i> siempre va a buscar lo
+      &uacute;ltimo, sin esperar esos cinco minutos.</p>
+      <p><b>Cuando hay muchas auditor&iacute;as</b> se muestran las cinco m&aacute;s recientes y
+      un enlace para ver las anteriores. Los procesos de arriba siempre traen el
+      &uacute;ltimo resultado de cada uno, sin importar cu&aacute;ntas haya.</p>
       <p><b>C&oacute;mo se cruzan.</b> Por grupo, estilo, PO y color. No por OP: solo el 4% de
       las auditor&iacute;as registradas trae la OP, mientras que pr&aacute;cticamente todas traen
       esos cuatro datos. Por eso el grupo y el estilo se traen de OPS y no del Excel.</p>
@@ -737,7 +747,7 @@ function parseCSV(txt){
 }
 
 var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
-var AUDITORIAS=null, AUD_ESTADO="";   /* null = aún no pedidas */
+var AUDITORIAS=null, AUD_ESTADO="", AUD_INFO="";   /* null = aún no pedidas */
 
 /* Clave de cruce con el maestro. Igual que la del backend: aquí sí se quita la
    puntuación, porque entre sistemas la PO se escribe distinto. */
@@ -772,8 +782,14 @@ function jsonp(params, cb, errcb){
 function pedirAuditorias(){
   if(!CFG.ENDPOINT){ AUDITORIAS={}; AUD_ESTADO="sin endpoint configurado"; return; }
   AUD_ESTADO="cargando";
-  jsonp({accion:"auditorias"}, function(r){
-    if(r && r.ok){ AUDITORIAS=r.claves||{}; AUD_ESTADO=""; }
+  jsonp({accion:"auditorias", forzar:AUD_FORZAR?1:0}, function(r){
+    AUD_FORZAR=false;
+    if(r && r.ok){
+      AUDITORIAS=r.claves||{}; AUD_ESTADO="";
+      AUD_INFO = (r.total||0)+" auditorías de "+(r.combinaciones||0)+" PO"+
+                 (r.ms? " · "+(r.ms/1000).toFixed(1)+" s":"")+
+                 (r.deCache? " (guardadas)":"");
+    }
     else { AUDITORIAS={}; AUD_ESTADO=(r&&r.error)||"respuesta inesperada"; }
     if($("app").style.display!=="none") render();
   }, function(msg){
@@ -897,6 +913,7 @@ var ULTIMO_TOCADO="";
    página, para poder pasarle a alguien el enlace ya filtrado. La dirección manda
    sobre lo guardado: si llega por un enlace, se respeta ese enlace. */
 var CLAVE_FILTROS = "lives_encajado_filtros_v1";
+var AUD_FORZAR=false;
 
 function estadoActual(){
   var e={};
@@ -1168,7 +1185,8 @@ function render(){
       "<b>Auditorías:</b> "+conAud+" de "+tot+" combinaciones de PO y color tienen alguna auditoría registrada"+
       (aprob?" · "+aprob+" con la final aprobada":"")+
       (rech?" · <span style='color:var(--rose);font-weight:700'>"+rech+" con la final rechazada</span>":"")+
-      ". El detalle está dentro de cada PO, más abajo.";
+      ". El detalle está dentro de cada PO, más abajo."+
+      (AUD_INFO? " <span style='opacity:.7'>("+esc(AUD_INFO)+")</span>":"");
     $("resumenAud").style.display="block";
   } else $("resumenAud").style.display="none";
 
@@ -1246,14 +1264,20 @@ function renderTarjetas(sku){
 
     return '<div class="gblock"><span class="tira"></span>'+
       '<div class="ghead"><div>'+
-        '<div class="gt">PO '+esc(b.po)+'</div>'+
+        /* Arriba lo que se usa para buscar y para cruzar: grupo, estilo propio y OP.
+           El color va en la segunda línea porque es lo que separa un bloque de otro:
+           sin él, dos colores de la misma OP se verían idénticos. */
+        '<div class="gt">'+
+          esc(b.grupo||"sin grupo")+'<span class="sep">·</span>'+
+          esc(b.estilo||"sin estilo")+
+          (b.op?'<span class="sep">·</span><span class="op">OP '+esc(b.op)+'</span>':'')+
+        '</div>'+
+        '<div class="gm">'+esc((b.codcolor?b.codcolor+" ":"")+b.color)+
+          '<span class="sep" style="color:var(--warm)">·</span>'+
+          '<span class="po">PO '+esc(b.po)+'</span></div>'+
         '<div class="gs">'+
-          (b.estilo?'Estilo '+esc(b.estilo)+' &middot; ':'')+
-          (b.estiloCli?'cliente '+esc(b.estiloCli)+' &middot; ':'')+
-          'Color '+esc((b.codcolor?b.codcolor+" ":"")+b.color)+
-          (b.op?' &middot; OP '+esc(b.op):'')+
-          (b.grupo?' &middot; Grupo '+esc(b.grupo):'')+
-          ' &middot; '+b.tallas.length+' talla(s)'+
+          (b.estiloCli?'Estilo cliente '+esc(b.estiloCli)+' &middot; ':'')+
+          b.tallas.length+' talla(s)'+
           (b.talleres.length?' &middot; '+b.talleres.map(esc).join(", "):'')+
           (b.sal>0?' &middot; '+fmt(b.sal)+' de saldo':'')+'</div>'+
       '</div><div class="gtot">'+
@@ -1277,6 +1301,9 @@ function fechaCorta(f){
 
 /* Historial de auditorías de esa PO + color. Se muestra el último resultado de
    cada proceso arriba, y el detalle completo al desplegar. */
+var AUD_ABIERTAS={};   /* qué historiales están desplegados, para no perderlos al filtrar */
+var AUD_TOPE=5;        /* cuántas se muestran antes de "ver todas" */
+
 function bloqueAuditorias(b){
   if(AUDITORIAS===null)
     return '<div class="audwrap"><div class="audvacio">Consultando las auditorías…</div></div>';
@@ -1284,14 +1311,16 @@ function bloqueAuditorias(b){
     return '<div class="audwrap"><div class="audvacio">No se pudieron traer las auditorías ('+
            esc(AUD_ESTADO)+'). El avance de encajado que ves arriba no está afectado.</div></div>';
 
-  var lista=AUDITORIAS[claveAud(b.grupo,b.estilo,b.po,b.color)]||[];
+  var clave=claveAud(b.grupo,b.estilo,b.po,b.color);
+  var lista=AUDITORIAS[clave]||[];
   if(!lista.length)
     return '<div class="audwrap"><div class="audvacio">Todavía no hay auditorías registradas '+
            'para esta PO y color.</div></div>';
 
-  /* Último resultado por proceso: lo que importa de un vistazo. */
+  /* Último resultado de cada proceso: lo que se necesita ver de un golpe.
+     La lista viene ordenada de la más reciente a la más antigua. */
   var ult={};
-  lista.forEach(function(a){ if(!ult[a.t]) ult[a.t]=a; });   /* ya vienen ordenadas, la más reciente primero */
+  lista.forEach(function(a){ if(!ult[a.t]) ult[a.t]=a; });
   var chips=Object.keys(ult).sort(function(x,y){ return ordenProc(x)-ordenProc(y); })
     .map(function(t){
       var a=ult[t], cls = a.r==="APROBADO" ? "apr" : (a.r==="RECHAZADO" ? "rec" : "");
@@ -1299,8 +1328,21 @@ function bloqueAuditorias(b){
              '<span style="font-weight:400;opacity:.8">'+fechaCorta(a.f)+'</span></span>';
     }).join(" ");
 
-  var id="aud_"+Math.random().toString(36).slice(2,9);
-  var filas=lista.map(function(a){
+  /* La tabla NO se arma aquí. Con muchas PO en pantalla serían miles de filas
+     escondidas que el navegador tiene que sostener igual. Se arma al abrirla. */
+  var abierta = !!AUD_ABIERTAS[clave];
+  return '<div class="audwrap" data-clave="'+esc(clave)+'">'+
+    '<div class="audhead"><span class="t">Auditorías</span>'+chips+
+      '<button class="audver" onclick="verAud(this)">'+
+      (abierta?'ocultar':'ver')+' las '+lista.length+'</button>'+
+    '</div>'+
+    '<div class="auddet">'+(abierta?tablaAud(clave,AUD_ABIERTAS[clave]==="todas"):'')+'</div></div>';
+}
+
+function tablaAud(clave, todas){
+  var lista=AUDITORIAS[clave]||[];
+  var ver = todas ? lista : lista.slice(0,AUD_TOPE);
+  var filas=ver.map(function(a){
     var cls = a.r==="APROBADO" ? "bue" : (a.r==="RECHAZADO" ? "ale" : "low");
     return '<tr><td>'+fechaCorta(a.f)+'</td><td>'+esc(a.t)+'</td>'+
       '<td><span class="st '+cls+'">'+esc(a.r||"—")+'</span></td>'+
@@ -1308,23 +1350,30 @@ function bloqueAuditorias(b){
       '<td>'+esc(a.at||"—")+'</td>'+
       '<td class="num">'+fmt(a.l)+'</td><td class="num">'+fmt(a.m)+'</td></tr>';
   }).join("");
-
-  return '<div class="audwrap">'+
-    '<div class="audhead"><span class="t">Auditorías</span>'+chips+
-      '<button class="audver" onclick="verAud(\''+id+'\',this)">ver las '+lista.length+'</button>'+
-    '</div>'+
-    '<div id="'+id+'" style="display:none">'+
-      '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th>'+
-      '<th>Taller</th><th>Auditor</th><th>Auditor de taller</th>'+
-      '<th class="num">Lote</th><th class="num">Muestra</th></tr></thead>'+
-      '<tbody>'+filas+'</tbody></table>'+
-    '</div></div>';
+  var mas = (!todas && lista.length>AUD_TOPE)
+    ? '<div style="padding:8px 6px"><button class="audver" onclick="verTodasAud(this,\''+
+      esc(clave)+'\')">ver las '+(lista.length-AUD_TOPE)+' anteriores</button></div>' : '';
+  return '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th>'+
+    '<th>Taller</th><th>Auditor</th><th>Auditor de taller</th>'+
+    '<th class="num">Lote</th><th class="num">Muestra</th></tr></thead>'+
+    '<tbody>'+filas+'</tbody></table>'+mas;
 }
-function verAud(id,btn){
-  var d=$(id); if(!d) return;
-  var abierto = d.style.display!=="none";
-  d.style.display = abierto ? "none" : "block";
-  btn.textContent = abierto ? btn.textContent.replace("ocultar","ver") : btn.textContent.replace("ver","ocultar");
+
+function verAud(btn){
+  var wrap=btn.closest(".audwrap"), clave=wrap.getAttribute("data-clave");
+  var det=wrap.querySelector(".auddet");
+  if(AUD_ABIERTAS[clave]){
+    delete AUD_ABIERTAS[clave]; det.innerHTML="";
+    btn.textContent=btn.textContent.replace("ocultar","ver");
+  }else{
+    AUD_ABIERTAS[clave]="parcial"; det.innerHTML=tablaAud(clave,false);
+    btn.textContent=btn.textContent.replace("ver","ocultar");
+  }
+}
+function verTodasAud(btn,clave){
+  AUD_ABIERTAS[clave]="todas";
+  var det=btn.closest(".auddet");
+  if(det) det.innerHTML=tablaAud(clave,true);
 }
 
 var ORD={campo:"po", asc:true};
@@ -1478,7 +1527,7 @@ function exportarExcel(){
   XLSX.writeFile(wb,"avance_encajado_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
 }
 function recargar(){
-  AUDITORIAS=null; AUD_ESTADO="";
+  AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={};
   if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); pedirAuditorias(); }
   else location.reload();
 }
