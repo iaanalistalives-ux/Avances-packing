@@ -26,6 +26,12 @@ display:flex;align-items:center;gap:16px;padding:0 22px;flex-wrap:wrap;}
 .hsub{color:#B9CFC9;font-size:11.5px;}
 .hstate{margin-left:auto;color:#B9CFC9;font-size:11.5px;text-align:right;}
 
+.navlinks{display:flex;gap:10px;align-items:center;}
+.navlinks a{color:#B9CFC9;font-size:12px;font-weight:700;text-decoration:none;
+padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
+.navlinks a:hover{color:#fff;border-color:var(--emer);}
+@media(max-width:600px){ .navlinks{order:4;width:100%;} .navlinks a{flex:1;text-align:center;
+  min-height:38px;display:flex;align-items:center;justify-content:center;} }
 .wrap{width:100%;max-width:1080px;margin:0 auto;padding:18px clamp(14px,2.2vw,28px) 44px;}
 
 .panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
@@ -115,6 +121,10 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
     <div class="htitle">CARGA DE AVANCE DE ENCAJADO</div>
     <div class="hsub">Sube los Excel "Avance Encajado" y actualiza el visor de las auditoras</div>
   </div>
+  <nav class="navlinks">
+    <a href="./">Avance por talla</a>
+    <a href="./dashboard_avances_auditoria.html">Dashboard</a>
+  </nav>
   <div class="hstate" id="hstate">Sin archivos cargados</div>
 </div>
 
