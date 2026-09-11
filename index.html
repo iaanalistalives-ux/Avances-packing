@@ -42,6 +42,11 @@ cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage);}
 .btn.primary{background:var(--sage);color:#fff;border-color:var(--sage);}
 .btn.primary:hover{background:var(--sage-dark);}
 .spacer{margin-left:auto;}
+.chip{display:none;align-items:center;gap:8px;background:#FEF3E2;border:1px solid var(--tan);
+color:var(--taupe);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;}
+.chip button{background:none;border:none;color:var(--taupe);font-family:inherit;font-size:12px;
+font-weight:700;cursor:pointer;text-decoration:underline;padding:0;min-height:auto;}
+@media(max-width:600px){ .chip{min-height:44px;} }
 .umbral{color:var(--taupe)!important;border-color:var(--tan)!important;}
 .flab.umbral{color:var(--taupe);}
 .flab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);}
@@ -182,6 +187,23 @@ position:relative;overflow:hidden;padding:20px 18px 18px;margin-bottom:14px;}
 .ghead .gpct{font-size:30px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1px;}
 .ghead .gsub{font-size:11.5px;color:var(--stone);margin-top:3px;}
 
+/* ---- Historial de auditorías ---- */
+.audwrap{margin-top:14px;border-top:1px solid var(--warm);padding-top:12px;}
+.audhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.audhead .t{font-size:12px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.5px;}
+.proc{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+padding:3px 10px;border-radius:20px;background:var(--warm-light);color:var(--stone);}
+.proc .pr{font-weight:700;}
+.proc.apr{background:#E7F4EF;color:var(--sage-dark);}
+.proc.rec{background:#FCEBEB;color:var(--rose);}
+.audtab{width:100%;border-collapse:collapse;font-size:12px;}
+.audtab th{font-size:10px;padding:5px 6px;}
+.audtab td{padding:5px 6px;border-bottom:1px solid var(--warm-light);}
+.audvacio{font-size:12.5px;color:var(--stone);padding:4px 0;}
+.audver{background:none;border:none;color:var(--sage);font-family:inherit;font-size:12px;
+font-weight:700;cursor:pointer;text-decoration:underline;padding:0;}
+@media(max-width:600px){ .audtab{min-width:520px;} .audwrap{overflow-x:auto;} }
+
 .tchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:stretch;}
 .tchip{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:0;overflow:hidden;
 display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s;}
@@ -256,6 +278,10 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       </select>
       <input type="search" id="fBusca" placeholder="Buscar…">
       <button class="btn" onclick="limpiarFiltros()">Quitar filtros</button>
+      <span class="chip" id="chipGuardado">
+        <span id="chipTexto">Filtros guardados</span>
+        <button onclick="limpiarFiltros()">quitar</button>
+      </span>
       <span class="spacer"></span>
       <span class="seg" id="segVista">
         <button class="active" onclick="verVista('tarjetas',this)">Tarjetas</button>
@@ -268,6 +294,7 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 
     <div class="kpis" id="kpis"></div>
     <div class="aviso" id="avisoOps" style="display:none"></div>
+    <div class="note" id="resumenAud" style="display:none"></div>
     <div class="note" id="fuente"></div>
 
     <div id="sinDatos" class="panel" style="display:none;margin-bottom:14px">
@@ -335,6 +362,25 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       <p><b>Por qu&eacute; hacen falta las tres cosas para cruzar.</b> La OP sola no alcanza: 332
       de las 1.485 OP apuntan a m&aacute;s de un grupo, estilo o PO. Y la PO tampoco, porque hay
       pedidos que solo se distinguen por un punto final.</p>
+      <p><b>Las auditorías.</b> Dentro de cada PO, debajo de las tallas, est&aacute; el historial
+      de auditor&iacute;as de esa combinaci&oacute;n de PO y color: fecha, proceso (costura,
+      acabados o acabados final), resultado, taller, auditor y el lote revisado. Arriba se
+      resume el &uacute;ltimo resultado de cada proceso, para verlo de un golpe.</p>
+      <p><b>Se leen en el momento, no se guardan.</b> Una auditor&iacute;a registrada hace cinco
+      minutos aparece aqu&iacute; sin que nadie vuelva a subir ning&uacute;n Excel. Vienen del
+      mismo maestro donde las registran las auditoras.</p>
+      <p><b>C&oacute;mo se cruzan.</b> Por grupo, estilo, PO y color. No por OP: solo el 4% de
+      las auditor&iacute;as registradas trae la OP, mientras que pr&aacute;cticamente todas traen
+      esos cuatro datos. Por eso el grupo y el estilo se traen de OPS y no del Excel.</p>
+      <p><b>Si una PO no muestra auditor&iacute;as</b>, es que no hay ninguna registrada para esa
+      combinaci&oacute;n exacta de PO y color. Se dice con todas sus letras, en vez de dejar el
+      espacio en blanco.</p>
+      <p><b>Los filtros se quedan puestos.</b> Al salir y volver, la pantalla vuelve como la
+      dejaste. Arriba aparece un aviso naranja diciendo cu&aacute;ntos filtros hay puestos, para
+      que nunca parezca que faltan datos cuando en realidad hay un filtro activo. <i>Quitar
+      filtros</i> lo borra todo. Adem&aacute;s los filtros quedan en la direcci&oacute;n de la
+      p&aacute;gina: copiando el enlace de la barra del navegador se lo puedes pasar a alguien y
+      lo ver&aacute; igual que t&uacute;.</p>
       <p><b>Actualizaci&oacute;n.</b> Los reportes no traen fecha de corte. La fecha que aparece
       bajo las tarjetas es la de la &uacute;ltima carga registrada. Cuando alguien vuelve a subir
       una PO, todo lo anterior de esa PO se reemplaza.</p>
@@ -353,7 +399,11 @@ var CFG = {
   /* ID del Google Sheet (el tramo entre /d/ y /edit de su URL).
      Si queda vacío, la consulta arranca en modo archivo: se cargan los Excel a mano. */
   SHEET_ID : "19-hZFD1BoJ_D8677es0iy4TVJWKy8ARQ20qCNFLo-EM",
-  HOJA     : "ENCAJADO"
+  HOJA     : "ENCAJADO",
+  /* Mismo endpoint del cargador. Sirve para pedir el historial de auditorías, que
+     se lee en el momento: una auditoría de hace cinco minutos aparece sin volver a
+     subir ningún Excel. Si queda vacío, el visor funciona igual pero sin auditorías. */
+  ENDPOINT : "https://script.google.com/macros/s/AKfycbzBere_gFVnUazyE8XBcxK4QFoSo63fwi3Q7GOHo60ldcTYA9WNmzav18cBJrTRyOenPw/exec"
 };
 
 var SAGE="#0F7A5A", EMER="#10B981", SLATE="#4E6B78", STONE="#5F726C", TAN="#F59E0B", WARM="#F1F6F4";
@@ -687,6 +737,50 @@ function parseCSV(txt){
 }
 
 var DATOS=[], ULTIMA_CARGA=null, ORIGEN="";
+var AUDITORIAS=null, AUD_ESTADO="";   /* null = aún no pedidas */
+
+/* Clave de cruce con el maestro. Igual que la del backend: aquí sí se quita la
+   puntuación, porque entre sistemas la PO se escribe distinto. */
+function normAud(v){
+  var t=String(v===null||v===undefined?"":v).replace(/\s+/g," ").trim();
+  if(t==="") return "";
+  if(/^\d+(\.\d+)?$/.test(t)){ var n=parseFloat(t); if(!isNaN(n)) return String(Math.round(n)); }
+  return t.toUpperCase().replace(/[^A-Z0-9]/g,"");
+}
+function claveAud(grupo,estilo,po,color){
+  return normAud(grupo)+"|"+normAud(estilo)+"|"+normAud(po)+"|"+normAud(color);
+}
+/* El backend devuelve el historial bajo la clave con la PO completa, que es la que
+   el visor tiene. No hace falta buscar por la PO recortada aquí: esa búsqueda ya se
+   hizo del lado del servidor, contra el maestro. */
+
+var jsonpN=0;
+function jsonp(params, cb, errcb){
+  var name="__aud_cb_"+(++jsonpN)+"_"+Date.now();
+  var sc=document.createElement("script");
+  var to=setTimeout(function(){ limpiar(); errcb&&errcb("tiempo de espera agotado"); },45000);
+  function limpiar(){ clearTimeout(to); try{ delete window[name]; }catch(e){ window[name]=undefined; }
+                      if(sc.parentNode) sc.parentNode.removeChild(sc); }
+  window[name]=function(r){ limpiar(); cb(r); };
+  var q=[]; for(var k in params) q.push(encodeURIComponent(k)+"="+encodeURIComponent(params[k]));
+  q.push("callback="+name);
+  sc.src=CFG.ENDPOINT+(CFG.ENDPOINT.indexOf("?")<0?"?":"&")+q.join("&");
+  sc.onerror=function(){ limpiar(); errcb&&errcb("no se pudo contactar el servidor"); };
+  document.body.appendChild(sc);
+}
+
+function pedirAuditorias(){
+  if(!CFG.ENDPOINT){ AUDITORIAS={}; AUD_ESTADO="sin endpoint configurado"; return; }
+  AUD_ESTADO="cargando";
+  jsonp({accion:"auditorias"}, function(r){
+    if(r && r.ok){ AUDITORIAS=r.claves||{}; AUD_ESTADO=""; }
+    else { AUDITORIAS={}; AUD_ESTADO=(r&&r.error)||"respuesta inesperada"; }
+    if($("app").style.display!=="none") render();
+  }, function(msg){
+    AUDITORIAS={}; AUD_ESTADO=msg;
+    if($("app").style.display!=="none") render();
+  });
+}
 
 function urlSheet(){
   return "https://docs.google.com/spreadsheets/d/"+CFG.SHEET_ID+
@@ -797,6 +891,62 @@ function leerArchivos(lista){
 var F={cliente:"",grupo:"",po:"",op:"",estilo:"",color:"",talla:"",taller:"",busca:""};
 var UMBRAL="";
 var ULTIMO_TOCADO="";
+
+/* ---- Los filtros se conservan al salir y volver ----
+   Se guardan en el navegador de quien consulta y también en la dirección de la
+   página, para poder pasarle a alguien el enlace ya filtrado. La dirección manda
+   sobre lo guardado: si llega por un enlace, se respeta ese enlace. */
+var CLAVE_FILTROS = "lives_encajado_filtros_v1";
+
+function estadoActual(){
+  var e={};
+  for(var k in F) if(F[k]) e[k]=F[k];
+  if(UMBRAL) e.u=UMBRAL;
+  if(VISTA!=="tarjetas") e.v=VISTA;
+  return e;
+}
+function hayFiltros(){
+  for(var k in F) if(F[k]) return true;
+  return !!UMBRAL;
+}
+function guardarEstado(){
+  var e=estadoActual();
+  try{
+    if(Object.keys(e).length) localStorage.setItem(CLAVE_FILTROS, JSON.stringify(e));
+    else localStorage.removeItem(CLAVE_FILTROS);
+  }catch(err){}
+  /* replaceState y no hash directo: así el botón Atrás no se llena de pasos. */
+  try{
+    var q = Object.keys(e).length ? "#"+encodeURIComponent(JSON.stringify(e)) : location.pathname+location.search;
+    history.replaceState(null,"",q);
+  }catch(err){}
+  pintarChip();
+}
+function aplicarEstado(e){
+  if(!e) return;
+  for(var k in F) F[k] = e[k] || "";
+  UMBRAL = e.u || "";
+  if(e.v) VISTA = e.v;
+  var fb=$("fBusca"); if(fb) fb.value=F.busca;
+  var fu=$("fUmbral"); if(fu) fu.value=UMBRAL;
+}
+function restaurarEstado(){
+  var e=null, deEnlace=false;
+  try{
+    var h=(location.hash||"").replace(/^#/,"");
+    if(h){ e=JSON.parse(decodeURIComponent(h)); deEnlace=true; }
+    else { var g=localStorage.getItem(CLAVE_FILTROS); if(g) e=JSON.parse(g); }
+  }catch(err){ e=null; }
+  aplicarEstado(e);
+  return { hubo:!!e, deEnlace:deEnlace };
+}
+function pintarChip(){
+  var c=$("chipGuardado"); if(!c) return;
+  if(!hayFiltros()){ c.style.display="none"; return; }
+  var n=0; for(var k in F) if(F[k]) n++;
+  $("chipTexto").textContent = "Viendo con "+(n+(UMBRAL?1:0))+" filtro(s) puesto(s)";
+  c.style.display="inline-flex";
+}
 var CAMPOS=[["cliente","fCliente","Todos",null],["grupo","fGrupo","Todos",null],
             ["po","fPO","Todas",null],["op","fOP","Todas",null],
             ["estilo","fEstilo","Todos",null],["color","fColor","Todos",null],
@@ -842,17 +992,19 @@ function limpiarFiltros(){
   CAMPOS.forEach(function(d){ F[d[0]]=""; });
   F.busca=""; UMBRAL=""; ULTIMO_TOCADO="";
   $("fBusca").value=""; $("fUmbral").value="";
-  armarFiltros(); render();
+  try{ localStorage.removeItem(CLAVE_FILTROS); }catch(e){}
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+  armarFiltros(); render(); pintarChip();
 }
 CAMPOS.forEach(function(d){
   $(d[1]).addEventListener("change",function(){
     ULTIMO_TOCADO=d[0];
     CAMPOS.forEach(function(c){ F[c[0]]=$(c[1]).value; });
-    armarFiltros(); render();
+    armarFiltros(); render(); guardarEstado();
   });
 });
-$("fBusca").addEventListener("input",function(){ F.busca=this.value; render(); });
-$("fUmbral").addEventListener("change",function(){ UMBRAL=this.value; render(); });
+$("fBusca").addEventListener("input",function(){ F.busca=this.value; render(); guardarEstado(); });
+$("fUmbral").addEventListener("change",function(){ UMBRAL=this.value; render(); guardarEstado(); });
 
 /* ============================================================
    Agregación
@@ -913,6 +1065,7 @@ function verVista(v,btn){
   $("vistaTabla").style.display    = (v==="tabla")?"grid":"none";
   reajustarGrids();
   if(v==="tarjetas") animarBarras();
+  guardarEstado();
 }
 function animarBarras(){
   setTimeout(function(){
@@ -997,6 +1150,27 @@ function render(){
     }
     av.innerHTML = partes.join("<br><br>"); av.style.display="block";
   } else av.style.display="none";
+
+  /* Resumen de auditorías sobre lo que se está viendo */
+  if(AUDITORIAS && !AUD_ESTADO){
+    var combos={}, conAud=0, aprob=0, rech=0;
+    sku.forEach(function(g){ combos[claveAud(g.grupo,g.estilo,g.po,g.color)]=g; });
+    Object.keys(combos).forEach(function(k){
+      var l=AUDITORIAS[k]; if(!l||!l.length) return;
+      conAud++;
+      var fin=null;
+      for(var i=0;i<l.length;i++) if(l[i].t.indexOf("FINAL")>=0){ fin=l[i]; break; }
+      if(fin && fin.r==="APROBADO") aprob++;
+      else if(fin && fin.r==="RECHAZADO") rech++;
+    });
+    var tot=Object.keys(combos).length;
+    $("resumenAud").innerHTML =
+      "<b>Auditorías:</b> "+conAud+" de "+tot+" combinaciones de PO y color tienen alguna auditoría registrada"+
+      (aprob?" · "+aprob+" con la final aprobada":"")+
+      (rech?" · <span style='color:var(--rose);font-weight:700'>"+rech+" con la final rechazada</span>":"")+
+      ". El detalle está dentro de cada PO, más abajo.";
+    $("resumenAud").style.display="block";
+  } else $("resumenAud").style.display="none";
 
   $("fuente").innerHTML="Fuente: "+esc(ORIGEN)+
     (ULTIMA_CARGA? " · última carga: "+esc(String(ULTIMA_CARGA).replace("T"," ").substring(0,16)) : "")+
@@ -1086,9 +1260,71 @@ function renderTarjetas(sku){
         '<div class="gpct">'+pctTotal(b.enc,b.req,1)+'</div>'+
         '<div class="gsub">'+fmt(b.enc)+' de '+fmt(b.req)+' prendas</div>'+
       '</div></div>'+
-      '<div class="tchips">'+chips+'</div></div>';
+      '<div class="tchips">'+chips+'</div>'+
+      bloqueAuditorias(b)+
+      '</div>';
   }).join("");
   animarBarras();
+}
+
+var PROC_ORDEN=["COSTURA (TALLER)","COSTURA","ACABADOS (TALLER)","ACABADOS",
+                "ACABADOS FINAL (INTERNO)"];
+function ordenProc(t){ var i=PROC_ORDEN.indexOf(t); return i<0?90:i; }
+function fechaCorta(f){
+  var m=String(f||"").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[3]+"/"+m[2]+"/"+m[1] : (f||"—");
+}
+
+/* Historial de auditorías de esa PO + color. Se muestra el último resultado de
+   cada proceso arriba, y el detalle completo al desplegar. */
+function bloqueAuditorias(b){
+  if(AUDITORIAS===null)
+    return '<div class="audwrap"><div class="audvacio">Consultando las auditorías…</div></div>';
+  if(AUD_ESTADO)
+    return '<div class="audwrap"><div class="audvacio">No se pudieron traer las auditorías ('+
+           esc(AUD_ESTADO)+'). El avance de encajado que ves arriba no está afectado.</div></div>';
+
+  var lista=AUDITORIAS[claveAud(b.grupo,b.estilo,b.po,b.color)]||[];
+  if(!lista.length)
+    return '<div class="audwrap"><div class="audvacio">Todavía no hay auditorías registradas '+
+           'para esta PO y color.</div></div>';
+
+  /* Último resultado por proceso: lo que importa de un vistazo. */
+  var ult={};
+  lista.forEach(function(a){ if(!ult[a.t]) ult[a.t]=a; });   /* ya vienen ordenadas, la más reciente primero */
+  var chips=Object.keys(ult).sort(function(x,y){ return ordenProc(x)-ordenProc(y); })
+    .map(function(t){
+      var a=ult[t], cls = a.r==="APROBADO" ? "apr" : (a.r==="RECHAZADO" ? "rec" : "");
+      return '<span class="proc '+cls+'">'+esc(t)+' <span class="pr">'+esc(a.r||"—")+'</span> '+
+             '<span style="font-weight:400;opacity:.8">'+fechaCorta(a.f)+'</span></span>';
+    }).join(" ");
+
+  var id="aud_"+Math.random().toString(36).slice(2,9);
+  var filas=lista.map(function(a){
+    var cls = a.r==="APROBADO" ? "bue" : (a.r==="RECHAZADO" ? "ale" : "low");
+    return '<tr><td>'+fechaCorta(a.f)+'</td><td>'+esc(a.t)+'</td>'+
+      '<td><span class="st '+cls+'">'+esc(a.r||"—")+'</span></td>'+
+      '<td>'+esc(a.s||"—")+'</td><td>'+esc(a.a||"—")+'</td>'+
+      '<td>'+esc(a.at||"—")+'</td>'+
+      '<td class="num">'+fmt(a.l)+'</td><td class="num">'+fmt(a.m)+'</td></tr>';
+  }).join("");
+
+  return '<div class="audwrap">'+
+    '<div class="audhead"><span class="t">Auditorías</span>'+chips+
+      '<button class="audver" onclick="verAud(\''+id+'\',this)">ver las '+lista.length+'</button>'+
+    '</div>'+
+    '<div id="'+id+'" style="display:none">'+
+      '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th>'+
+      '<th>Taller</th><th>Auditor</th><th>Auditor de taller</th>'+
+      '<th class="num">Lote</th><th class="num">Muestra</th></tr></thead>'+
+      '<tbody>'+filas+'</tbody></table>'+
+    '</div></div>';
+}
+function verAud(id,btn){
+  var d=$(id); if(!d) return;
+  var abierto = d.style.display!=="none";
+  d.style.display = abierto ? "none" : "block";
+  btn.textContent = abierto ? btn.textContent.replace("ocultar","ver") : btn.textContent.replace("ver","ocultar");
 }
 
 var ORD={campo:"po", asc:true};
@@ -1241,10 +1477,29 @@ function exportarExcel(){
   var d=new Date(), p=function(n){ return (n<10?"0":"")+n; };
   XLSX.writeFile(wb,"avance_encajado_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
 }
-function recargar(){ if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); } else location.reload(); }
+function recargar(){
+  AUDITORIAS=null; AUD_ESTADO="";
+  if(CFG.SHEET_ID){ mostrarErr(""); ULTIMA_CARGA=null; cargarDesdeSheet(); pedirAuditorias(); }
+  else location.reload();
+}
 
 /* ---------- Arranque ---------- */
-function arrancarApp(){ mostrarErr(""); $("app").style.display="block"; armarFiltros(); render(); }
+function arrancarApp(){
+  mostrarErr(""); $("app").style.display="block";
+  var r = restaurarEstado();
+  armarFiltros();
+  /* La vista se marca en el interruptor igual que si se hubiera tocado. */
+  document.querySelectorAll("#segVista button").forEach(function(b,i){
+    b.classList.toggle("active", (i===0) === (VISTA==="tarjetas"));
+  });
+  $("vistaTarjetas").style.display = (VISTA==="tarjetas")?"block":"none";
+  $("vistaTabla").style.display    = (VISTA==="tabla")?"grid":"none";
+  render();
+  guardarEstado();
+  if(AUDITORIAS===null) pedirAuditorias();
+  if(r.hubo && hayFiltros() && !r.deEnlace)
+    $("chipTexto").textContent = "Se recuperaron tus filtros de la última vez";
+}
 var drop=$("drop"), file=$("file");
 drop.onclick=function(){ file.click(); };
 file.onchange=function(e){ leerArchivos(e.target.files); file.value=""; };
