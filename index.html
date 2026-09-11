@@ -1407,14 +1407,13 @@ function tablaAud(clave, todas){
     return '<tr><td>'+fechaCorta(a.f)+'</td><td>'+esc(a.t)+'</td>'+
       '<td><span class="st '+cls+'">'+esc(a.r||"—")+'</span></td>'+
       '<td>'+esc(a.s||"—")+'</td><td>'+esc(a.a||"—")+'</td>'+
-      '<td>'+esc(a.at||"—")+'</td>'+
       '<td class="num">'+fmt(a.l)+'</td><td class="num">'+fmt(a.m)+'</td></tr>';
   }).join("");
   var mas = (!todas && lista.length>AUD_TOPE)
     ? '<div style="padding:8px 6px"><button class="audver" onclick="verTodasAud(this,\''+
       esc(clave)+'\')">ver las '+(lista.length-AUD_TOPE)+' anteriores</button></div>' : '';
   return '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th>'+
-    '<th>Taller</th><th>Auditor</th><th>Auditor de taller</th>'+
+    '<th>Taller</th><th>Auditor</th>'+
     '<th class="num">Lote</th><th class="num">Muestra</th></tr></thead>'+
     '<tbody>'+filas+'</tbody></table>'+mas;
 }
