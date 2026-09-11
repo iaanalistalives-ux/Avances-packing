@@ -160,14 +160,15 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
     requeridas se cuentan <b>una sola vez por talla</b> y las encajadas <b>s&iacute; se suman</b>.
     Caso real de la PO 504431: la talla XS pide 29; un taller encaj&oacute; 31 y el otro 3. Lo
     correcto es 29 requeridas y 34 encajadas, no 58 y 34.</p>
-    <p><b>Los porcentajes del Excel no se guardan.</b> El reporte los exporta en dos escalas
-    distintas: en unos archivos la celda dice 104.54 y en otros dice 1.0454, porque ah&iacute; es
-    la f&oacute;rmula encajadas&divide;requeridas con formato de porcentaje. Guardar eso ser&iacute;a
-    guardar un n&uacute;mero que a veces est&aacute; multiplicado por cien. El visor lo recalcula
-    siempre.</p>
+    <p><b>Los porcentajes del Excel no se guardan.</b> El sistema los calcula como
+    encajadas&divide;requeridas, que es exactamente lo que vuelve a hacer el visor. Recalcularlos
+    da el mismo n&uacute;mero y evita depender de en qu&eacute; escala venga la celda: si alguien
+    edita el archivo y esa columna queda como 1.0454 en vez de 104.54, el visor sigue mostrando
+    lo correcto.</p>
     <p><b>Qu&eacute; descarta.</b> Las filas de <i>Total</i> por color, <i>TOTAL</i> por estilo y
     <i>TOTAL GENERAL</i>: son sumas de las filas de detalle. El TOTAL GENERAL s&iacute; se usa,
-    pero solo para contrastar: si la suma del detalle no le cuadra, se avisa antes de subir.</p>
+    pero solo para contrastar. Como cada cuadro trae el suyo, <b>el cuadre se revisa cuadro por
+    cuadro</b>: si falla, se dice en qu&eacute; taller, no solo que el archivo tiene algo raro.</p>
     <p><b>Qu&eacute; pasa si subo la misma PO otra vez.</b> Se reemplaza: se borra todo lo
     anterior de esa PO y queda solo lo del archivo nuevo. Por eso el archivo debe estar completo.
     <b>Si alguien exporta el reporte filtrado a un solo taller, los dem&aacute;s talleres de esa
@@ -354,15 +355,22 @@ function parsearLibro(wb, nombreArchivo){
     }
     if(!opCuadro) opCuadro = res.op;
 
-    var filasCuadro=[];
+    var filasCuadro=[], totCuadro=null;
     for(var r4=hr+1; r4<fin; r4++){
       var fr = m[r4]||[];
       var talla = normTxt(fr[col.talla]);
       var req = numVal(fr[col.req]), enc = numVal(fr[col.enc]);
       var sal = col.sal!==undefined ? numVal(fr[col.sal]) : null;
 
+      /* Cada cuadro trae su propio TOTAL GENERAL. El control se hace cuadro por
+         cuadro: comparar la suma de todos contra el de uno solo dar\u00eda un falso
+         "difiere" en cuanto haya m\u00e1s de un taller. */
       if(fr.map(normTxt).join(" ").indexOf("TOTAL GENERAL")>=0){
-        if(req!==null) totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        if(req!==null){
+          totCuadro = { req:req, enc:(enc||0), sal:(sal||0) };
+          if(totGen) { totGen.req = Math.max(totGen.req, req); totGen.enc += (enc||0); totGen.sal += (sal||0); }
+          else totGen = { req:req, enc:(enc||0), sal:(sal||0) };
+        }
         continue;
       }
       if(!talla || talla==="TOTAL") continue;      /* Total por color / TOTAL por estilo */
@@ -386,7 +394,14 @@ function parsearLibro(wb, nombreArchivo){
     }
 
     if(filasCuadro.length){
-      res.cuadros.push({ taller:taller, op:opCuadro, filas:filasCuadro.length });
+      var sc = totalizar(filasCuadro);
+      var cuadroInfo = { taller:taller, op:opCuadro, filas:filasCuadro.length,
+                         req:sc.req, enc:sc.enc, total:totCuadro, cuadra:null, control:null };
+      if(totCuadro){
+        cuadroInfo.control = { dif_req: sc.req - totCuadro.req, dif_enc: sc.enc - totCuadro.enc };
+        cuadroInfo.cuadra  = (cuadroInfo.control.dif_req===0 && cuadroInfo.control.dif_enc===0);
+      }
+      res.cuadros.push(cuadroInfo);
       res.filas = res.filas.concat(filasCuadro);
     }
   }
@@ -402,9 +417,17 @@ function parsearLibro(wb, nombreArchivo){
   /* ---------- 4. Totales del archivo, con la regla de suma correcta ---------- */
   res.suma = totalizar(res.filas);
   res.totalArchivo = totGen;
-  if(totGen){
-    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc };
-    res.cuadra  = (res.control.dif_req===0 && res.control.dif_enc===0);
+
+  /* El archivo cuadra si cuadran todos sus cuadros. Si ninguno trae TOTAL GENERAL,
+     no hay contra qu\u00e9 contrastar y se dice, en vez de dar un visto bueno falso. */
+  var conTotal = res.cuadros.filter(function(c){ return c.cuadra!==null; });
+  if(conTotal.length){
+    var malos = conTotal.filter(function(c){ return !c.cuadra; });
+    res.cuadra  = (malos.length===0);
+    res.control = { dif_req: res.suma.req - totGen.req, dif_enc: res.suma.enc - totGen.enc,
+                    cuadrosMalos: malos.map(function(c){ return (c.taller||"sin taller")+
+                      " ("+(c.control.dif_enc>0?"+":"")+c.control.dif_enc+" encajadas)"; }) };
+    res.sinTotal = res.cuadros.length - conTotal.length;
   }
   res.ok = true;
   return res;
@@ -466,13 +489,14 @@ function render(){
   }
   var malos = LOTES.filter(function(L){ return L.ok && L.cuadra===false; });
   if(malos.length){
-    h += '<div class="aviso"><b>Revisar antes de subir.</b> En '+malos.length+
-         ' archivo(s) la suma del detalle no coincide con el TOTAL GENERAL del propio Excel: '+
+    h += '<div class="aviso"><b>Revisar antes de subir.</b> El detalle no coincide con el '+
+         'TOTAL GENERAL que trae el propio Excel en: '+
          malos.map(function(L){
-           return esc(L.archivo)+' ('+(L.control.dif_enc>0?"+":"")+fmt(L.control.dif_enc)+
-                  ' encajadas, '+(L.control.dif_req>0?"+":"")+fmt(L.control.dif_req)+' requeridas)';
+           return esc(L.archivo)+' → '+(L.control.cuadrosMalos||[]).map(esc).join(", ");
          }).join(" · ")+
-         '. Es un problema del archivo de origen. Puedes subirlo igual; se guardará el detalle.</div>';
+         '. Cada cuadro se compara contra su propio total, así que el problema está en ese '+
+         'taller. Es del archivo de origen, no del cargador; puedes subirlo igual y se '+
+         'guardará el detalle.</div>';
   }
   /* Dos archivos de la misma tanda con la misma PO: el segundo borra al primero,
      porque cada PO reemplaza todo lo suyo. Hay que decirlo antes, no después. */
@@ -514,8 +538,11 @@ function render(){
       return;
     }
     var est, cls;
-    if(L.cuadra===true){ est="Cuadra"; cls="bue"; }
-    else if(L.cuadra===false){ est="Difiere "+fmt(Math.abs(L.control.dif_enc)); cls="ale"; }
+    if(L.cuadra===true){
+      est = L.cuadros.length>1 ? "Cuadran los "+L.cuadros.length : "Cuadra"; cls="bue";
+      if(L.sinTotal) est += " ("+L.sinTotal+" sin total)";
+    }
+    else if(L.cuadra===false){ est=(L.control.cuadrosMalos||[]).length+" cuadro(s) no cuadran"; cls="ale"; }
     else { est="Sin TOTAL GENERAL"; cls="low"; }
     h += '<tr>'+
       '<td>'+esc(L.archivo)+'</td>'+
@@ -524,7 +551,10 @@ function render(){
       '<td>'+esc(L.packing||"—")+'</td>'+
       '<td>'+esc(L.pos.join(", "))+'</td>'+
       '<td>'+esc(L.ops.join(", ")||"—")+'</td>'+
-      '<td>'+L.cuadros.map(function(c){ return esc(c.taller||"sin taller"); }).join(" + ")+'</td>'+
+      '<td>'+L.cuadros.map(function(c){
+          var marca = c.cuadra===false ? ' <span class="st ale">no cuadra</span>' : '';
+          return esc(c.taller||"sin taller")+marca;
+        }).join(" + ")+'</td>'+
       '<td class="num">'+L.suma.sku+'</td>'+
       '<td class="num">'+fmt(L.suma.req)+'</td>'+
       '<td class="num">'+fmt(L.suma.enc)+'</td>'+
