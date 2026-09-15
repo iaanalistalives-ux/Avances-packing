@@ -257,7 +257,7 @@ function cargarDatos() {
       document.getElementById('field-grid').style.display = '';
       resolve();
     };
-    script.src = `${APPS_SCRIPT_URL}?accion=datos&callback=${callbackName}`;
+    script.src = `${APPS_SCRIPT_URL}?accion=datos&ligero=1&callback=${callbackName}`;
     script.onerror = function() {
       if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
       document.getElementById('loading-search').innerHTML = '⚠ Error de conexión cargando datos.';
@@ -268,7 +268,7 @@ function cargarDatos() {
       if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
       document.getElementById('loading-search').innerHTML = '⚠ Tiempo de espera agotado. Recarga la página.';
       resolve();
-    }, 15000);
+    }, 45000);
   });
 }
 
@@ -450,8 +450,15 @@ function pedirDetalleAuditorias(d) {
   window[cb] = function(r) {
     listo = true; clearTimeout(to); delete window[cb]; limpiar();
     if (r && r.ok) {
-      d.auditorias = r.auditorias || [];
-      d.auditoriasTodas = r.auditoriasTodas || [];
+      /* El estado de auditoría también llega aquí: en modo ligero no viene con
+         el resto de la fila, para no leer el maestro en cada consulta. */
+      d.estatusAuditoria    = r.estatusAuditoria || '';
+      d.auditorias          = r.auditorias || [];
+      d.auditoriasTodas     = r.auditoriasTodas || [];
+      d.numAuditorias       = d.auditorias.length;
+      d.numAuditoriasTodas  = d.auditoriasTodas.length;
+      d.sumaLotes           = r.sumaLotes || 0;
+      if (d.cantidadLista > 0) d.pctAuditado = d.sumaLotes / d.cantidadLista;
       if (registro === d) renderRegistro(d);
     } else falla();
   };
@@ -503,11 +510,12 @@ function renderRegistro(d) {
      manda. El Estatus Auditoría de arriba sigue siendo el de la última final:
      son dos cosas distintas y conviene no mezclarlas. */
   const lista = (d.auditoriasTodas && d.auditoriasTodas.length) ? d.auditoriasTodas : (d.auditorias || []);
-  if (!lista.length && (d.numAuditoriasTodas || d.numAuditorias)) {
+  if (!lista.length && !d._detallePedido) {
     /* Hay auditorías pero todavía no se ha traído el detalle: se pide ahora. */
     tabla.style.display = 'none';
     vacio.style.display = '';
     vacio.textContent = 'Trayendo las auditorías…';
+    d._detallePedido = true;
     pedirDetalleAuditorias(d);
     return;
   }
