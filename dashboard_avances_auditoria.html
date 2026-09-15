@@ -576,7 +576,9 @@ function cargarDatos() {
     poblarFiltros();
     render();
   };
-  script.src = `${APPS_SCRIPT_URL}?accion=datos&callback=${callbackName}`;
+  /* completo=1 es obligatorio desde el script v8: sin él, accion=datos
+     devuelve la lista vacía (es lo que usa el portal). */
+  script.src = `${APPS_SCRIPT_URL}?accion=datos&completo=1&callback=${callbackName}`;
   script.onerror = function() {
     if (resuelto) return;
     resuelto = true; delete window[callbackName]; limpiar();
