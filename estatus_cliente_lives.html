@@ -514,6 +514,7 @@ function pedirDetalleAuditorias(d) {
       d.numAuditorias       = d.auditorias.length;
       d.numAuditoriasTodas  = d.auditoriasTodas.length;
       d.sumaLotes           = r.sumaLotes || 0;
+      d.mesesAud            = r.meses || 0;
       if (d.cantidadLista > 0) d.pctAuditado = d.sumaLotes / d.cantidadLista;
       if (registro === d) renderRegistro(d);
     } else falla();
@@ -556,7 +557,9 @@ function renderRegistro(d) {
       (nTodas > d.numAuditorias
         ? ` · ${nTodas} en total contando costura y acabados, abajo el detalle`
         : '')
-    : 'Todavía no hay ninguna auditoría para esta combinación.';
+    : (d._detallePedido && d.mesesAud !== undefined
+        ? 'Sin auditoría final en el período consultado.'
+        : 'Consultando auditorías…');
 
   // Historial de auditorías
   const tabla = document.getElementById('aud-table');
@@ -575,8 +578,13 @@ function renderRegistro(d) {
     pedirDetalleAuditorias(d);
     return;
   }
+  /* Aviso del período: el servidor solo manda los últimos meses para que
+     abrir un registro sea rápido. */
+  const periodo = d.mesesAud ? ' en los últimos ' + d.mesesAud + ' meses' : '';
   if (lista.length) {
-    tabla.style.display = ''; vacio.style.display = 'none';
+    tabla.style.display = ''; vacio.style.display = '';
+    vacio.textContent = d.mesesAud ? 'Se muestran solo las auditorías de los últimos ' + d.mesesAud + ' meses.' : '';
+    if (!d.mesesAud) vacio.style.display = 'none';
     tbody.innerHTML = lista.map(a => `<tr>
       <td>${a.fecha}</td>
       <td>${a.proceso || '—'}</td>
@@ -586,7 +594,10 @@ function renderRegistro(d) {
       <td>${a.lote}</td>
     </tr>`).join('');
   } else {
+    /* Antes se quedaba en "Trayendo las auditorías…" para siempre cuando el
+       registro no tenía ninguna. */
     tabla.style.display = 'none'; vacio.style.display = '';
+    vacio.textContent = 'No hay auditorías registradas para esta combinación' + periodo + '.';
   }
 
   renderClienteSection(d);
