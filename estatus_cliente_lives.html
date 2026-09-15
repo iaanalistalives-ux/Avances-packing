@@ -433,6 +433,39 @@ function ocultarRegistro() {
 
 function pctTexto(p) { return (p === null || p === undefined) ? '—' : (p*100).toFixed(1) + '%'; }
 
+/* Trae el detalle de auditorías de un solo registro. El resumen viene en
+   accion=datos; el detalle no, porque con dos mil filas eran siete mil
+   registros y la página se quedaba esperando hasta agotar el tiempo. */
+function pedirDetalleAuditorias(d) {
+  const cb = 'cbAud_' + Date.now();
+  const script = document.createElement('script');
+  let listo = false;
+  const limpiar = () => { try { document.body.removeChild(script); } catch(e) {} };
+  const falla = () => {
+    const v = document.getElementById('aud-empty');
+    if (v) v.textContent = 'No se pudieron traer las auditorías. El resto de los datos sí está bien.';
+  };
+  const to = setTimeout(() => { if (!listo) { delete window[cb]; limpiar(); falla(); } }, 30000);
+
+  window[cb] = function(r) {
+    listo = true; clearTimeout(to); delete window[cb]; limpiar();
+    if (r && r.ok) {
+      d.auditorias = r.auditorias || [];
+      d.auditoriasTodas = r.auditoriasTodas || [];
+      if (registro === d) renderRegistro(d);
+    } else falla();
+  };
+  const q = ['accion=auditoriasDe',
+             'grupo='  + encodeURIComponent(d.grupo  || ''),
+             'estilo=' + encodeURIComponent(d.estilo || ''),
+             'po='     + encodeURIComponent(d.po     || ''),
+             'color='  + encodeURIComponent(d.color  || ''),
+             'callback=' + cb].join('&');
+  script.src = APPS_SCRIPT_URL + '?' + q;
+  script.onerror = function() { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
+  document.body.appendChild(script);
+}
+
 function renderRegistro(d) {
   document.getElementById('datos-grid').innerHTML = [
     { l:'Grupo', v:d.grupo }, { l:'Estilo', v:d.estilo }, { l:'PO', v:d.po },
@@ -470,6 +503,14 @@ function renderRegistro(d) {
      manda. El Estatus Auditoría de arriba sigue siendo el de la última final:
      son dos cosas distintas y conviene no mezclarlas. */
   const lista = (d.auditoriasTodas && d.auditoriasTodas.length) ? d.auditoriasTodas : (d.auditorias || []);
+  if (!lista.length && (d.numAuditoriasTodas || d.numAuditorias)) {
+    /* Hay auditorías pero todavía no se ha traído el detalle: se pide ahora. */
+    tabla.style.display = 'none';
+    vacio.style.display = '';
+    vacio.textContent = 'Trayendo las auditorías…';
+    pedirDetalleAuditorias(d);
+    return;
+  }
   if (lista.length) {
     tabla.style.display = ''; vacio.style.display = 'none';
     tbody.innerHTML = lista.map(a => `<tr>
