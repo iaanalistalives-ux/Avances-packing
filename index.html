@@ -418,6 +418,10 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
       de auditor&iacute;as de esa combinaci&oacute;n de PO y color: fecha, proceso (costura,
       acabados o acabados final), resultado, taller, auditor y el lote revisado. Arriba se
       resume el &uacute;ltimo resultado de cada proceso, para verlo de un golpe.</p>
+      <p><b>Se traen las de los &uacute;ltimos meses.</b> El maestro tiene casi cinco mil
+      auditor&iacute;as y las de hace un a&ntilde;o no ayudan a nadie que est&eacute; mirando lo
+      que se empaca ahora, as&iacute; que se leen solo las recientes. Bajo el resumen se dice
+      cu&aacute;ntos meses entran.</p>
       <p><b>Se leen en el momento, no se guardan.</b> Vienen del mismo maestro donde las
       registran las auditoras. Para que abrir la p&aacute;gina no cueste una espera cada vez, la
       consulta se guarda cinco minutos: si entras dos veces seguidas, la segunda es
@@ -845,6 +849,7 @@ function pedirAuditorias(){
     if(r && r.ok){
       AUDITORIAS=r.claves||{}; AUD_ESTADO="";
       AUD_INFO = (r.total||0)+" auditorías de "+(r.combinaciones||0)+" PO"+
+                 (r.meses? " · últimos "+r.meses+" meses":"")+
                  (r.ms? " · "+(r.ms/1000).toFixed(1)+" s":"")+
                  (r.deCache? " (guardadas)":"");
     }
