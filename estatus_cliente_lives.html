@@ -202,7 +202,7 @@ padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--ston
     <div class="section-label">Historial de auditorías</div>
     <div class="aud-table-wrap">
       <table class="aud-table" id="aud-table" style="display:none">
-        <thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th><th>Taller</th><th>Auditor</th><th>Lote</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Proceso</th><th>Interno / externo</th><th>Resultado</th><th>Taller / servicio</th><th>Auditor</th><th>Lote</th></tr></thead>
         <tbody id="aud-tbody"></tbody>
       </table>
       <div class="aud-empty" id="aud-empty">Aún no hay auditorías registradas para esta combinación.</div>
@@ -657,6 +657,7 @@ function renderRegistro(d) {
     tbody.innerHTML = lista.map(a => `<tr>
       <td>${a.fecha}</td>
       <td>${a.proceso || '—'}</td>
+      <td>${a.intExt || '—'}</td>
       <td><span class="badge-res ${a.resultado==='APROBADO'?'aprobado':'rechazado'}">${a.resultado}</span></td>
       <td>${a.taller || '—'}</td>
       <td>${a.auditor || '—'}</td>
