@@ -451,12 +451,16 @@ function mostrarResultadosOP(op){
     return;
   }
   cont.innerHTML = '<div class="vacio">La OP ' + op + ' tiene ' + filas.length +
-    ' registros. Elige el que vas a actualizar:</div>' +
+    ' registros (un color o estilo en cada uno). Elige el que vas a actualizar:</div>' +
     filas.map((r, i) => {
       const e = etiquetaEstatus(r);
       return '<div class="opr" data-i="' + i + '">' +
         '<span class="p">' + r.color + '</span>' +
-        '<span class="c">PO ' + r.po + ' · ' + r.grupo + ' · estilo ' + r.estilo + '</span>' +
+        '<span class="c">PO ' + r.po + ' · ' + r.grupo + ' · estilo ' + r.estilo + ' · ' +
+          (r.cantidadLista > 0
+            ? '<b>' + Number(r.cantidadLista).toLocaleString('es-PE') + ' encajadas</b> de ' +
+              (r.cantidadPedido > 0 ? Number(r.cantidadPedido).toLocaleString('es-PE') + ' pedidas' : 'pedido sin dato')
+            : '<b>sin encajado subido</b>') + '</span>' +
         '<span class="e ' + e[1] + '">' + e[0] + '</span></div>';
     }).join('');
   cont.querySelectorAll('.opr').forEach(el => {
