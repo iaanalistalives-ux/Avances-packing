@@ -226,6 +226,59 @@ padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--ston
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-ZCzYEK9Y-N95TVjbWSMer4rxdxWoZCx8l1rhHln36QbywiCR-pIux3tyTIq8SoP3/exec';
 
+/* ===== LECTURA DESDE SUPABASE (v2026-09-17) ====================================
+   Las lecturas salen de Supabase (rápido y al día). Si Supabase no responde en
+   8 s o da error, la página vuelve sola al Apps Script de siempre.
+   La escritura (Estatus Cliente, carga de reportes) sigue por el Apps Script.
+   Solo la clave PÚBLICA va aquí: nunca la secreta. */
+var SB_URL = 'https://xxfufpddgoyhbotjmaiy.supabase.co';
+var SB_KEY = 'sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+var SB_MS  = 8000;
+function sbPedir(ruta, cuerpo) {
+  var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var to = setTimeout(function () { if (ctl) ctl.abort(); }, SB_MS);
+  var op = { method: cuerpo ? 'POST' : 'GET', headers: { apikey: SB_KEY } };
+  if (cuerpo) { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(cuerpo); }
+  if (ctl) op.signal = ctl.signal;
+  return fetch(SB_URL + ruta, op).then(function (r) {
+    clearTimeout(to);
+    if (!r.ok) return r.text().then(function (t) { throw new Error('Supabase ' + r.status + ': ' + t.slice(0, 200)); });
+    return r.json();
+  }, function (e) { clearTimeout(to); throw e; });
+}
+/* Lectura por partes siguiendo la clave única id (nunca con offset). */
+function sbVista(vista) {
+  var todas = [];
+  function paso(desde) {
+    return sbPedir('/rest/v1/' + vista + '?select=*&order=id.asc&limit=1000&id=gt.' + desde)
+      .then(function (p) {
+        todas = todas.concat(p);
+        return p.length === 1000 ? paso(p[p.length - 1].id) : todas;
+      });
+  }
+  return paso(0);
+}
+function sbRpc(fn, args) { return sbPedir('/rest/v1/rpc/' + fn, args || {}); }
+function sbNum(v) { return (v === null || v === undefined) ? null : Number(v); }
+function sbSemana(s) { return (typeof s === 'string' && /^-?\d+(\.\d+)?$/.test(s)) ? Number(s) : s; }
+function sbAviso(e) { try { console.warn('Supabase no respondió; se usa el Apps Script.', e); } catch (_) {} }
+/* ============================================================================ */
+
+/* Formulario: todas las filas, en el mismo formato que accion=datos&ligero=1 */
+function sbLigero() {
+  return sbVista('publico_encajado_avances').then(function (rows) {
+    var cols = ['cliente','grupo','estilo','po','color','op','cantidadPedido','cantidadLista','pctListo',
+                'statusCliente','fechaCliente','fecha','semana','rowIndex'];
+    return { ok: true, ligero: true, fuente: 'supabase', cols: cols,
+      filas: rows.map(function (v) {
+        return [null, v.grupo, v.estilo, v.po, v.color, v.op,
+                Number(v.cantidad_pedido) || 0, Number(v.cantidad_lista) || 0, sbNum(v.pct_listo),
+                v.estatus_cliente, v.fecha_cliente, v.fecha, sbSemana(v.semana), v.id];
+      }) };
+  });
+}
+
+
 // Mismo mapeo de siempre: prefijo de 3 letras de Grupo -> nombre de
 // cliente. Si un prefijo no está mapeado, se usa tal cual — nunca bloquea
 // la búsqueda por un cliente nuevo sin mapear.
@@ -283,19 +336,24 @@ function cargarDatos() {
       const nOps = new Set(DATOS.map(r => r.op).filter(Boolean)).size;
       info.style.display = '';
       info.innerHTML = DATOS.length
-        ? DATOS.length + ' registros cargados · ' + nOps + ' OP distintas' + (res.deCache ? ' · respuesta guardada' : '')
+        ? DATOS.length + ' registros cargados · ' + nOps + ' OP distintas' + (res.fuente === 'supabase' ? ' · Supabase' : ' · Apps Script') + (res.deCache ? ' · respuesta guardada' : '')
         : '<b style="color:var(--rose)">⚠ No llegó ningún registro.</b> Recarga con Ctrl+Shift+R; si sigue igual, avisa a Christian.';
       document.getElementById('loading-search').style.display = 'none';
       document.getElementById('field-grid').style.display = '';
       resolve();
     };
-    script.src = `${APPS_SCRIPT_URL}?accion=datos&ligero=1&callback=${callbackName}`;
-    script.onerror = function() {
-      if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
-      document.getElementById('loading-search').innerHTML = '⚠ Error de conexión cargando datos.';
-      resolve();
+    const usarGas = () => {
+      if (resuelto) return;
+      script.src = `${APPS_SCRIPT_URL}?accion=datos&ligero=1&callback=${callbackName}`;
+      script.onerror = function() {
+        if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
+        document.getElementById('loading-search').innerHTML = '⚠ Error de conexión cargando datos.';
+        resolve();
+      };
+      document.body.appendChild(script);
     };
-    document.body.appendChild(script);
+    sbLigero().then(r => { if (!resuelto && window[callbackName]) window[callbackName](r); },
+                    e => { sbAviso(e); usarGas(); });
     setTimeout(() => {
       if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
       document.getElementById('loading-search').innerHTML = '⚠ Tiempo de espera agotado. Recarga la página.';
@@ -525,9 +583,16 @@ function pedirDetalleAuditorias(d) {
              'po='     + encodeURIComponent(d.po     || ''),
              'color='  + encodeURIComponent(d.color  || ''),
              'callback=' + cb].join('&');
-  script.src = APPS_SCRIPT_URL + '?' + q;
-  script.onerror = function() { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
-  document.body.appendChild(script);
+  const usarGas = () => {
+    if (listo) return;
+    script.src = APPS_SCRIPT_URL + '?' + q;
+    script.onerror = function() { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
+    document.body.appendChild(script);
+  };
+  /* Desde Supabase llegan TODAS las auditorías (sin el límite de 3 meses). */
+  sbRpc('encajado_auditorias_de', { p_grupo: d.grupo || '', p_estilo: d.estilo || '',
+                                    p_po: d.po || '', p_color: d.color || '', p_meses: 0 })
+    .then(r => { if (!listo && window[cb]) window[cb](r); }, e => { sbAviso(e); usarGas(); });
 }
 
 function renderRegistro(d) {
