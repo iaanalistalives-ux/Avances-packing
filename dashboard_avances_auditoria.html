@@ -744,18 +744,16 @@ function getFiltrados() {
 // ============ RENDER ============
 function render() {
   const filtrados = getFiltrados();
-  renderHstate(filtrados);
-  renderVerdict(filtrados);
-  renderKpis(filtrados);
-  renderInsight(filtrados);
-  renderTabla(filtrados);
-  renderTendencia();
-  renderDonut(filtrados);
-  renderDonutCliente(filtrados);
-  renderRankingInterno(filtrados);
-  renderRankingCliente(filtrados);
-  renderTablaClientes(filtrados);
-  renderAtacarPrimero(filtrados);
+  /* Cada bloque se dibuja por separado: si uno falla, los demás igual aparecen
+     y el error queda en la consola en vez de dejar la página en «Cargando…». */
+  const pasos = [
+    () => renderHstate(filtrados), () => renderVerdict(filtrados), () => renderKpis(filtrados),
+    () => renderInsight(filtrados), () => renderTabla(filtrados), () => renderTendencia(),
+    () => renderDonut(filtrados), () => renderDonutCliente(filtrados),
+    () => renderRankingInterno(filtrados), () => renderRankingCliente(filtrados),
+    () => renderTablaClientes(filtrados), () => renderAtacarPrimero(filtrados)
+  ];
+  pasos.forEach(p => { try { p(); } catch (e) { console.error('Error al dibujar un bloque del tablero:', e); } });
 }
 
 function renderHstate(filtrados) {
@@ -815,7 +813,7 @@ function renderVerdict(filtrados) {
   if (Math.abs(delta) < 0.5) { estado = 'Igual que'; cls = ''; }
   else if (delta > 0) { estado = 'Mejor que'; cls = 'ok'; }
   else { estado = 'Peor que'; cls = 'bad'; }
-  box.classList.add(cls);
+  if (cls) box.classList.add(cls);   /* con cls vacío el navegador da error y la página se quedaba en «Cargando…» */
   dot.textContent = pAct.toFixed(0) + '%';
   t.textContent = `${estado} Sem ${prev}: ${pAct.toFixed(1)}% de aprobación`;
   s.textContent = `Sem ${prev} fue ${pPrev.toFixed(1)}% (${delta>=0?'+':''}${delta.toFixed(1)} pts) · sin meta fijada por Calidad, se compara contra el período anterior con datos.`;
