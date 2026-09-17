@@ -450,6 +450,64 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-ZCzYEK9Y-N95TVjbWSMer4rxdxWoZCx8l1rhHln36QbywiCR-pIux3tyTIq8SoP3/exec';
 
+/* ===== LECTURA DESDE SUPABASE (v2026-09-17) ====================================
+   Las lecturas salen de Supabase (rápido y al día). Si Supabase no responde en
+   8 s o da error, la página vuelve sola al Apps Script de siempre.
+   La escritura (Estatus Cliente, carga de reportes) sigue por el Apps Script.
+   Solo la clave PÚBLICA va aquí: nunca la secreta. */
+var SB_URL = 'https://xxfufpddgoyhbotjmaiy.supabase.co';
+var SB_KEY = 'sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+var SB_MS  = 8000;
+function sbPedir(ruta, cuerpo) {
+  var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var to = setTimeout(function () { if (ctl) ctl.abort(); }, SB_MS);
+  var op = { method: cuerpo ? 'POST' : 'GET', headers: { apikey: SB_KEY } };
+  if (cuerpo) { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(cuerpo); }
+  if (ctl) op.signal = ctl.signal;
+  return fetch(SB_URL + ruta, op).then(function (r) {
+    clearTimeout(to);
+    if (!r.ok) return r.text().then(function (t) { throw new Error('Supabase ' + r.status + ': ' + t.slice(0, 200)); });
+    return r.json();
+  }, function (e) { clearTimeout(to); throw e; });
+}
+/* Lectura por partes siguiendo la clave única id (nunca con offset). */
+function sbVista(vista) {
+  var todas = [];
+  function paso(desde) {
+    return sbPedir('/rest/v1/' + vista + '?select=*&order=id.asc&limit=1000&id=gt.' + desde)
+      .then(function (p) {
+        todas = todas.concat(p);
+        return p.length === 1000 ? paso(p[p.length - 1].id) : todas;
+      });
+  }
+  return paso(0);
+}
+function sbRpc(fn, args) { return sbPedir('/rest/v1/rpc/' + fn, args || {}); }
+function sbNum(v) { return (v === null || v === undefined) ? null : Number(v); }
+function sbSemana(s) { return (typeof s === 'string' && /^-?\d+(\.\d+)?$/.test(s)) ? Number(s) : s; }
+function sbAviso(e) { try { console.warn('Supabase no respondió; se usa el Apps Script.', e); } catch (_) {} }
+/* ============================================================================ */
+
+/* Dashboard: filas con el estado de auditoría, igual que accion=datos&completo=1 */
+function sbCompleto() {
+  return sbVista('publico_encajado_dashboard').then(function (rows) {
+    return { ok: true, completo: true, fuente: 'supabase',
+      rows: rows.map(function (v) {
+        return { rowIndex: v.id, fecha: v.fecha, semana: sbSemana(v.semana),
+                 grupo: v.grupo, estilo: v.estilo, po: v.po, color: v.color, op: v.op,
+                 cantidadPedido: Number(v.cantidad_pedido) || 0,
+                 cantidadLista: Number(v.cantidad_lista) || 0,
+                 pctListo: sbNum(v.pct_listo), pctAuditado: sbNum(v.pct_auditado),
+                 estatusAuditoria: v.estatus_auditoria,
+                 numAuditorias: Number(v.num_auditorias) || 0,
+                 numAuditoriasTodas: Number(v.num_auditorias_todas) || 0,
+                 ultimaAuditoria: v.ultima_auditoria,
+                 statusCliente: v.estatus_cliente, fechaCliente: v.fecha_cliente };
+      }) };
+  });
+}
+
+
 const CLIENTES_MAP = {
   'PEC': 'PERUVIAN', 'THY': 'THEORY', 'EFI': 'EILEEN FISHER', 'PAK': 'PAKA',
   'VIN': 'VINCE', 'CQE': 'CRIQUET', 'COY': 'COYUCHI', 'STD': 'STRAIGHT DOWN',
@@ -578,18 +636,23 @@ function cargarDatos() {
   };
   /* completo=1 es obligatorio desde el script v8: sin él, accion=datos
      devuelve la lista vacía (es lo que usa el portal). */
-  script.src = `${APPS_SCRIPT_URL}?accion=datos&completo=1&callback=${callbackName}`;
-  script.onerror = function() {
+  const usarGas = () => {
     if (resuelto) return;
-    resuelto = true; delete window[callbackName]; limpiar();
-    document.getElementById('loading').innerHTML = '⚠ Error de conexión cargando datos.';
+    script.src = `${APPS_SCRIPT_URL}?accion=datos&completo=1&callback=${callbackName}`;
+    script.onerror = function() {
+      if (resuelto) return;
+      resuelto = true; delete window[callbackName]; limpiar();
+      document.getElementById('loading').innerHTML = '⚠ Error de conexión cargando datos.';
+    };
+    document.body.appendChild(script);
   };
-  document.body.appendChild(script);
+  sbCompleto().then(r => { if (!resuelto && window[callbackName]) window[callbackName](r); },
+                    e => { sbAviso(e); usarGas(); });
   setTimeout(() => {
     if (resuelto) return;
     resuelto = true; delete window[callbackName]; limpiar();
     document.getElementById('loading').innerHTML = '⚠ Tiempo de espera agotado cargando datos. Recarga la página.';
-  }, 15000);
+  }, 45000);
 }
 
 function poblarFiltros() {
