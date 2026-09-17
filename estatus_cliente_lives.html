@@ -769,12 +769,37 @@ async function guardarCliente(statusClienteSel) {
     showToast('Error de conexión al guardar Estatus Cliente.', true);
   };
   document.body.appendChild(script);
+  /* Desde que el guardado también se copia a Supabase, la respuesta puede
+     tardar más de 8 s en un celular. Se espera hasta 30 s y, si igual no llega,
+     se revisa en Supabase si quedó guardado antes de pedir que se repita. */
+  setTimeout(() => {
+    if (!respondido) btnActivo.innerHTML = '<span class="spinner-btn"></span>Sigue guardando...';
+  }, 8000);
   setTimeout(() => {
     if (respondido) return; respondido = true; delete window[callbackName];
     try { document.body.removeChild(script); } catch(e) {}
-    btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original;
-    showToast('No se recibió confirmación del servidor. Inténtalo de nuevo.', true);
-  }, 8000);
+    btnActivo.innerHTML = '<span class="spinner-btn"></span>Comprobando...';
+    const fin = (ok, fecha) => {
+      btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original;
+      if (ok) confirmarGuardado(statusClienteSel, fecha);
+      else showToast('No se pudo confirmar el guardado. Revisa tu conexión e inténtalo de nuevo.', true);
+    };
+    const id = registro && registro.rowIndex;
+    if (!id) { fin(false); return; }
+    sbPedir('/rest/v1/publico_encajado_avances?select=estatus_cliente,fecha_cliente&id=eq.' + encodeURIComponent(id))
+      .then(r => fin(r && r[0] && String(r[0].estatus_cliente).trim() === statusClienteSel, r && r[0] && r[0].fecha_cliente),
+            () => fin(false));
+  }, 30000);
+}
+
+/* Lo mismo que hace la respuesta correcta del servidor. */
+function confirmarGuardado(statusClienteSel, fecha) {
+  registro.statusCliente = statusClienteSel;
+  registro.fechaCliente = fecha || '';
+  const idx = DATOS.findIndex(r => r.grupo===st.grupo && r.estilo===st.estilo && r.po===st.po && r.color===st.color);
+  if (idx >= 0) { DATOS[idx].statusCliente = statusClienteSel; DATOS[idx].fechaCliente = registro.fechaCliente; }
+  renderClienteSection(registro);
+  showToast('✓ Estatus Cliente actualizado');
 }
 
 function limpiarFormulario() {
