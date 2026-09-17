@@ -819,7 +819,75 @@ function claveAud(grupo,estilo,po,color){
    hizo del lado del servidor, contra el maestro. */
 
 var jsonpN=0;
+
+/* ===== LECTURA DESDE SUPABASE (v2026-09-17) ====================================
+   Las lecturas salen de Supabase (rápido y al día). Si Supabase no responde en
+   8 s o da error, la página vuelve sola al Apps Script de siempre.
+   La escritura (Estatus Cliente, carga de reportes) sigue por el Apps Script.
+   Solo la clave PÚBLICA va aquí: nunca la secreta. */
+var SB_URL = 'https://xxfufpddgoyhbotjmaiy.supabase.co';
+var SB_KEY = 'sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+var SB_MS  = 8000;
+function sbPedir(ruta, cuerpo) {
+  var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var to = setTimeout(function () { if (ctl) ctl.abort(); }, SB_MS);
+  var op = { method: cuerpo ? 'POST' : 'GET', headers: { apikey: SB_KEY } };
+  if (cuerpo) { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(cuerpo); }
+  if (ctl) op.signal = ctl.signal;
+  return fetch(SB_URL + ruta, op).then(function (r) {
+    clearTimeout(to);
+    if (!r.ok) return r.text().then(function (t) { throw new Error('Supabase ' + r.status + ': ' + t.slice(0, 200)); });
+    return r.json();
+  }, function (e) { clearTimeout(to); throw e; });
+}
+/* Lectura por partes siguiendo la clave única id (nunca con offset). */
+function sbVista(vista) {
+  var todas = [];
+  function paso(desde) {
+    return sbPedir('/rest/v1/' + vista + '?select=*&order=id.asc&limit=1000&id=gt.' + desde)
+      .then(function (p) {
+        todas = todas.concat(p);
+        return p.length === 1000 ? paso(p[p.length - 1].id) : todas;
+      });
+  }
+  return paso(0);
+}
+function sbRpc(fn, args) { return sbPedir('/rest/v1/rpc/' + fn, args || {}); }
+function sbNum(v) { return (v === null || v === undefined) ? null : Number(v); }
+function sbSemana(s) { return (typeof s === 'string' && /^-?\d+(\.\d+)?$/.test(s)) ? Number(s) : s; }
+function sbAviso(e) { try { console.warn('Supabase no respondió; se usa el Apps Script.', e); } catch (_) {} }
+/* ============================================================================ */
+
+/* Lecturas del visor que salen de Supabase. Devuelven lo mismo que el Apps Script. */
+function sbAccion(params){
+  var t0=Date.now();
+  var fin=function(r){ r.ms=Date.now()-t0; r.fuente="supabase"; return r; };
+  if(params.accion==="datosEncajado"){
+    return sbVista("publico_encajado_detalle").then(function(rows){
+      var cols=["cliente","grupo","packing","po","op","estilo","estiloCli","codcolor",
+                "color","talla","taller","req","enc","sal","pedidoOps","match","avisos","fecha"];
+      var ultima="";
+      var filas=rows.map(function(v){
+        if((v.fecha||"")>ultima) ultima=v.fecha||"";
+        return [v.cliente||"",v.grupo||"",v.packing||"",v.po||"",v.op||"",v.estilo||"",
+                v.estilo_cli||"",v.codcolor||"",v.color||"",v.talla||"",v.taller||"",
+                Number(v.req)||0,Number(v.enc)||0,Number(v.sal)||0,sbNum(v.pedido_ops),
+                v.match||"",v.avisos||"",v.fecha||""];
+      });
+      return fin({ok:true, cols:cols, filas:filas, ultimaCarga:ultima});
+    });
+  }
+  if(params.accion==="auditorias") return sbRpc("encajado_auditorias_visor",{p_meses:4}).then(fin);
+  if(params.accion==="estatus")    return sbRpc("encajado_estatus").then(fin);
+  return null;
+}
 function jsonp(params, cb, errcb){
+  var p=null;
+  try{ p=sbAccion(params); }catch(e){ p=null; }
+  if(!p) return jsonpGas(params, cb, errcb);
+  p.then(function(r){ cb(r); }, function(e){ sbAviso(e); jsonpGas(params, cb, errcb); });
+}
+function jsonpGas(params, cb, errcb){
   var name="__aud_cb_"+(++jsonpN)+"_"+Date.now();
   var sc=document.createElement("script");
   var to=setTimeout(function(){ limpiar(); errcb&&errcb("tiempo de espera agotado"); },45000);
@@ -917,7 +985,7 @@ function cargarDesdeSheet(){
                fecha:f[c.fecha], archivo:"" };
     });
     ULTIMA_CARGA = r.ultimaCarga || null;
-    ORIGEN = "Sheet en l\u00ednea"+(r.ms? " ("+(r.ms/1000).toFixed(1)+" s"+(r.deCache?", guardado":"")+")":"");
+    ORIGEN = (r.fuente==="supabase"?"Supabase":"Sheet en l\u00ednea")+(r.ms? " ("+(r.ms/1000).toFixed(1)+" s"+(r.deCache?", guardado":"")+")":"");
     $("cargando").classList.remove("on");
     arrancarApp();
   }, function(msg){ clearInterval(reloj); fallo(msg); });
