@@ -1446,8 +1446,24 @@ function renderTarjetas(sku){
   animarBarras();
 }
 
-var PROC_ORDEN=["COSTURA (TALLER)","COSTURA","ACABADOS (TALLER)","ACABADOS",
-                "ACABADOS FINAL (INTERNO)"];
+/* El proceso viene escrito de ocho formas distintas en el maestro. Se agrupa al
+   mostrarlo: COSTURA, ACABADOS INTERNO y ACABADOS TALLER. Las 1,259 auditorías
+   anteriores a que existiera el campo salen con "—". El texto original se
+   conserva para reconocer la auditoría final. */
+function procNorm(t){
+  var s=String(t||"").trim().toUpperCase();
+  if(!s) return "—";
+  if(s.indexOf("COSTURA")>=0) return "COSTURA";
+  if(s.indexOf("ACABADO")>=0) return s.indexOf("INTERN")>=0 ? "ACABADOS INTERNO" : "ACABADOS TALLER";
+  return s;
+}
+/* "LIVES (planta)" cuando la auditoría es interna: ahí no hay taller externo.
+   aud_taller está vacía en todas las filas, así que no se usa. */
+function tallerAud(a){
+  if(String(a.ie||"").toUpperCase()==="INTERNO") return "LIVES (planta)";
+  return a.s || "—";
+}
+var PROC_ORDEN=["COSTURA","ACABADOS INTERNO","ACABADOS TALLER","—"];
 function ordenProc(t){ var i=PROC_ORDEN.indexOf(t); return i<0?90:i; }
 function fechaCorta(f){
   var m=String(f||"").match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -1475,7 +1491,7 @@ function bloqueAuditorias(b){
   /* Último resultado de cada proceso: lo que se necesita ver de un golpe.
      La lista viene ordenada de la más reciente a la más antigua. */
   var ult={};
-  lista.forEach(function(a){ if(!ult[a.t]) ult[a.t]=a; });
+  lista.forEach(function(a){ var p=procNorm(a.t); if(!ult[p]) ult[p]=a; });
   var chips=Object.keys(ult).sort(function(x,y){ return ordenProc(x)-ordenProc(y); })
     .map(function(t){
       var a=ult[t], cls = a.r==="APROBADO" ? "apr" : (a.r==="RECHAZADO" ? "rec" : "");
@@ -1520,16 +1536,18 @@ function tablaAud(clave, todas){
   var ver = todas ? lista : lista.slice(0,AUD_TOPE);
   var filas=ver.map(function(a){
     var cls = a.r==="APROBADO" ? "bue" : (a.r==="RECHAZADO" ? "ale" : "low");
-    return '<tr><td>'+fechaCorta(a.f)+'</td><td>'+esc(a.t)+'</td>'+
+    return '<tr><td>'+fechaCorta(a.f)+'</td><td>'+esc(procNorm(a.t))+'</td>'+
+      '<td>'+esc(a.ie||"—")+'</td>'+
       '<td><span class="st '+cls+'">'+esc(a.r||"—")+'</span></td>'+
-      '<td>'+esc(a.s||"—")+'</td><td>'+esc(a.a||"—")+'</td>'+
+      '<td>'+esc(tallerAud(a))+'</td><td>'+esc(a.a||"—")+'</td>'+
       '<td class="num">'+fmt(a.l)+'</td><td class="num">'+fmt(a.m)+'</td></tr>';
   }).join("");
   var mas = (!todas && lista.length>AUD_TOPE)
     ? '<div style="padding:8px 6px"><button class="audver" onclick="verTodasAud(this,\''+
       esc(clave)+'\')">ver las '+(lista.length-AUD_TOPE)+' anteriores</button></div>' : '';
-  return '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th><th>Resultado</th>'+
-    '<th>Taller</th><th>Auditor</th>'+
+  return '<table class="audtab"><thead><tr><th>Fecha</th><th>Proceso</th>'+
+    '<th>Interno / externo</th><th>Resultado</th>'+
+    '<th>Taller / servicio</th><th>Auditor</th>'+
     '<th class="num">Lote</th><th class="num">Muestra</th></tr></thead>'+
     '<tbody>'+filas+'</tbody></table>'+mas;
 }
