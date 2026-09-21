@@ -908,15 +908,13 @@ function cargarDatos() {
   };
   /* completo=1 es obligatorio desde el script v8: sin él, accion=datos
      devuelve la lista vacía (es lo que usa el portal). */
+  /* Sin respaldo en el Apps Script desde la migración (SQL 22): el Sheet ya no
+     se actualiza y mostraría datos viejos. */
   const usarGas = () => {
     if (resuelto) return;
-    script.src = `${APPS_SCRIPT_URL}?accion=datos&completo=1&callback=${callbackName}`;
-    script.onerror = function() {
-      if (resuelto) return;
-      resuelto = true; delete window[callbackName]; limpiar();
-      document.getElementById('loading').innerHTML = '⚠ Error de conexión cargando datos.';
-    };
-    document.body.appendChild(script);
+    resuelto = true; delete window[callbackName];
+    document.getElementById('loading').innerHTML =
+      '⚠ No se pudieron leer los datos de Supabase. Recarga con Ctrl+Shift+R; si sigue, vuelve a entrar al portal.';
   };
   sbCompleto().then(r => { if (!resuelto && window[callbackName]) window[callbackName](r); },
                     e => { sbAviso(e); usarGas(); });
