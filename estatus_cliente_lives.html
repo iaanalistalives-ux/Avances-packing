@@ -608,21 +608,19 @@ function cargarDatos() {
       const nOps = new Set(DATOS.map(r => r.op).filter(Boolean)).size;
       info.style.display = '';
       info.innerHTML = DATOS.length
-        ? DATOS.length + ' registros cargados · ' + nOps + ' OP distintas' + (res.fuente === 'supabase' ? ' · Supabase' : ' · Apps Script') + (res.deCache ? ' · respuesta guardada' : '')
+        ? DATOS.length + ' registros cargados · ' + nOps + ' OP distintas' + ' · Supabase' + (res.deCache ? ' · respuesta guardada' : '')
         : '<b style="color:var(--rose)">⚠ No llegó ningún registro.</b> Recarga con Ctrl+Shift+R; si sigue igual, avisa a Christian.';
       document.getElementById('loading-search').style.display = 'none';
       document.getElementById('field-grid').style.display = '';
       resolve();
     };
+    /* Desde la migración (SQL 22) todo vive en Supabase: el Sheet ya no se
+       actualiza, así que no se usa como respaldo (mostraría datos viejos). */
     const usarGas = () => {
-      if (resuelto) return;
-      script.src = `${APPS_SCRIPT_URL}?accion=datos&ligero=1&callback=${callbackName}`;
-      script.onerror = function() {
-        if (resuelto) return; resuelto = true; delete window[callbackName]; limpiar();
-        document.getElementById('loading-search').innerHTML = '⚠ Error de conexión cargando datos.';
-        resolve();
-      };
-      document.body.appendChild(script);
+      if (resuelto) return; resuelto = true; delete window[callbackName];
+      document.getElementById('loading-search').innerHTML =
+        '⚠ No se pudieron leer los datos de Supabase. Recarga con Ctrl+Shift+R; si sigue, vuelve a entrar al portal.';
+      resolve();
     };
     sbLigero().then(r => { if (!resuelto && window[callbackName]) window[callbackName](r); },
                     e => { sbAviso(e); usarGas(); });
@@ -859,12 +857,8 @@ function pedirDetalleAuditorias(d) {
              'po='     + encodeURIComponent(d.po     || ''),
              'color='  + encodeURIComponent(d.color  || ''),
              'callback=' + cb].join('&');
-  const usarGas = () => {
-    if (listo) return;
-    script.src = APPS_SCRIPT_URL + '?' + q;
-    script.onerror = function() { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
-    document.body.appendChild(script);
-  };
+  /* Sin respaldo en el Apps Script: el Sheet ya no se actualiza. */
+  const usarGas = () => { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
   /* Desde Supabase llegan TODAS las auditorías (sin el límite de 3 meses). */
   sbRpc('encajado_auditorias_de', { p_grupo: d.grupo || '', p_estilo: d.estilo || '',
                                     p_po: d.po || '', p_color: d.color || '', p_meses: 0 })
@@ -998,71 +992,30 @@ function renderClienteSection(d) {
 
 async function guardarCliente(statusClienteSel) {
   if (!registro) return;
-  // NOTA (activo durante la implementación): ya no se bloquea aquí si el
-  // cruce en vivo no muestra Aprobado — el servidor acepta igual y deja
-  // rastro en el Historial. El aviso visible (no bloqueante) ya se
-  // mostró en renderClienteSection.
-
+  /* Se guarda directo en Supabase con la sesión del portal (SQL 22). No bloquea
+     si la última auditoría no es Aprobado: deja rastro en el historial. */
   const btnApr = document.getElementById('btn-cli-apr');
   const btnRech = document.getElementById('btn-cli-rech');
   const btnActivo = statusClienteSel === 'APROBADO_CLIENTE' ? btnApr : btnRech;
   const original = btnActivo.innerHTML;
   btnApr.disabled = true; btnRech.disabled = true;
   btnActivo.innerHTML = '<span class="spinner-btn"></span>Guardando...';
-
-  const callbackName = 'cbCli_' + Date.now();
-  const params = `?accion=cliente&statusCliente=${statusClienteSel}&callback=${callbackName}`
-    + `&grupo=${encodeURIComponent(st.grupo||'')}&estilo=${encodeURIComponent(st.estilo||'')}`
-    + `&po=${encodeURIComponent(st.po||'')}&color=${encodeURIComponent(st.color||'')}`;
-  const url = APPS_SCRIPT_URL + params;
-  let respondido = false;
-  const script = document.createElement('script');
-
-  window[callbackName] = function(res) {
-    respondido = true; delete window[callbackName];
-    try { document.body.removeChild(script); } catch(e) {}
-    btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original;
-
-    if (res && res.ok) {
-      registro.statusCliente = statusClienteSel;
-      registro.fechaCliente = res.fecha || '';
-      const idx = DATOS.findIndex(r => r.grupo===st.grupo && r.estilo===st.estilo && r.po===st.po && r.color===st.color);
-      if (idx >= 0) { DATOS[idx].statusCliente = statusClienteSel; DATOS[idx].fechaCliente = registro.fechaCliente; }
-      renderClienteSection(registro);
-      showToast('✓ Estatus Cliente actualizado');
-    } else {
-      showToast((res && res.error) || 'No se pudo guardar el Estatus Cliente.', true);
-    }
-  };
-  script.src = url;
-  script.onerror = function() {
-    if (respondido) return; respondido = true; delete window[callbackName];
-    try { document.body.removeChild(script); } catch(e) {}
-    btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original;
-    showToast('Error de conexión al guardar Estatus Cliente.', true);
-  };
-  document.body.appendChild(script);
-  /* Desde que el guardado también se copia a Supabase, la respuesta puede
-     tardar más de 8 s en un celular. Se espera hasta 30 s y, si igual no llega,
-     se revisa en Supabase si quedó guardado antes de pedir que se repita. */
-  setTimeout(() => {
-    if (!respondido) btnActivo.innerHTML = '<span class="spinner-btn"></span>Sigue guardando...';
-  }, 8000);
-  setTimeout(() => {
-    if (respondido) return; respondido = true; delete window[callbackName];
-    try { document.body.removeChild(script); } catch(e) {}
-    btnActivo.innerHTML = '<span class="spinner-btn"></span>Comprobando...';
-    const fin = (ok, fecha) => {
-      btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original;
-      if (ok) confirmarGuardado(statusClienteSel, fecha);
-      else showToast('No se pudo confirmar el guardado. Revisa tu conexión e inténtalo de nuevo.', true);
-    };
-    const id = registro && registro.rowIndex;
-    if (!id) { fin(false); return; }
-    sbPedir('/rest/v1/publico_encajado_avances?select=estatus_cliente,fecha_cliente&id=eq.' + encodeURIComponent(id))
-      .then(r => fin(r && r[0] && String(r[0].estatus_cliente).trim() === statusClienteSel, r && r[0] && r[0].fecha_cliente),
-            () => fin(false));
-  }, 30000);
+  let ses = null;
+  try { ses = window.LIVES_SESION && window.LIVES_SESION.actual(); } catch (e) {}
+  const listo = () => { btnApr.disabled = false; btnRech.disabled = false; btnActivo.innerHTML = original; };
+  try {
+    const r = await sbRpc('encajado_marcar_cliente', {
+      p_id: registro.rowIndex || null, p_grupo: st.grupo || '', p_estilo: st.estilo || '',
+      p_po: st.po || '', p_color: st.color || '', p_estatus: statusClienteSel,
+      p_nombre: (ses && (ses.nombre || ses.usuario)) || '' });
+    listo();
+    if (r && r.ok) confirmarGuardado(statusClienteSel, r.fecha);
+    else showToast((r && r.error) || 'No se pudo guardar el Estatus Cliente.', true);
+  } catch (e) {
+    listo();
+    showToast('No se pudo guardar (' + String(e && e.message || e).replace(/^Supabase \d+: /, '').slice(0, 120) +
+              '). Revisa tu conexión e inténtalo de nuevo.', true);
+  }
 }
 
 /* Lo mismo que hace la respuesta correcta del servidor. */
