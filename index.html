@@ -1192,11 +1192,14 @@ function sbAccion(params){
   if(params.accion==="estatus")    return sbRpc("encajado_estatus").then(fin);
   return null;
 }
+/* Todo sale de Supabase (SQL 22): el Sheet ya no se actualiza, así que no se
+   usa como respaldo. Si Supabase falla, se avisa. */
 function jsonp(params, cb, errcb){
   var p=null;
   try{ p=sbAccion(params); }catch(e){ p=null; }
-  if(!p) return jsonpGas(params, cb, errcb);
-  p.then(function(r){ cb(r); }, function(e){ sbAviso(e); jsonpGas(params, cb, errcb); });
+  if(!p){ errcb&&errcb("acción no disponible"); return; }
+  p.then(function(r){ cb(r); }, function(e){ sbAviso(e);
+    errcb&&errcb("no se pudo leer Supabase; recarga y, si sigue, vuelve a entrar al portal"); });
 }
 function jsonpGas(params, cb, errcb){
   var name="__aud_cb_"+(++jsonpN)+"_"+Date.now();
