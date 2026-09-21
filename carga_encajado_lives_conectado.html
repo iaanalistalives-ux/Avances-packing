@@ -1067,19 +1067,40 @@ function reiniciar(){
    Envío por JSONP (escritura en Apps Script)
    ============================================================ */
 var jsonpN = 0;
+/* ===== GUARDADO DIRECTO EN SUPABASE (SQL 22) =====================================
+   Antes esto iba al Apps Script, que escribía en el Sheet. Ahora la revisión
+   previa y cada tramo van directo a Supabase con la sesión del portal (el bloque
+   lives-sesion pone la llave de la persona en cada llamada). Cada tramo lleva su
+   número: si por una demora se manda dos veces, Supabase lo guarda una sola vez.
+   Solo la clave PÚBLICA va aquí. */
+var SB_URL='https://xxfufpddgoyhbotjmaiy.supabase.co';
+var SB_KEY='sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+function sbRpc(fn, args, ms){
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var to=setTimeout(function(){ if(ctl) ctl.abort(); }, ms||60000);
+  return fetch(SB_URL+'/rest/v1/rpc/'+fn, {method:'POST',
+      headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify(args||{}), signal:ctl?ctl.signal:undefined})
+    .then(function(r){ clearTimeout(to);
+      return r.text().then(function(t){ var j=null; try{ j=t?JSON.parse(t):null; }catch(e){}
+        if(!r.ok) throw new Error((j&&(j.message||j.hint))||('Supabase respondió '+r.status)); return j; }); },
+      function(e){ clearTimeout(to);
+        throw new Error(e&&e.name==='AbortError'?'tiempo de espera agotado':'no se pudo contactar Supabase'); });
+}
 function jsonp(params, cb, errcb){
-  var name = "__enc_cb_"+(++jsonpN)+"_"+Date.now();
-  var s = document.createElement("script");
-  var to = setTimeout(function(){ limpiar(); errcb&&errcb("tiempo de espera agotado"); }, 60000);
-  function limpiar(){ clearTimeout(to); try{ delete window[name]; }catch(e){ window[name]=undefined; }
-                      if(s.parentNode) s.parentNode.removeChild(s); }
-  window[name] = function(r){ limpiar(); cb(r); };
-  var q = [];
-  for(var k in params) q.push(encodeURIComponent(k)+"="+encodeURIComponent(params[k]));
-  q.push("callback="+name);
-  s.src = CFG.ENDPOINT + (CFG.ENDPOINT.indexOf("?")<0?"?":"&") + q.join("&");
-  s.onerror = function(){ limpiar(); errcb&&errcb("no se pudo contactar el servidor"); };
-  document.body.appendChild(s);
+  var pr;
+  if(params.accion==="resumenPO"){
+    pr=sbRpc('encajado_resumen_po',{p_po:params.po}, 20000);
+  }else if(params.accion==="lote"){
+    var p={}, k;
+    for(k in params) if(k!=="accion") p[k]=params[k];
+    ["colores","reqPorColor","filas"].forEach(function(c){
+      if(typeof p[c]==="string"){ try{ p[c]=JSON.parse(p[c]); }catch(e){} } });
+    pr=sbRpc('encajado_guardar_lote',{p:p}, 60000);
+  }else{
+    errcb&&errcb("acción no disponible: "+params.accion); return;
+  }
+  pr.then(function(r){ cb(r); }, function(e){ errcb&&errcb(e.message); });
 }
 
 function nuevoCodigo(){
@@ -1184,7 +1205,7 @@ function enviarPO(t, intento, cb){
     var chunk=lotes[k];
     var esUltimo = (k===lotes.length-1);
     var params = {
-      accion:"lote", id_carga:COD_ACTUAL, archivo:t.L.archivo,
+      accion:"lote", id_carga:COD_ACTUAL, archivo:t.L.archivo, lote:k,
       cliente:t.L.cliente, grupo:t.L.grupo, packing:t.L.packing, po:t.po,
       estilo:t.L.estilo,
       primero:(k===0)?1:0, ultimo:esUltimo?1:0,
