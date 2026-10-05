@@ -1481,5 +1481,11 @@ function renderAtacarList(elId, lista, palabra) {
 
 cargarDatos();
 </script>
+
+<!-- ===== lives-sin-barra v1 · 2026-10-05 · sin barra de título (el portal pone el encabezado).
+     La barra queda oculta en pantalla (al imprimir se ve). Estado y enlaces pasan a una tira arriba del contenido. ===== -->
+<style id="lsSbCss">@media screen{[data-ls-sin-barra]{display:none!important}}.lsSinBarra{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 12px;padding:8px 16px 0;font-family:Calibri,Arial,sans-serif;font-size:13px;line-height:1.35}.lsSinBarra,.lsSinBarra *{color:#0E3B36!important;opacity:1!important}.lsSinBarra a,.lsSinBarra button{color:#0F7A5A!important;background:#fff!important;border:1.5px solid #0F7A5A!important;border-radius:8px;padding:5px 12px;font-weight:700;text-decoration:none;cursor:pointer;margin:0}@media print{.lsSinBarra{display:none!important}}</style>
+<script id="lsSbJs">(function(){try{var h=document.querySelector(".header");if(!h)return;h.setAttribute("data-ls-sin-barra","");var m=[];["hstate"].forEach(function(i){var e=document.getElementById(i);if(e&&h.contains(e))m.push(e);});Array.prototype.forEach.call(h.querySelectorAll("a,button,select,input"),function(e){if(!m.some(function(x){return x===e||x.contains(e);}))m.push(e);});m=m.filter(function(e){return !m.some(function(x){return x!==e&&x.contains(e);});});if(!m.length)return;m.sort(function(a,b){return a.compareDocumentPosition(b)&4?-1:1;});var b=document.createElement("div");b.className="lsSinBarra";m.forEach(function(e){b.appendChild(e);});h.parentNode.insertBefore(b,h);}catch(e){}})();</script>
+<!-- ===== fin lives-sin-barra v1 ===== -->
 </body>
 </html>
