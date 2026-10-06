@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- ============================================================================
-     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5 · 2026-10-06
+     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5.1 · 2026-10-06
      Bloque común: es idéntico en todas las herramientas. Si se corrige, se corrige en
      todas. No depende de nada de la página.
      · Toma la sesión del portal LIVES (misma dirección github.io, se comparte sola).
@@ -23,6 +23,9 @@
        se recarga una vez ya con su nombre y sus permisos. El nombre no se verifica hasta que
        Sistemas firme el link. Esa sesión vive solo en la pestaña (no pasa al portal LIVES) y
        se descarta si el link trae otro nombre. Cuentas excluidas: las define Supabase.
+     · v5.1 · NOMBRE AL DÍA: al abrir, se pregunta a Supabase el nombre vigente de quien
+       tiene la sesión (mi_nombre). Si cambió (p. ej. por los nombres de Sistemas) se corrige
+       la sesión guardada y la pantalla se recarga una sola vez con el nombre nuevo.
      ============================================================================ -->
 <style id="lsCss">
 #lsSup{position:fixed;right:12px;bottom:12px;z-index:2147482000;background:#0E3B36;color:#fff;
@@ -254,7 +257,7 @@
   function sinSesion(){
     if (anotado) return;
     anotado = true;
-    try{ console.info('[lives-sesion v5] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
+    try{ console.info('[lives-sesion v5.1] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
   }
 
   window.fetch = function(entrada, init){
@@ -351,6 +354,20 @@
       if (s.vsesion === undefined || (s.vsesion !== null && s.vsesion !== v.json)){ borrar(); sinSesion(); return; }
       if (s.vsesion === null){ s.vsesion = v.json; guardar(s); }
     }).catch(function(){});
+    /* v5.1: el nombre de la sesión se pone al día con el de la base (una recarga, una vez). */
+    llave(false).then(function(tk){
+      if (!tk) return;
+      return pedir('/rest/v1/rpc/mi_nombre', {}, tk, 8000).then(function(v){
+        if (!v.ok || typeof v.json !== 'string' || !v.json) return;
+        var s = sesion(); if (!s || v.json === s.nombre) return;
+        s.nombre = v.json; guardar(s); fijarNombre(s);
+        var ya = null; try{ ya = sessionStorage.getItem('lives_nombre_al_dia'); }catch(e){}
+        if (ya !== v.json){
+          try{ sessionStorage.setItem('lives_nombre_al_dia', v.json); }catch(e){}
+          location.reload();
+        }
+      });
+    }).catch(function(){});
     /* Abierta fuera del portal: se anota igual que cuando se abre desde el portal. */
     if (window.top === window && s0.sb){
       document.addEventListener('DOMContentLoaded', function(){
@@ -365,7 +382,7 @@
   }
 
   window.LIVES_SESION = {
-    version: 'lives-sesion v5 · 2026-10-06 (sin bloqueo · nombre de la sesión · modo supervisión · puente Sistemas)',
+    version: 'lives-sesion v5.1 · 2026-10-06 (sin bloqueo · nombre de la sesión al día · modo supervisión · puente Sistemas)',
     supervision: function(){ return supervisando(); },
     actual: function(){ var s = sesion(); return s ? { usuario: s.usuario, nombre: s.nombre, conSupabase: !!s.sb } : null; },
     llave: function(){ return llave(false); },
@@ -373,7 +390,7 @@
   };
 })();
 </script>
-<!-- ===== fin lives-sesion v5 ===== -->
+<!-- ===== fin lives-sesion v5.1 ===== -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carga de Avance de Encajado · LIVES</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
