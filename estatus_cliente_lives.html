@@ -12,7 +12,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- ============================================================================
-     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v4 · 2026-10-05
+     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5 · 2026-10-06
      Bloque común: es idéntico en todas las herramientas. Si se corrige, se corrige en
      todas. No depende de nada de la página.
      · Toma la sesión del portal LIVES (misma dirección github.io, se comparte sola).
@@ -26,6 +26,12 @@
        Sin sesión, ?usuario= queda como venga en la dirección.
      · MODO SUPERVISIÓN (desde v3): Rodrigo (rcamogliano) ve y usa todo, nada se guarda.
        Christian (ctalepcio) tiene acceso completo. Solo aplica con sesión del portal.
+     · v5 · PUENTE CON EL PORTAL DE SISTEMAS (temporal, riesgo aceptado por Christian el
+       06/10/2026): si no hay sesión del portal LIVES y el link trae ?usuario=Nombre+Apellido,
+       se pide a Supabase (función sesion-sistemas) la sesión de esa persona y la herramienta
+       se recarga una vez ya con su nombre y sus permisos. El nombre no se verifica hasta que
+       Sistemas firme el link. Esa sesión vive solo en la pestaña (no pasa al portal LIVES) y
+       se descarta si el link trae otro nombre. Cuentas excluidas: las define Supabase.
      ============================================================================ -->
 <style id="lsCss">
 #lsSup{position:fixed;right:12px;bottom:12px;z-index:2147482000;background:#0E3B36;color:#fff;
@@ -75,6 +81,7 @@
   }
   function guardar(d){
     try{ sessionStorage.setItem(CLAVE, JSON.stringify(d)); }catch(e){}
+    if (d && d.origen === 'sistemas') return;            /* sesión del puente: solo en esta pestaña */
     try{ localStorage.setItem(CLAVE + '_resp', JSON.stringify({ d: d, ts: Date.now() })); }catch(e){}
   }
   function borrar(){
@@ -83,7 +90,7 @@
   }
   /* Mientras se usa la herramienta, el respaldo cuenta desde la última actividad. */
   function refrescarMarca(){
-    var s = sesion(); if (!s) return;
+    var s = sesion(); if (!s || s.origen === 'sistemas') return;
     try{ localStorage.setItem(CLAVE + '_resp', JSON.stringify({ d: s, ts: Date.now() })); }catch(e){}
   }
   setInterval(refrescarMarca, 60000);
@@ -144,6 +151,11 @@
           /* Rechazada: puede que otra pestaña la haya renovado un instante antes. */
           var s4 = sesion();
           if (s4 && s4.sb && s4.sb.refresh !== usada && s4.sb.exp - Date.now() > 60000) return s4.sb.access;
+          /* v5: si la sesión del puente ya no se puede renovar, se descarta para que la
+             próxima vez que se abra una herramienta el puente la vuelva a pedir. */
+          if (r.status >= 400 && r.status < 500 && s.origen === 'sistemas'){
+            borrar(); try{ sessionStorage.removeItem('lives_puente_recargado'); }catch(e){}
+          }
           return null;
         }, function(){ return null; })                                             /* sin señal */
         .then(function(tk){
@@ -251,7 +263,7 @@
   function sinSesion(){
     if (anotado) return;
     anotado = true;
-    try{ console.info('[lives-sesion v4] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
+    try{ console.info('[lives-sesion v5] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
   }
 
   window.fetch = function(entrada, init){
@@ -262,7 +274,7 @@
       return fetchBase(entrada, init).then(function(r){ return ajustarSup(r, url, metodo); });
     }
     if (typeof entrada !== 'string' || url.indexOf(SB_URL + '/rest/v1/') !== 0) return fetchBase(entrada, init);
-    return llave(false).then(function(tk){
+    return esperaPuente().then(function(){ return llave(false); }).then(function(tk){
       if (!tk) sinSesion();
       return fetchBase(url, conLlave(init, tk)).then(function(r){
         if (r.status !== 401 || !tk) return ajustarSup(r, url, metodo);
@@ -288,6 +300,50 @@
         history.replaceState(history.state, '', u.toString());
       }
     }catch(e){}
+  }
+
+  /* ---------- v5 · puente con el portal de Sistemas ---------- */
+  var PUENTE_OK = 'lives_puente_recargado';
+  function norm(x){
+    return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[+._-]/g, ' ')
+             .replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function nombreLink(){
+    try{ var u = new URL(location.href); return (u.searchParams.get('usuario') || u.searchParams.get('nombre') || '').trim(); }
+    catch(e){ return ''; }
+  }
+  var pedido = nombreLink();
+  var sx = sesion();
+  /* Sesión del puente de otra persona (computadora compartida): se descarta. */
+  if (sx && sx.origen === 'sistemas' && pedido && norm(pedido) !== norm(sx.nombre)){ borrar(); sx = null; }
+  var puente = null;
+  function esperaPuente(){ return puente || Promise.resolve(); }
+  if (!sx && pedido && norm(pedido).length >= 5){
+    var yaRecargo = null; try{ yaRecargo = sessionStorage.getItem(PUENTE_OK); }catch(e){}
+    if (yaRecargo !== norm(pedido)){
+      var raiz = document.documentElement, oculto = false;
+      try{ raiz.style.visibility = 'hidden'; oculto = true; }catch(e){}
+      var mostrar = function(){ if (oculto){ try{ raiz.style.visibility = ''; }catch(e){} oculto = false; } };
+      var tope = setTimeout(mostrar, 6000);                 /* nunca deja la pantalla en blanco */
+      puente = (function(){
+        var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var reloj = setTimeout(function(){ if (ctl) ctl.abort(); }, 8000);
+        return fetchBase(SB_URL + '/functions/v1/sesion-sistemas', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY },
+          body: JSON.stringify({ nombre: pedido, equipo: equipo(), desde: location.pathname }),
+          cache: 'no-store', signal: ctl ? ctl.signal : undefined
+        }).then(function(r){ clearTimeout(reloj); return r.json(); })
+          .then(function(j){
+            if (!j || !j.ok || !j.sesion || !j.sesion.sb){ sinSesion(); mostrar(); clearTimeout(tope); return; }
+            var d = j.sesion;
+            d.sb = { access: d.sb.access, refresh: d.sb.refresh, exp: Date.now() + (Number(d.sb.expira_en) || 3600) * 1000 };
+            d.vsesion = null;
+            guardar(d);
+            try{ sessionStorage.setItem(PUENTE_OK, norm(pedido)); }catch(e){}
+            location.reload();                               /* se vuelve a abrir ya con su sesión */
+          }, function(){ clearTimeout(reloj); sinSesion(); mostrar(); clearTimeout(tope); });
+      })();
+    }
   }
 
   /* ---------- al abrir ---------- */
@@ -318,7 +374,7 @@
   }
 
   window.LIVES_SESION = {
-    version: 'lives-sesion v4 · 2026-10-05 (sin bloqueo · nombre de la sesión · modo supervisión)',
+    version: 'lives-sesion v5 · 2026-10-06 (sin bloqueo · nombre de la sesión · modo supervisión · puente Sistemas)',
     supervision: function(){ return supervisando(); },
     actual: function(){ var s = sesion(); return s ? { usuario: s.usuario, nombre: s.nombre, conSupabase: !!s.sb } : null; },
     llave: function(){ return llave(false); },
@@ -326,7 +382,7 @@
   };
 })();
 </script>
-<!-- ===== fin lives-sesion v4 ===== -->
+<!-- ===== fin lives-sesion v5 ===== -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Estatus Cliente — LIVES</title>
 <style>
