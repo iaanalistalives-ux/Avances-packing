@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <!-- ============================================================================
-     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5.1 · 2026-10-06
+     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5.2 · 2026-10-06
      Bloque común: es idéntico en todas las herramientas. Si se corrige, se corrige en
      todas. No depende de nada de la página.
      · Toma la sesión del portal LIVES (misma dirección github.io, se comparte sola).
@@ -26,6 +26,9 @@
      · v5.1 · NOMBRE AL DÍA: al abrir, se pregunta a Supabase el nombre vigente de quien
        tiene la sesión (mi_nombre). Si cambió (p. ej. por los nombres de Sistemas) se corrige
        la sesión guardada y la pantalla se recarga una sola vez con el nombre nuevo.
+     · v5.2 · PORTAL NUEVO: el puente avisa si la herramienta está abierta dentro de
+       app.lives.com.pe. Solo así Supabase acepta por el puente a Christian y a Rodrigo
+       (Rodrigo siempre en supervisión). Con un link suelto, ellos no entran por el puente.
      ============================================================================ -->
 <style id="lsCss">
 #lsSup{position:fixed;right:12px;bottom:12px;z-index:2147482000;background:#0E3B36;color:#fff;
@@ -257,7 +260,7 @@
   function sinSesion(){
     if (anotado) return;
     anotado = true;
-    try{ console.info('[lives-sesion v5.1] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
+    try{ console.info('[lives-sesion v5.2] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
   }
 
   window.fetch = function(entrada, init){
@@ -311,6 +314,13 @@
   /* Sesión del puente de otra persona (computadora compartida): se descarta. */
   if (sx && sx.origen === 'sistemas' && pedido && norm(pedido) !== norm(sx.nombre)){ borrar(); sx = null; }
   var puente = null;
+  function enPortalNuevo(){
+    if (window.top === window) return false;
+    var anc = '';
+    try{ var ao = location.ancestorOrigins; if (ao && ao.length) anc = ao[ao.length - 1]; }catch(e){}
+    var ref = ''; try{ ref = document.referrer || ''; }catch(e){}
+    return /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(anc) || /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(ref);
+  }
   function esperaPuente(){ return puente || Promise.resolve(); }
   if (!sx && pedido && norm(pedido).length >= 5){
     var yaRecargo = null; try{ yaRecargo = sessionStorage.getItem(PUENTE_OK); }catch(e){}
@@ -324,7 +334,7 @@
         var reloj = setTimeout(function(){ if (ctl) ctl.abort(); }, 8000);
         return fetchBase(SB_URL + '/functions/v1/sesion-sistemas', {
           method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY },
-          body: JSON.stringify({ nombre: pedido, equipo: equipo(), desde: location.pathname }),
+          body: JSON.stringify({ nombre: pedido, equipo: equipo(), desde: location.pathname, portal_nuevo: enPortalNuevo() }),
           cache: 'no-store', signal: ctl ? ctl.signal : undefined
         }).then(function(r){ clearTimeout(reloj); return r.json(); })
           .then(function(j){
@@ -382,7 +392,7 @@
   }
 
   window.LIVES_SESION = {
-    version: 'lives-sesion v5.1 · 2026-10-06 (sin bloqueo · nombre de la sesión al día · modo supervisión · puente Sistemas)',
+    version: 'lives-sesion v5.2 · 2026-10-06 (sin bloqueo · nombre al día · supervisión · puente Sistemas · portal nuevo)',
     supervision: function(){ return supervisando(); },
     actual: function(){ var s = sesion(); return s ? { usuario: s.usuario, nombre: s.nombre, conSupabase: !!s.sb } : null; },
     llave: function(){ return llave(false); },
@@ -390,7 +400,7 @@
   };
 })();
 </script>
-<!-- ===== fin lives-sesion v5.1 ===== -->
+<!-- ===== fin lives-sesion v5.2 ===== -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carga de Avance de Encajado · LIVES</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
