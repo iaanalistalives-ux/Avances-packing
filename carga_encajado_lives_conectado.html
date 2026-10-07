@@ -908,6 +908,38 @@ function pedirResumenes(despues){
   })();
 }
 
+/* El archivo de Encajados no trae el ESTILO PROPIO de LIVES (solo el del cliente),
+   y a veces tampoco la OP: los pone la base de OPs al guardar. Aquí se pregunta
+   lo mismo que se va a guardar, sin guardar nada, para que la vista previa
+   muestre el estilo, la OP y el pedido reales, y avise si algo no cruza. */
+function pedirPrevia(despues){
+  if(!CFG.ENDPOINT){ despues(); return; }
+  var pend = LOTES.filter(function(L){ return L.ok && L.filas && L.filas.length; });
+  if(!pend.length){ despues(); return; }
+  var i=0;
+  (function paso(){
+    if(i>=pend.length){ despues(); return; }
+    var L=pend[i];
+    var filas=L.filas.map(function(x){
+      return [x.po,x.op,x.estilo,x.estiloCli,x.codcolor,x.color,x.talla,x.taller,x.req,x.enc,x.sal];
+    });
+    jsonp({accion:"previa", grupo:L.grupo, filas:filas}, function(r){
+      if(r && r.length===L.filas.length){
+        L.filas.forEach(function(x,k){
+          var d=r[k]||{};
+          x.grupoOps = d.grupo || "";
+          x.estiloOps = d.estilo || "";
+          x.opOps = d.op || "";
+          x.pedidoOps = (d.pedido===null||d.pedido===undefined) ? null : Number(d.pedido);
+          x.match = d.match || "";
+          x.avisos = d.avisos || "";
+        });
+      }
+      i++; setTimeout(paso, 80);
+    }, function(){ i++; setTimeout(paso, 80); });
+  })();
+}
+
 function claveCol(codcolor, color){
   return ((codcolor?codcolor+" ":"")+color).replace(/\s+/g," ").trim().toUpperCase();
 }
@@ -1111,12 +1143,25 @@ function render(){
   h += '<div class="pt">Detalle que se guarda</div>';
   h += '<div class="ph">Una fila por PO, OP, estilo, color, talla y taller — '+det.length+' en total. '+
        'Cuando una talla aparece en varios talleres, el requerido se repite en cada uno: '+
-       'es el mismo pedido, no uno nuevo. Por eso arriba las tallas se cuentan una sola vez.</div>';
+       'es el mismo pedido, no uno nuevo. Por eso arriba las tallas se cuentan una sola vez. '+
+       'El estilo propio, la OP que falte y el pedido salen de la base de OPs, no del archivo.</div>';
+  var sinCruce = det.filter(function(x){ return x.match==="SIN MATCH"; });
+  if(sinCruce.length){
+    var porQue = {};
+    sinCruce.forEach(function(x){ var k=x.po+" · OP "+(x.op||"sin OP")+" · "+x.color; porQue[k]=1; });
+    h += '<div class="aviso" style="margin:0 0 12px">⚠ '+sinCruce.length+' fila(s) no se encuentran en la base de OPs: '+
+         esc(Object.keys(porQue).join(" | "))+'. Se van a guardar, pero sin estilo ni pedido, '+
+         'y las auditoras las verán incompletas. Revisa la OP y el color en el archivo antes de subir.</div>';
+  }
   h += '<table><thead><tr><th>PO</th><th>OP</th><th>Estilo</th><th>Color</th><th>Talla</th>'+
        '<th>Taller</th><th class="num">Requeridas</th><th class="num">Encajadas</th>'+
        '<th class="num">Saldos</th><th class="num">% avance</th></tr></thead><tbody>';
   det.forEach(function(x){
-    h += '<tr><td>'+esc(x.po)+'</td><td>'+esc(x.op||"—")+'</td><td>'+esc(x.estilo)+'</td>'+
+    var estiloVer = x.estiloOps || x.estilo || "";
+    var opVer = x.op || x.opOps || "";
+    var falta = (x.match==="SIN MATCH");
+    h += '<tr><td>'+esc(x.po)+'</td><td>'+esc(opVer||"—")+'</td>'+
+         '<td>'+(estiloVer ? esc(estiloVer) : '<span class="st ale">sin cruce</span>')+'</td>'+
          '<td>'+esc((x.codcolor?x.codcolor+" ":"")+x.color)+'</td><td>'+esc(x.talla)+'</td>'+
          '<td>'+esc(x.taller||"—")+'</td><td class="num">'+fmt(x.req)+'</td>'+
          '<td class="num">'+fmt(x.enc)+'</td><td class="num">'+fmt(x.sal)+'</td>'+
@@ -1152,7 +1197,7 @@ function leerArchivos(lista){
   var tras = function(){
     render();
     $("hstate").textContent = "Consultando qué hay guardado…";
-    pedirResumenes(function(){ render(); });
+    pedirResumenes(function(){ pedirPrevia(function(){ render(); }); });
   };
   Array.prototype.forEach.call(lista, function(f){
     var rd = new FileReader();
@@ -1218,6 +1263,8 @@ function jsonp(params, cb, errcb){
   var pr;
   if(params.accion==="resumenPO"){
     pr=sbRpc('encajado_resumen_po',{p_po:params.po}, 20000);
+  }else if(params.accion==="previa"){
+    pr=sbRpc('encajado_previsualizar',{p:{grupo:params.grupo, filas:params.filas}}, 30000);
   }else if(params.accion==="lote"){
     var p={}, k;
     for(k in params) if(k!=="accion") p[k]=params[k];
