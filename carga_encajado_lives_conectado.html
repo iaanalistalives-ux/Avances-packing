@@ -1506,7 +1506,8 @@ render();
 <!-- ===== fin lives-actualizar v1 ===== -->
 
 
-<!-- ===== lives-franja v3 · 2026-10-07 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+
+<!-- ===== lives-franja v4 · 2026-10-07 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
      1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
         el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
         solo quedan esos, en una línea delgada.
@@ -1514,7 +1515,11 @@ render();
         Si la carga falla, sale un aviso rojo flotante con el motivo. Si el usuario solo puede consultar y la pantalla
         no lo dice en otro lado, sale un aviso flotante de solo consulta.
      3) En lo que se ve en pantalla no aparece el nombre del proveedor de la base: "· Supabase" y "fuente: Supabase" se quitan,
-        y en los textos de ayuda "Supabase" se lee "la base de datos". El código, los guardados y los datos no cambian. ===== -->
+        y en los textos de ayuda "Supabase" se lee "la base de datos". El código, los guardados y los datos no cambian.
+     4) v4 · Si la herramienta se abre dentro del portal LIVES antiguo y ese portal todavía es la versión vieja (sin el aviso
+        de mudanza, bloque lsMudJs), se recarga el portal completo para que la persona vea el aviso de mudanza.
+        Solo pasa al abrir la herramienta (todavía sin nada escrito), como máximo una vez cada 10 minutos;
+        en el portal nuevo de Sistemas no hace nada. ===== -->
 <style id="lsFrCss">
 @media screen{
 .lsSinBarra{padding:2px 12px 0!important;gap:2px 8px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
@@ -1598,8 +1603,20 @@ render();
       if(mio)return;if(!prog){prog=true;Promise.resolve().then(correr);}}).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});
     window.addEventListener('load',function(){setTimeout(revisar,50);});
     var k=0,iv=setInterval(function(){revisar();if(listo||++k>60)clearInterval(iv);},500);}
+  /* 4) Portal antiguo con versión vieja abierta: se recarga entero para que aparezca el aviso de mudanza. */
+  try{
+    if (window.top !== window){
+      var tp = window.top.location;   /* si el portal es de otro dominio (app.lives.com.pe) esto falla y no se hace nada */
+      if (tp.hostname === location.hostname && /^\/lives-portal\//.test(tp.pathname) &&
+          !window.top.document.getElementById('lsMudJs')){
+        /* Una sola vez cada 10 minutos: si el portal aún no tiene la versión nueva publicada, no se recarga en bucle. */
+        var ss = window.top.sessionStorage, ult = +(ss.getItem('lsMudRecarga') || 0);
+        if (Date.now() - ult > 600000){ ss.setItem('lsMudRecarga', String(Date.now())); window.top.location.reload(); }
+      }
+    }
+  }catch(e){}
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
 }catch(e){}})();</script>
-<!-- ===== fin lives-franja v3 ===== -->
+<!-- ===== fin lives-franja v4 ===== -->
 </body>
 </html>
