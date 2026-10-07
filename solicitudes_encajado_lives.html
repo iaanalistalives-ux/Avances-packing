@@ -742,42 +742,79 @@ cargar();
 })();</script>
 <!-- ===== fin lives-actualizar v1 ===== -->
 
-<!-- ===== lives-franja v2 · 2026-10-07 · UNA sola franja de estado delgada y sin la palabra "Supabase" (común a todas las herramientas).
-     1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre, enlaces) y el aviso "Datos en vivo" van juntos en UNA sola línea delgada (el aviso entra a la tira, a la izquierda).
-     2) En lo que se ve en pantalla no aparece el nombre del proveedor de la base: "· Supabase" y "fuente: Supabase" se quitan,
-        y en los textos de ayuda "Supabase" se lee "la base de datos". El código y los datos no cambian. ===== -->
+
+<!-- ===== lives-franja v3 · 2026-10-07 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+     1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
+        el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
+        solo quedan esos, en una línea delgada.
+     2) Al terminar de cargar sale un aviso flotante "Actualizado · hh:mm" que desaparece solo (no ocupa espacio).
+        Si la carga falla, sale un aviso rojo flotante con el motivo. Si el usuario solo puede consultar y la pantalla
+        no lo dice en otro lado, sale un aviso flotante de solo consulta.
+     3) En lo que se ve en pantalla no aparece el nombre del proveedor de la base: "· Supabase" y "fuente: Supabase" se quitan,
+        y en los textos de ayuda "Supabase" se lee "la base de datos". El código, los guardados y los datos no cambian. ===== -->
 <style id="lsFrCss">
 @media screen{
-.lsSinBarra{padding:2px 12px 0!important;gap:2px 10px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
-.lsSinBarra>*:not(a):not(button):not(select):not(input){margin:0!important;padding-top:0!important;padding-bottom:0!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
-.lsSinBarra>*:not(a):not(button) *:not(a):not(button):not(select):not(input){font-size:12px!important;line-height:1.25!important}
-.lsSinBarra a,.lsSinBarra button,.lsSinBarra>* a,.lsSinBarra>* button{padding:1px 8px!important;font-size:12px!important;line-height:1.25!important;border-width:1px!important;border-radius:6px!important;min-height:0!important;height:auto!important}
+.lsSinBarra{padding:2px 12px 0!important;gap:2px 8px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
+.lsSinBarra.lsFrVacia,.lsSinBarra .lsFrOc,.lsSinBarra .lsFrTx{display:none!important}
+.lsSinBarra a,.lsSinBarra button,.lsSinBarra>* a,.lsSinBarra>* button{padding:1px 8px!important;font-size:12px!important;line-height:1.25!important;border-width:1px!important;border-radius:6px!important;min-height:0!important;height:auto!important;margin:0!important}
 .lsSinBarra select,.lsSinBarra input{padding:0 6px!important;font-size:12px!important;height:20px!important;min-height:0!important}
-.lsSinBarra br{display:none}
-.avisoVivo{padding:2px 10px!important;font-size:12px!important;line-height:1.3!important;margin-bottom:6px!important;border-radius:6px!important}
+.avisoVivo:not(.error){display:none!important}
+.avisoVivo.error{padding:3px 10px!important;font-size:12px!important;line-height:1.3!important;margin-bottom:6px!important;border-radius:6px!important}
 .avisoVivo button{padding:1px 8px!important;font-size:12px!important;min-height:0!important}
-.lsSinBarra{padding:1px 12px 0!important}
-.lsSinBarra>.avisoVivo{order:-1;margin:0 auto 0 0!important;padding:0 8px!important;font-size:12px!important;line-height:18px!important;border-radius:9px!important;display:inline-flex!important;align-items:center;gap:6px;flex-wrap:wrap;max-width:100%}
-.lsSinBarra>.avisoVivo *{font-size:12px!important;line-height:18px!important;margin:0!important}
-.lsSinBarra>.avisoVivo.ok,.lsSinBarra>.avisoVivo.ok *{color:#065F46!important}
-.lsSinBarra>.avisoVivo.cargando,.lsSinBarra>.avisoVivo.cargando *{color:#92400E!important}
-.lsSinBarra>.avisoVivo.error,.lsSinBarra>.avisoVivo.error *{color:#991B1B!important}
-.lsSinBarra>.avisoVivo button{padding:0 8px!important;line-height:16px!important}
-.lsSinBarra>.aviso{order:-1;margin:0 auto 0 0!important;padding:0 8px!important;font-size:12px!important;line-height:18px!important;border-radius:9px!important;border-width:1px!important}
-body:has(.lsSinBarra) .hstate-emb{display:none!important}
+.hstate-emb{display:none!important}
+#lsFrToast{position:fixed;top:6px;right:12px;z-index:2147483000;max-width:min(460px,calc(100vw - 24px));font-family:Calibri,Arial,sans-serif;
+  font-size:12.5px;line-height:1.35;padding:5px 12px;border-radius:9px;box-shadow:0 4px 14px rgba(14,59,54,.18);color:#fff;background:#0F7A5A;
+  opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s;pointer-events:none}
+#lsFrToast.ver{opacity:1;transform:none}
+#lsFrToast.err{background:#B42318;pointer-events:auto;padding-right:28px}
+#lsFrToast.cons{background:#B45309}
+#lsFrToast b{font-weight:700}
+#lsFrToast .x{position:absolute;right:8px;top:3px;cursor:pointer;font-weight:700}
 }
+@media print{#lsFrToast{display:none!important}}
 </style>
 <script id="lsFrJs">(function(){try{
-  /* Saltos de línea dentro de la tira: se ven como " · " para que quede en una sola línea. */
-  function tira(){Array.prototype.forEach.call(document.querySelectorAll('.lsSinBarra br'),function(b){
-    var p=b.previousSibling,n=b.nextSibling;
-    if(p&&p.nodeType===3&&/·\s*$/.test(p.nodeValue))return; if(n&&n.nodeType===3&&/^\s*·/.test(n.nodeValue))return;
-    b.parentNode.insertBefore(document.createTextNode(' · '),b);});}
-  /* Una sola línea: el aviso "Datos en vivo / Cargando / error" entra a la tira de arriba. */
-  function unir(){var s=document.querySelector('.lsSinBarra'),a=document.querySelector('#avisoVivo,.avisoVivo');
-    if(s&&a&&a.parentNode!==s&&!a.closest('[data-ls-sin-barra]'))s.insertBefore(a,s.firstChild);
-    var c=document.querySelector('.wrap>.aviso');if(s&&c&&/solo para consultar/i.test(c.textContent))s.insertBefore(c,s.firstChild);}
-  /* Sin "Supabase" en lo visible. */
+  var ERR=/error|no se pudo|sin conexi|desconectad|fall[oó]|no carg|sin acceso/i;
+  var PERM=/solo consulta|sin permiso|no tien[ea]s? permiso|solo para consultar|modo consulta|solo lectura/i;
+  var CARGA=/cargando|conectando|leyendo|actualizando|enviando/i;
+  function strip(){return document.querySelector('.lsSinBarra');}
+  function oculto(e){if(e.style&&e.style.display==='none')return true;try{return getComputedStyle(e).display==='none';}catch(x){return false;}}
+  function esCtl(e){return /^(A|BUTTON|SELECT|INPUT)$/.test(e.tagName)||!!e.querySelector('a,button,select,input');}
+  /* 1) La tira solo conserva botones y enlaces; si no queda ninguno visible, desaparece. */
+  function esCtlPropio(e){return /^(A|BUTTON|SELECT|INPUT)$/.test(e.tagName);}
+  /* Dentro de un bloque con botón (ej. nombre + Cambiar), el texto se oculta y queda solo el botón. */
+  function limpiaCont(c){Array.prototype.slice.call(c.childNodes).forEach(function(n){
+      if(n.nodeType===3){if(n.nodeValue.trim()){var sp=document.createElement('span');sp.className='lsFrTx';c.insertBefore(sp,n);sp.appendChild(n);}}
+      else if(n.nodeType===1&&!esCtlPropio(n)&&!n.classList.contains('lsFrTx')){if(esCtl(n))limpiaCont(n);else if(!n.classList.contains('lsFrOc'))n.classList.add('lsFrOc');}});}
+  function ordenar(){var s=strip();if(!s)return;var vis=0;
+    Array.prototype.forEach.call(s.children,function(e){
+      if(esCtl(e)){if(e.classList.contains('lsFrOc'))e.classList.remove('lsFrOc');if(!esCtlPropio(e))limpiaCont(e);if(!oculto(e))vis++;}
+      else if(!e.classList.contains('lsFrOc'))e.classList.add('lsFrOc');});
+    if(s.classList.contains('lsFrVacia')!==(vis===0))s.classList.toggle('lsFrVacia',vis===0);}
+  /* 2) Avisos flotantes. */
+  var T=null,tm=null,listo=false,consDicho=false,t0=Date.now();
+  function toast(html,cls,ms){if(!document.body)return;if(!T){T=document.createElement('div');T.id='lsFrToast';T.setAttribute('role','status');document.body.appendChild(T);}
+    clearTimeout(tm);T.className=cls||'';T.innerHTML=html;void T.offsetWidth;T.classList.add('ver');
+    if(cls==='err'){var x=document.createElement('span');x.className='x';x.textContent='✕';x.onclick=function(){T.classList.remove('ver');};T.appendChild(x);}
+    if(ms)tm=setTimeout(function(){T.classList.remove('ver');},ms);}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function textoEstado(){var s=strip(),t='';
+    if(s)Array.prototype.forEach.call(s.querySelectorAll('.lsFrOc,.lsFrTx'),function(e){if(!oculto(e))t+=' '+(e.textContent||'');});
+    return t.replace(/\s+/g,' ').trim();}
+  var errMostrado='';
+  function revisar(){
+    var t=textoEstado(),av=document.querySelector('#avisoVivo,.avisoVivo');
+    if(t&&ERR.test(t)){if(errMostrado!==t){errMostrado=t;toast('<b>Atención:</b> '+esc(t.slice(0,200)),'err');}return;}
+    if(errMostrado){errMostrado='';if(T)T.classList.remove('ver');}
+    if(!consDicho&&t&&PERM.test(t)){var cuerpo=document.body.innerText||'';
+      if(!PERM.test(cuerpo)){consDicho=true;toast('<b>Solo consulta:</b> tu usuario puede ver esta pantalla, pero no registrar ni modificar.','cons',6000);return;}
+      consDicho=true;}
+    if(!listo){var cargando=(t&&CARGA.test(t))||(av&&!/\b(ok|error)\b/.test(av.className));
+      if(document.readyState==='complete'&&(!cargando||Date.now()-t0>25000)){listo=true;
+        if(av&&/\berror\b/.test(av.className))return;
+        var d=new Date(),h=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+        setTimeout(function(){if(!errMostrado)toast('Actualizado · '+h,'',2500);},consDicho&&T&&T.classList.contains('ver')?6200:300);}}}
+  /* 3) Sin "Supabase" en lo visible. */
   var R=[[/\s*[·|,-]\s*fuente\s*:\s*Supabase\b/gi,''],[/\bfuente\s*:\s*Supabase\b\s*/gi,'Fuente: base de datos LIVES '],
          [/\s*[·|]\s*Supabase\b/g,''],[/\bSupabase\s*[·|]\s*/g,''],[/\s*\(\s*Supabase\s*\)/gi,''],
          [/\b(en|a|de|desde|con)\s+Supabase\b/gi,'$1 la base de datos'],[/\bSupabase\b/gi,'la base de datos']];
@@ -791,12 +828,15 @@ body:has(.lsSinBarra) .hstate-emb{display:none!important}
     Array.prototype.forEach.call(r.querySelectorAll('[title*="upabase"]'),function(e){e.title=limpia(e.title);});}
   if(/upabase/i.test(document.title))document.title=limpia(document.title);
   var pend=[],prog=false;
-  function correr(){prog=false;var l=pend;pend=[];l.forEach(arbol);tira();unir();}
-  function inicio(){arbol(document.body);tira();unir();
-    new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==='characterData')pend.push(m.target);else for(var i=0;i<m.addedNodes.length;i++)pend.push(m.addedNodes[i]);});
-      if(!prog&&pend.length){prog=true;Promise.resolve().then(correr);}}).observe(document.body,{childList:true,subtree:true,characterData:true});}
+  function correr(){prog=false;var l=pend;pend=[];l.forEach(arbol);ordenar();revisar();}
+  function inicio(){arbol(document.body);ordenar();revisar();
+    new MutationObserver(function(ms){var mio=true;ms.forEach(function(m){var n=m.target;if(!(T&&(n===T||T.contains(n))))mio=false;
+        if(m.type==='characterData')pend.push(m.target);else for(var i=0;i<m.addedNodes.length;i++)pend.push(m.addedNodes[i]);});
+      if(mio)return;if(!prog){prog=true;Promise.resolve().then(correr);}}).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});
+    window.addEventListener('load',function(){setTimeout(revisar,50);});
+    var k=0,iv=setInterval(function(){revisar();if(listo||++k>60)clearInterval(iv);},500);}
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
 }catch(e){}})();</script>
-<!-- ===== fin lives-franja v2 ===== -->
+<!-- ===== fin lives-franja v3 ===== -->
 </body>
 </html>
