@@ -2408,7 +2408,8 @@ window.addEventListener('load',iniciar);
 </script>
 <!-- ===== fin lives-excel-reporte v1 ===== -->
 
-<!-- ===== lives-franja v5 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+
+<!-- ===== lives-franja v6 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
      1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
         el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
         solo quedan esos, en una línea delgada.
@@ -2424,7 +2425,11 @@ window.addEventListener('load',iniciar);
      5) v5 · Botones de exportar, imprimir, actualizar, Excel o HTML que flotaban encima de la barra de filtros pasan a esa
         barra (si no hay barra, se crea una). La barra con filtros queda fija al bajar y, mientras está fija, los botones de
         acción se esconden; al subir vuelven. Las barras que solo tienen botones suben con la página.
-        El dato "N registros · datos al …" ya no se muestra. Acabados no se toca. ===== -->
+        El dato "N registros · datos al …" ya no se muestra. Acabados no se toca.
+     6) v6 · Los demás grupos de botones que flotaban arriba (pestañas como "Mejoras / Reporte", menús de vista,
+        "Volver") también entran a la barra de filtros; si no hay barra, se les crea una. Al cambiar de pestaña, las
+        pestañas pasan a la barra de la vista abierta. Lo que ya está dentro de una tarjeta no se mueve. Una barra de
+        filtros muy alta (más de 180 px) no se queda fija, para no tapar media pantalla. ===== -->
 <style id="lsFrCss">
 @media screen{
 .lsSinBarra{padding:2px 12px 0!important;gap:2px 8px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
@@ -2526,22 +2531,32 @@ window.addEventListener('load',iniciar);
 @media screen{
 .lsBaOc{display:none!important}
 .lsAcc{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
-.lsBarra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;background:#fff;border:1px solid #DCE5E2;border-radius:12px;padding:8px 12px;margin:0 0 12px;box-shadow:0 1px 3px rgba(14,59,54,.06)}
+.lsBarra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-start;background:#fff;border:1px solid #DCE5E2;border-radius:12px;padding:8px 12px;margin:0 0 12px;box-shadow:0 1px 3px rgba(14,59,54,.06)}
+.lsBarra>.lsAcc:only-child{margin-left:auto}
+.lsTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid #E6EEEB;width:100%;flex-basis:100%}
+.lsTop>*{margin:0!important}
+.lsBarra>*{margin-top:0!important;margin-bottom:0!important}
 .lsBaFijo{position:sticky!important;top:0;z-index:30}
 .lsBaSuelta{position:static!important}
 .lsPegada .lsAccBtn{display:none!important}
 }
 </style>
 <script id="lsBaJs">(function(){try{
-  /* v5 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
-     La barra con filtros queda fija al bajar; los botones de acción se esconden mientras está fija y vuelven al subir.
-     El dato de "N registros · datos al …" no se muestra (el aviso flotante "Actualizado" ya lo dice).
+  /* v6 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+     Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
+     entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
+     las pestañas pasan a la barra de la vista que queda abierta.
+     La barra con filtros queda fija al bajar (si no es muy alta); los botones de acción se esconden mientras
+     está fija y vuelven al subir. El dato de "N registros · datos al …" no se muestra.
      No cambia cálculos, datos ni guardados: solo ubica botones que ya existen. Acabados (Lady) no se toca. */
   if(/\/formulario-acabados\//.test(location.pathname))return;
+  var SIN_GRUPOS=/\/Tienda-lives\/(index\.html)?$/i.test(location.pathname);
   var ACC=/^(exportar|descargar|imprimir|actualizar|recargar|compartir|copiar enlace)\b|\b(excel|pdf|html|csv)\b/i;
   var EST=/(datos al \d|le[ií]d[oa]s? a las|datos de las \d|actualizad[oa] a las|[uú]ltima (lectura|actualizaci)|datos en vivo|en vivo ·)/i;
-  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="toolbar"]';
+  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
   var CTL='select,input:not([type=hidden]):not([type=file]):not([type=button]):not([type=submit])';
+  var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,.lsSinBarra';
+  var ALTO_FIJO=180;
   function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
   function txt(e){return (e.textContent||'').replace(/\s+/g,' ').trim();}
   function limpio(t){return t.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]+/,'');}
@@ -2550,21 +2565,47 @@ window.addEventListener('load',iniciar);
   function hayCtl(e){return Array.prototype.some.call(e.querySelectorAll('a,button,'+CTL+',textarea,canvas,img,table,svg'),vis);}
   function enBarra(e){var b=e.closest(BARRA);return b&&!b.closest('.lsSinBarra')?b:null;}
   function externa(b){var p=b.parentElement&&b.parentElement.closest(BARRA);while(p&&!p.closest('.lsSinBarra')&&vis(p)){b=p;p=b.parentElement&&b.parentElement.closest(BARRA);}return b;}
-  function barraFiltros(){var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest('.lsSinBarra,dialog,[role=dialog],.modal:not(.on):not(.show):not(.abierto)')&&Array.prototype.some.call(b.querySelectorAll(CTL),vis);}).map(externa);
+  function barraFiltros(){var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest(FUERA)&&!b.closest('.modal:not(.on):not(.show):not(.abierto)')&&Array.prototype.some.call(b.querySelectorAll(CTL),vis);}).map(externa);
     c.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top;});return c[0]||null;}
   function contScroll(e){var p=e.parentElement;while(p&&p!==document.body){var o=getComputedStyle(p).overflowY;if(o==='auto'||o==='scroll')return p;p=p.parentElement;}return null;}
-  var F=null,FIX=null;
+  /* ¿todo lo que se ve dentro de e son botones o enlaces? (sin campos, tablas, gráficos ni texto suelto) */
+  function soloBotones(e){
+    if(e.querySelector(CTL+',textarea,table,canvas,iframe,video'))return false;
+    var w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT,null,false),n;
+    while((n=w.nextNode())){if(!n.nodeValue.trim())continue;var p=n.parentElement;if(!p||!vis(p))continue;if(!p.closest('button,a,[role=tab]'))return false;}
+    return Array.prototype.some.call(e.querySelectorAll('button,a,[role=tab]'),vis);}
+  function grupoDe(b){
+    var g=b,p=b.parentElement;
+    while(p&&p!==document.body&&!p.matches(BARRA)&&!p.matches('main,header,section,article,form,.wrap,.container,.contenedor')&&soloBotones(p)&&p.getBoundingClientRect().height<90){g=p;p=p.parentElement;}
+    if(g===b){var q=b.parentElement;if(!q||!soloBotones(q))return null;}
+    return g;}
+  /* ¿e ya está dentro de una tarjeta o caja con fondo o borde? entonces no está "en el aire" */
+  function enCaja(e){var fondo=getComputedStyle(document.body).backgroundColor,p=e.parentElement;
+    while(p&&p!==document.body&&p!==document.documentElement){var s=getComputedStyle(p);
+      var bg=s.backgroundColor;if(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent'&&bg!==fondo)return true;
+      if(parseFloat(s.borderTopWidth)>0&&s.borderTopStyle!=='none'&&parseFloat(s.borderLeftWidth)>0)return true;
+      if(s.boxShadow&&s.boxShadow!=='none')return true;p=p.parentElement;}
+    return false;}
+  var F=null,FIX=null,MOV=[];
+  function cajaTop(f){var c=f.querySelector(':scope > .lsTop');if(!c){c=document.createElement('div');c.className='lsTop';f.insertBefore(c,f.firstChild);}return c;}
+  function aCasa(m){if(!m.bar){m.bar=document.createElement('div');m.bar.className='lsBarra';m.casa.parentNode.insertBefore(m.bar,m.casa.nextSibling);}
+    if(m.g.parentNode!==m.bar)m.bar.appendChild(m.g);m.bar.style.display='';}
+  function ubicar(m,f){
+    if(f&&!f.contains(m.g)){cajaTop(f).appendChild(m.g);if(m.bar)m.bar.style.display='none';}
+    else if(!f)aCasa(m);}
   function arreglar(){
     var f=barraFiltros(),tope=f?f.getBoundingClientRect().top:260;
     /* 1) dato de estado arriba */
     Array.prototype.forEach.call(document.querySelectorAll('div,span,p,small'),function(e){
       if(e.classList.contains('lsBaOc')||e.children.length>3||!vis(e))return;var t=txt(e);
       if(t.length>160||!EST.test(t)||hayCtl(e))return;if(e.getBoundingClientRect().top>tope+4)return;
-      if(e.closest('.lsAcc,.lsBarra,'+BARRA))return;poner(e,'lsBaOc');});
-    /* 2) botones flotando encima de la barra */
+      if(e.closest('.lsAcc,.lsBarra,.lsTop,'+BARRA))return;poner(e,'lsBaOc');});
+    /* 0) grupos ya movidos que quedaron escondidos (cambio de pestaña): pasan a la barra visible o vuelven a su sitio */
+    MOV.forEach(function(m){if(!vis(m.g)||(f&&m.bar&&m.g.parentNode===m.bar))ubicar(m,f);});
+    /* 2) botones de exportar/imprimir/actualizar flotando encima de la barra */
     var sueltos=Array.prototype.filter.call(document.querySelectorAll('button,a.btn,a[class*="btn"]'),function(b){
-      if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra'))return false;if(f&&f.contains(b))return false;
-      if(b.closest('dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana'))return false;
+      if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra,.lsTop'))return false;if(f&&f.contains(b))return false;
+      if(b.closest(FUERA))return false;
       var r=b.getBoundingClientRect();if(f)return r.bottom<=tope+2;
       return r.top<200&&!enBarra(b)&&!b.closest('.panel,.card,.kpi,form,table');});
     if(sueltos.length){
@@ -2573,13 +2614,30 @@ window.addEventListener('load',iniciar);
       else{caja=dest.querySelector(':scope > .lsAcc');if(!caja){caja=document.createElement('span');caja.className='lsAcc';dest.appendChild(caja);}}
       sueltos.forEach(function(b){var antes=b.parentElement;caja.appendChild(b);
         var p=antes,n=0;while(p&&p!==document.body&&n<4){if(p.contains(dest))break;if(!hayCtl(p)&&p.getBoundingClientRect().height<140){poner(p,'lsBaOc');p=p.parentElement;n++;}else break;}});
-      if(!f)f=null;
     }
-    /* 3) barra con filtros fija; botones de acción marcados para esconderse mientras está fija */
+    /* 2b) otros grupos de botones sueltos arriba (pestañas, Volver, vistas): a la barra; si no hay barra, se les crea una */
+    if(!SIN_GRUPOS){
+      var lim=f?f.getBoundingClientRect().top:220,vistos=[];
+      Array.prototype.forEach.call(document.querySelectorAll('button,a,[role=tab]'),function(b){
+        if(!vis(b)||!txt(b)||b.closest('.lsAcc,.lsBarra,.lsTop,aside,nav,[class*="side"],[class*="menu"],form,table,'+FUERA))return;
+        if(f&&f.contains(b))return;if(enBarra(b))return;
+        var s=getComputedStyle(b);if(s.position==='fixed'||s.position==='absolute')return;
+        var r=b.getBoundingClientRect();if(r.bottom>lim+2||r.top>320)return;
+        var g=grupoDe(b);if(!g||vistos.indexOf(g)>=0)return;if(enCaja(g))return;
+        if(g.closest('aside,nav,[class*="side"],[class*="menu"],'+FUERA))return;
+        vistos.push(g);});
+      vistos.forEach(function(g){if(MOV.some(function(m){return m.g===g;}))return;
+        var casa=document.createElement('span');casa.className='lsCasa';casa.style.display='none';g.parentNode.insertBefore(casa,g);
+        var m={g:g,casa:casa,bar:null};MOV.push(m);ubicar(m,f);});
+    }
+    /* 3) barra con filtros fija (si no es muy alta); botones de acción marcados para esconderse mientras está fija */
     if(f){
       Array.prototype.forEach.call(f.querySelectorAll('button,a'),function(b){if(esAcc(b))poner(b,'lsAccBtn');});
-      if(getComputedStyle(f).position==='static'){poner(f,'lsBaFijo');var bg=getComputedStyle(f).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')f.style.backgroundColor=getComputedStyle(document.body).backgroundColor||'#F1F6F4';}
-      F=f;FIX=contScroll(f);
+      var alta=f.getBoundingClientRect().height>ALTO_FIJO;
+      if(alta){f.classList.remove('lsBaFijo');f.classList.remove('lsPegada');F=null;}
+      else{
+        if(getComputedStyle(f).position==='static'){poner(f,'lsBaFijo');var bg=getComputedStyle(f).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')f.style.backgroundColor=getComputedStyle(document.body).backgroundColor||'#F1F6F4';}
+        F=f;FIX=contScroll(f);}
     }
     /* barras pegajosas que solo tienen botones (sin filtros): que suban con la página */
     Array.prototype.forEach.call(document.querySelectorAll(BARRA),function(b){if(b===f||!vis(b))return;var s=getComputedStyle(b).position;
@@ -2588,12 +2646,14 @@ window.addEventListener('load',iniciar);
   }
   function pegada(){if(!F||!F.isConnected)return;var top=parseFloat(getComputedStyle(F).top)||0,base=FIX?FIX.getBoundingClientRect().top:0,desp=FIX?FIX.scrollTop:(window.scrollY||document.documentElement.scrollTop);
     var en=desp>4&&(F.getBoundingClientRect().top-base)<=top+1.5;if(en!==F.classList.contains('lsPegada'))F.classList.toggle('lsPegada',en);}
-  document.addEventListener('scroll',function(){pegada();},true);window.addEventListener('resize',function(){pegada();});
+  document.addEventListener('scroll',function(){pegada();},true);window.addEventListener('resize',function(){pegada();luego();});
+  document.addEventListener('click',function(){setTimeout(function(){try{arreglar();}catch(e){}},30);},true);
   var t=null;function luego(){if(t)return;t=setTimeout(function(){t=null;try{arreglar();}catch(e){}},250);}
   function inicio(){luego();new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){if(ms[i].addedNodes.length||ms[i].removedNodes.length){luego();return;}}}).observe(document.body,{childList:true,subtree:true});
     window.addEventListener('load',luego);var k=0,iv=setInterval(function(){luego();if(++k>20)clearInterval(iv);},700);}
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
+  window.__lsBa={arreglar:arreglar,MOV:MOV,F:function(){return F;},bf:barraFiltros};
 }catch(e){}})();</script>
-<!-- ===== fin lives-franja v5 ===== -->
+<!-- ===== fin lives-franja v6 ===== -->
 </body>
 </html>
