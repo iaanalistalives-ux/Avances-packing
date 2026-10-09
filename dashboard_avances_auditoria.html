@@ -2601,7 +2601,7 @@ window.addEventListener('load',iniciar);
 <!-- ===== fin lives-excel-reporte v1 ===== -->
 
 
-<!-- ===== lives-franja v6 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+<!-- ===== lives-franja v6.1 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
      1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
         el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
         solo quedan esos, en una línea delgada.
@@ -2731,10 +2731,15 @@ window.addEventListener('load',iniciar);
 .lsBaFijo{position:sticky!important;top:0;z-index:30}
 .lsBaSuelta{position:static!important}
 .lsPegada .lsAccBtn{display:none!important}
+button.lsBtn,a.lsBtn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #DCE5E2;background:#fff;color:#0F7A5A;min-height:36px;line-height:1.2;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:none}
+button.lsBtn:hover,a.lsBtn:hover{border-color:#0F7A5A;background:#fff}
+button.lsBtn.pri,button.lsBtn.primary{background:#0F7A5A;color:#fff;border-color:#0F7A5A}
+button.lsBtn.pri:hover,button.lsBtn.primary:hover{background:#0B815E;color:#fff}
+button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
 }
 </style>
 <script id="lsBaJs">(function(){try{
-  /* v6 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+  /* v6.1 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
      Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
      entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
      las pestañas pasan a la barra de la vista que queda abierta.
@@ -2766,6 +2771,8 @@ window.addEventListener('load',iniciar);
     var w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT,null,false),n;
     while((n=w.nextNode())){if(!n.nodeValue.trim())continue;var p=n.parentElement;if(!p||!vis(p))continue;if(!p.closest('button,a,[role=tab]'))return false;}
     return Array.prototype.some.call(e.querySelectorAll('button,a,[role=tab]'),vis);}
+  function estilo(b){try{var s=getComputedStyle(b);return [s.backgroundColor,s.color,s.borderTopColor,s.borderTopWidth].join('|');}catch(e){return '';}}
+  function grande(e){return Array.prototype.some.call(e.matches&&e.matches('button,a,[role=tab]')?[e]:e.querySelectorAll('button,a,[role=tab]'),function(x){return vis(x)&&x.getBoundingClientRect().height>56;});}
   function grupoDe(b){
     var g=b,p=b.parentElement;
     while(p&&p!==document.body&&!p.matches(BARRA)&&!p.matches('main,header,section,article,form,.wrap,.container,.contenedor')&&soloBotones(p)&&p.getBoundingClientRect().height<90){g=p;p=p.parentElement;}
@@ -2793,7 +2800,9 @@ window.addEventListener('load',iniciar);
       if(t.length>160||!EST.test(t)||hayCtl(e))return;if(e.getBoundingClientRect().top>tope+4)return;
       if(e.closest('.lsAcc,.lsBarra,.lsTop,'+BARRA))return;poner(e,'lsBaOc');});
     /* 0) grupos ya movidos que quedaron escondidos (cambio de pestaña): pasan a la barra visible o vuelven a su sitio */
-    MOV.forEach(function(m){if(!vis(m.g)||(f&&m.bar&&m.g.parentNode===m.bar))ubicar(m,f);});
+    MOV.forEach(function(m){var casaVis=m.casa.parentNode&&vis(m.casa.parentNode);
+      if(!casaVis){if(m.g.previousSibling!==m.casa)m.casa.parentNode.insertBefore(m.g,m.casa.nextSibling);if(m.bar)m.bar.style.display='none';return;}
+      if(!vis(m.g)||m.g.previousSibling===m.casa||(f&&m.bar&&m.g.parentNode===m.bar))ubicar(m,f);});
     /* 2) botones de exportar/imprimir/actualizar flotando encima de la barra */
     var sueltos=Array.prototype.filter.call(document.querySelectorAll('button,a.btn,a[class*="btn"]'),function(b){
       if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra,.lsTop'))return false;if(f&&f.contains(b))return false;
@@ -2804,7 +2813,7 @@ window.addEventListener('load',iniciar);
       var dest=f,caja;
       if(!dest){var ref=sueltos[0];var fila=ref.parentElement;dest=document.createElement('div');dest.className='lsBarra';fila.parentNode.insertBefore(dest,fila);caja=dest;}
       else{caja=dest.querySelector(':scope > .lsAcc');if(!caja){caja=document.createElement('span');caja.className='lsAcc';dest.appendChild(caja);}}
-      sueltos.forEach(function(b){var antes=b.parentElement;caja.appendChild(b);
+      sueltos.forEach(function(b){var antes=b.parentElement,e0=estilo(b);caja.appendChild(b);if(estilo(b)!==e0)poner(b,'lsBtn');
         var p=antes,n=0;while(p&&p!==document.body&&n<4){if(p.contains(dest))break;if(!hayCtl(p)&&p.getBoundingClientRect().height<140){poner(p,'lsBaOc');p=p.parentElement;n++;}else break;}});
     }
     /* 2b) otros grupos de botones sueltos arriba (pestañas, Volver, vistas): a la barra; si no hay barra, se les crea una */
@@ -2815,7 +2824,7 @@ window.addEventListener('load',iniciar);
         if(f&&f.contains(b))return;if(enBarra(b))return;
         var s=getComputedStyle(b);if(s.position==='fixed'||s.position==='absolute')return;
         var r=b.getBoundingClientRect();if(r.bottom>lim+2||r.top>320)return;
-        var g=grupoDe(b);if(!g||vistos.indexOf(g)>=0)return;if(enCaja(g))return;
+        if(b.getBoundingClientRect().height>56)return;var g=grupoDe(b);if(!g||vistos.indexOf(g)>=0)return;if(grande(g))return;if(enCaja(g))return;
         if(g.closest('aside,nav,[class*="side"],[class*="menu"],'+FUERA))return;
         vistos.push(g);});
       vistos.forEach(function(g){if(MOV.some(function(m){return m.g===g;}))return;
@@ -2846,6 +2855,6 @@ window.addEventListener('load',iniciar);
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
   window.__lsBa={arreglar:arreglar,MOV:MOV,F:function(){return F;},bf:barraFiltros};
 }catch(e){}})();</script>
-<!-- ===== fin lives-franja v6 ===== -->
+<!-- ===== fin lives-franja v6.1 ===== -->
 </body>
 </html>
