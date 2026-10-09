@@ -1631,7 +1631,7 @@ cargarDatos();
 
 
 
-<!-- ===== lives-excel-reporte v1.3 · 2026-10-09 · botón "Descargar Excel" con formato de reporte LIVES (estándar lives-excel).
+<!-- ===== lives-excel-reporte v1.4 · 2026-10-09 · botón "Descargar Excel" con formato de reporte LIVES (estándar lives-excel).
      Hoja Resumen = lo que se ve en pantalla con los filtros activos; hoja Detalle = cada registro del período.
      Solo agrega un botón: no cambia cálculos, datos ni guardados del tablero. ExcelJS se carga recién al presionar. ===== -->
 <script id="lsXlsJs">(function(){try{
@@ -2399,7 +2399,199 @@ function prepararXLSX(){
   }catch(e){}
 }
 
-var ADAPT=[CAL,IFC,CHK,MEJ,POT,COR,ATX,CMU,PCO,WIP,AVI,AAU];
+/* --- Control de datos de Calidad (incoherencias de auditorías) --- */
+var CDA={
+  detecta:function(){return typeof DATOS!=='undefined'&&typeof RESUMEN!=='undefined'&&typeof FILTRO!=='undefined'&&typeof porPartes==='function'&&document.getElementById('recargar');},
+  pone:function(){boton(document.getElementById('recargar'),true,'btn',CDA.exporta);},
+  exporta:function(){
+    if(!DATOS||!DATOS.length)throw new Error('el control todavía está cargando o no tiene incoherencias');
+    var GR=['Alta','Media','Baja','Pendiente'],cnt=function(g){return DATOS.filter(function(x){return x.gravedad===g;}).length;};
+    var tot=DATOS.length-cnt('Pendiente'),pc=function(a,b){return b?a/b:null;};
+    var nota='Alta = afecta cifras o indicadores · Media = afecta cruces con otras áreas · Baja = prolijidad. % = incoherencias de esa gravedad ÷ '+tot+' incoherencias (los rechazos pendientes de reauditar se cuentan aparte).';
+    var fg=GR.map(function(g){var c=cnt(g);return {k:g==='Pendiente'?'Rechazos pendientes de reauditar':g,c:c,p:g==='Pendiente'?null:pc(c,tot)};});
+    fg.push({k:'Total de incoherencias (sin pendientes)',c:tot,p:tot?1:null,__total:true});
+    var etq=FILTRO==='Pendiente'?'Pendientes':FILTRO;
+    var res=[{titulo:'Incoherencias por gravedad',nota:nota,columnas:[{campo:'k',titulo:'Gravedad',tipo:'texto'},{campo:'c',titulo:'Casos',tipo:'entero'},{campo:'p',titulo:'% del total',tipo:'porcentaje'}],filas:fg},
+      {titulo:'Tipos de problema — '+etq,nota:'Igual que la tabla de la pestaña '+etq+' en pantalla.',columnas:[{campo:'k',titulo:'Problema',tipo:'texto'},{campo:'c',titulo:'Casos',tipo:'entero'},{campo:'u',titulo:'Último',tipo:'texto'}],
+        filas:RESUMEN.filter(function(r){return r.gravedad===FILTRO;}).map(function(r){return {k:r.problema,c:numero(r.casos),u:vacio(r.ultimo)?null:String(r.ultimo)};})}];
+    var t=function(v){return vacio(v)?null:String(v);};
+    var det=DATOS.filter(function(x){return x.gravedad===FILTRO;}).map(function(x){return {g:x.gravedad,pr:t(x.problema),id:t(x.id_auditoria),fe:fechaLocal(x.fecha),ti:t(x.tipo),gr:t(x.grupo),es:t(x.estilo),co:t(x.color),au:t(x.auditor),de:t(x.detalle)};});
+    var cd=[{campo:'g',titulo:'Gravedad',tipo:'texto',fija:1},{campo:'pr',titulo:'Problema',tipo:'texto',fija:1},{campo:'id',titulo:'Auditoría',tipo:'alfanumerico',fija:1},{campo:'fe',titulo:'Fecha',tipo:'fecha'},{campo:'ti',titulo:'Tipo',tipo:'texto'},
+      {campo:'gr',titulo:'Grupo',tipo:'alfanumerico'},{campo:'es',titulo:'Estilo',tipo:'alfanumerico'},{campo:'co',titulo:'Color',tipo:'texto'},{campo:'au',titulo:'Auditora',tipo:'texto'},{campo:'de',titulo:'Detalle',tipo:'texto'}];
+    return libro({titulo:'Control de datos de Calidad',sub:'Pestaña '+etq,formula:nota,origen:'Control de datos · Calidad Manufactura',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:'Todas las incoherencias de la pestaña '+etq+' (la pantalla muestra solo las 300 más recientes).'}});
+  }
+};
+
+/* --- Seguimiento de Partidas · vista de observadores --- */
+var SPO={
+  detecta:function(){return typeof DATA!=='undefined'&&typeof visiblesBase==='function'&&typeof cargarDatos==='function'&&document.getElementById('fConfDesde');},
+  pone:function(){boton(document.querySelector('.filtros button[onclick*="limpiarFiltros"]'),false,'secundario',SPO.exporta);},
+  filas:function(){
+    var v=function(id){return document.getElementById(id).value;};
+    var g=v('fGrupo'),ru=v('fRuta'),pr=v('fPrioridad'),q=v('fBuscar').trim().toLowerCase(),d1=v('fConfDesde'),d2=v('fConfHasta');
+    var f=visiblesBase().filter(function(r){
+      if(g&&r.Grupo!==g)return false;if(ru&&r.Ruta!==ru)return false;if(pr&&String(r.Prioridad).trim()!==pr)return false;
+      if(d1||d2){var fc=r.FechaLlegadaConfirmada;if(!fc)return false;if(d1&&fc<d1)return false;if(d2&&fc>d2)return false;}
+      if(q&&![r.Partida,r.CodTela,r.DescTela,r.CodColor,r.DescColor,r.Estilo].some(function(x){return String(x||'').toLowerCase().indexOf(q)>=0;}))return false;
+      return true;});
+    var ord={'URGENTE':0,'1':1,'2':2,'3':3,'':4},o=function(r){var k=String(r.Prioridad).trim();return ord.hasOwnProperty(k)?ord[k]:4;};
+    return f.sort(function(a,b){return o(a)-o(b);});
+  },
+  exporta:function(){
+    if(!DATA||!DATA.length)throw new Error('todavía no hay partidas cargadas');
+    var R=SPO.filas();if(!R.length)throw new Error('no hay partidas confirmadas con esos filtros');
+    var v=function(id){var e=document.getElementById(id);return e?e.value:'';},f=[];
+    if(v('fGrupo'))f.push('Grupo '+v('fGrupo'));if(v('fRuta'))f.push('Ruta '+v('fRuta'));if(v('fPrioridad'))f.push('Prioridad '+v('fPrioridad'));
+    if(v('fBuscar').trim())f.push('Búsqueda "'+v('fBuscar').trim()+'"');if(v('fConfDesde')||v('fConfHasta'))f.push('Confirmadas '+(v('fConfDesde')||'…')+' a '+(v('fConfHasta')||'…'));
+    var lbl=f.length?f.join(' · '):'Todas las partidas confirmadas';
+    var kg=function(a){return a.reduce(function(s,r){return s+(parseFloat(r.Kg)||0);},0);},part=function(a){var o={};a.forEach(function(r){if(r.Partida)o[r.Partida]=1;});return Object.keys(o).length;};
+    var res=[{titulo:'Totales — '+lbl,nota:'Partidas = partidas únicas; Registros = filas (partida + tela + color). Con hito vencido = prioridad URGENTE. Kg = suma de kilos de los registros.',
+      columnas:[{campo:'p',titulo:'Partidas confirmadas',tipo:'entero'},{campo:'r',titulo:'Registros (tela / color)',tipo:'entero'},{campo:'u',titulo:'Con hito vencido',tipo:'entero'},{campo:'k',titulo:'Kg totales',tipo:'decimal'}],
+      filas:[{p:part(R),r:R.length,u:R.filter(function(r){return String(r.Prioridad).trim()==='URGENTE';}).length,k:kg(R)}]}];
+    var gp=function(fn,tt,et){var m={},ord=[];R.forEach(function(r){var k=fn(r)||'(sin dato)';if(!m[k]){m[k]=[];ord.push(k);}m[k].push(r);});
+      return {titulo:tt,columnas:[{campo:'k',titulo:et,tipo:'alfanumerico'},{campo:'p',titulo:'Partidas',tipo:'entero'},{campo:'r',titulo:'Registros',tipo:'entero'},{campo:'g',titulo:'Kg',tipo:'decimal'}],
+        filas:ord.map(function(k){return {k:k,p:part(m[k]),r:m[k].length,g:kg(m[k])};})};};
+    res.push(gp(function(r){return String(r.Prioridad==null?'':r.Prioridad).trim();},'Por prioridad','Prioridad'));
+    var pg=gp(function(r){return r.Grupo;},'Por grupo','Grupo');pg.filas.sort(function(a,b){return b.g-a.g;});res.push(pg);
+    var t=function(x){return vacio(x)?null:String(x);};
+    var det=R.map(function(r){return {pr:t(r.Prioridad),g:t(r.Grupo),pa:t(r.Partida),ct:t(r.CodTela),dt:t(r.DescTela),cc:t(r.CodColor),dc:t(r.DescColor),kg:numero(r.Kg),e:t(r.Estilo),ru:t(r.Ruta),
+      fh:fechaLocal(r.FecHito),ap:t(r.EstadoAprobacion)||'Pendiente',fl:fechaLocal(r.FechaLlegadaConfirmada),co:t(r.Comentario)};});
+    var cd=[{campo:'pr',titulo:'Prioridad',tipo:'alfanumerico',fija:1},{campo:'g',titulo:'Grupo',tipo:'alfanumerico',fija:1},{campo:'pa',titulo:'Partida',tipo:'alfanumerico',fija:1},{campo:'ct',titulo:'Cod. tela',tipo:'alfanumerico'},{campo:'dt',titulo:'Desc. tela',tipo:'texto'},
+      {campo:'cc',titulo:'Cod. color',tipo:'alfanumerico'},{campo:'dc',titulo:'Desc. color',tipo:'texto'},{campo:'kg',titulo:'Kg',tipo:'decimal',fija:1},{campo:'e',titulo:'Estilo',tipo:'alfanumerico'},{campo:'ru',titulo:'Ruta',tipo:'texto'},
+      {campo:'fh',titulo:'Fecha hito',tipo:'fecha'},{campo:'ap',titulo:'Aprobación',tipo:'texto',fija:1},{campo:'fl',titulo:'Llegada confirmada',tipo:'fecha',fija:1},{campo:'co',titulo:'Comentario',tipo:'texto'}];
+    return libro({titulo:'Seguimiento de Partidas',sub:lbl,formula:'Partidas con llegada confirmada, con los mismos filtros de la pantalla.',origen:'Seguimiento de Partidas · observadores',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:'Una fila por registro (partida, tela y color), en el orden de la pantalla.'}});
+  }
+};
+
+/* --- Visor de fotos de auditorías de taller --- */
+var VFT={
+  detecta:function(){return typeof AUDS!=='undefined'&&typeof FOTOS!=='undefined'&&typeof filtrar==='function'&&document.getElementById('fTaller')&&document.getElementById('btnLimpiar')&&typeof cargasPorItem==='undefined';},
+  pone:function(){boton(document.getElementById('btnLimpiar'),true,'btn ghost',VFT.exporta);},
+  exporta:function(){
+    if(!AUDS||!AUDS.length)throw new Error('todavía no hay registros cargados');
+    var L=filtrar();if(!L.length)throw new Error('no hay registros con esos filtros');
+    var tx=function(id){var e=document.getElementById(id);return e&&e.value?(e.options?e.options[e.selectedIndex].text:e.value):'';};
+    var f=[];var q=document.getElementById('fq').value.trim();if(q)f.push('Búsqueda "'+q+'"');
+    ['fCliente','fTipo','fTaller','fProceso','fAuditora'].forEach(function(id){var t=tx(id);if(t)f.push(t);});
+    var d1=document.getElementById('fDesde').value,d2=document.getElementById('fHasta').value;if(d1||d2)f.push((d1||'…')+' a '+(d2||'…'));
+    var lbl=f.length?f.join(' · '):'Registros cargados';
+    var fs=function(a){return FOTOS[a.ID]||[];},prenda=function(a){return fs(a).filter(function(x){return x.TIPO_FOTO!=='HOJA';}).length;};
+    var tl={};L.forEach(function(a){if(a.TALLER)tl[a.TALLER]=1;});
+    var res=[{titulo:'Totales — '+lbl,nota:'Fotos = hojas escaneadas + fotos de prendas observadas. Con fotos de prendas = registros que tienen al menos una foto que no es la hoja.',
+      columnas:[{campo:'r',titulo:'Registros mostrados',tipo:'entero'},{campo:'f',titulo:'Fotos enviadas',tipo:'entero'},{campo:'p',titulo:'Con fotos de prendas',tipo:'entero'},{campo:'t',titulo:'Talleres',tipo:'entero'}],
+      filas:[{r:L.length,f:L.reduce(function(s,a){return s+fs(a).length;},0),p:L.filter(function(a){return prenda(a)>0;}).length,t:Object.keys(tl).length}]}];
+    var gp=function(campo,tt,et){var m={};L.forEach(function(a){var k=a[campo]||'(sin dato)';var o=m[k]=m[k]||{r:0,f:0,p:0};o.r++;o.f+=fs(a).length;if(prenda(a))o.p++;});
+      return {titulo:tt,columnas:[{campo:'k',titulo:et,tipo:'texto'},{campo:'r',titulo:'Registros',tipo:'entero'},{campo:'f',titulo:'Fotos',tipo:'entero'},{campo:'p',titulo:'Con fotos de prendas',tipo:'entero'}],
+        filas:Object.keys(m).map(function(k){return {k:k,r:m[k].r,f:m[k].f,p:m[k].p};}).sort(function(a,b){return b.r-a.r;})};};
+    res.push(gp('TALLER','Por taller','Taller'));res.push(gp('AUDITORA','Por auditora','Auditora'));res.push(gp('TIPO','Por tipo','Tipo'));
+    var t=function(v){return vacio(v)?null:String(v);};
+    var det=L.map(function(a){return {fe:fechaLocal(String(a.FECHA||'').slice(0,10)),h:t(a.HORA),s:numero(a.SEMANA),op:t(a.OP),g:t(a.GRUPO),e:t(a.ESTILO),ec:t(a.ESTILO_CLIENTE),c:t(a.COLOR),cl:t(a.CLIENTE),ti:t(a.TIPO),
+      ta:t(a.TALLER),pr:t(a.PROCESO_TALLER),au:t(a.AUDITORA),re:numero(a.REPETICION),ct:t(a.COD_TELA),dt:t(a.DESC_TELA),nf:fs(a).length,np:prenda(a),no:t(a.NOTA)};});
+    var cd=[{campo:'fe',titulo:'Fecha',tipo:'fecha',fija:1},{campo:'h',titulo:'Hora',tipo:'alfanumerico'},{campo:'s',titulo:'Semana',tipo:'entero'},{campo:'op',titulo:'OP',tipo:'alfanumerico'},{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'e',titulo:'Estilo',tipo:'alfanumerico'},
+      {campo:'ec',titulo:'Estilo cliente',tipo:'alfanumerico'},{campo:'c',titulo:'Color',tipo:'texto'},{campo:'cl',titulo:'Cliente',tipo:'texto'},{campo:'ti',titulo:'Tipo',tipo:'texto'},{campo:'ta',titulo:'Taller',tipo:'texto',fija:1},{campo:'pr',titulo:'Proceso',tipo:'texto'},
+      {campo:'au',titulo:'Auditora',tipo:'texto',fija:1},{campo:'re',titulo:'Repetición',tipo:'entero'},{campo:'ct',titulo:'Cod. tela',tipo:'alfanumerico'},{campo:'dt',titulo:'Tela',tipo:'texto'},{campo:'nf',titulo:'Fotos',tipo:'entero',fija:1},{campo:'np',titulo:'Fotos de prendas',tipo:'entero',fija:1},{campo:'no',titulo:'Nota',tipo:'texto'}];
+    return libro({titulo:'Auditorías de taller',sub:lbl,formula:'Registros de auditorías de taller con sus fotos, con los filtros de la pantalla. Las fotos se ven en el visor.',origen:'Visor de auditorías de taller',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:2,nota:'Un registro por fila, del más reciente al más antiguo.'}});
+  }
+};
+
+/* --- Historial de control de medidas (Fichas Técnicas) --- */
+var FTH={
+  detecta:function(){return typeof MEDS!=='undefined'&&typeof pintarKpis==='function'&&typeof pintarLista==='function'&&document.getElementById('fAud');},
+  pone:function(){boton(document.querySelector('.acciones button[onclick*="limpiar"]'),false,'btn ghost',FTH.exporta);},
+  exporta:function(){
+    if(!MEDS||!MEDS.length)throw new Error('no hay mediciones con esos filtros');
+    var v=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';},f=[];
+    if(v('fEstilo'))f.push('Estilo '+v('fEstilo'));if(v('fGrupo'))f.push('Grupo '+v('fGrupo'));if(v('fTaller'))f.push('Taller '+v('fTaller'));if(v('fAud'))f.push(v('fAud'));
+    if(v('fDesde')||v('fHasta'))f.push((v('fDesde')||'…')+' a '+(v('fHasta')||'…'));
+    var lbl=f.length?f.join(' · '):'Todas las mediciones';
+    var rech=MEDS.filter(function(m){return m.resultado==='RECHAZADO';}).length,med=MEDS.reduce(function(a,m){return a+(+m.nMedidas||0);},0),fue=MEDS.reduce(function(a,m){return a+(+m.nFuera||0);},0);
+    var est={};MEDS.forEach(function(m){est[m.estilo]=1;});var pc=function(a,b){return b?a/b:null;};
+    var res=[{titulo:'Totales — '+lbl,nota:'% rechazadas = auditorías rechazadas ÷ auditorías. % fuera de tolerancia = medidas fuera de tolerancia ÷ medidas tomadas.',
+      columnas:[{campo:'k',titulo:'Indicador',tipo:'texto'},{campo:'v',titulo:'Cantidad',tipo:'entero'},{campo:'p',titulo:'%',tipo:'porcentaje'}],
+      filas:[{k:'Auditorías',v:MEDS.length},{k:'Rechazadas',v:rech,p:pc(rech,MEDS.length)},{k:'Estilos',v:Object.keys(est).length},{k:'Medidas tomadas',v:med},{k:'Fuera de tolerancia',v:fue,p:pc(fue,med)}]}];
+    var gp=function(campo,tt,et){var m={};MEDS.forEach(function(x){var k=x[campo]||'(sin dato)';var o=m[k]=m[k]||{n:0,r:0,md:0,fu:0};o.n++;if(x.resultado==='RECHAZADO')o.r++;o.md+=(+x.nMedidas||0);o.fu+=(+x.nFuera||0);});
+      return {titulo:tt,columnas:[{campo:'k',titulo:et,tipo:'texto'},{campo:'n',titulo:'Auditorías',tipo:'entero'},{campo:'r',titulo:'Rechazadas',tipo:'entero'},{campo:'pr',titulo:'% rechazadas',tipo:'porcentaje'},{campo:'md',titulo:'Medidas',tipo:'entero'},{campo:'fu',titulo:'Fuera de tolerancia',tipo:'entero'},{campo:'pf',titulo:'% fuera',tipo:'porcentaje'}],
+        filas:Object.keys(m).map(function(k){var o=m[k];return {k:k,n:o.n,r:o.r,pr:pc(o.r,o.n),md:o.md,fu:o.fu,pf:pc(o.fu,o.md)};}).sort(function(a,b){return b.n-a.n;})};};
+    res.push(gp('taller','Por taller','Taller'));res.push(gp('auditora','Por auditora','Auditora'));
+    var t=function(x){return vacio(x)?null:String(x);},ET=(typeof NOM_ETAPA!=='undefined')?NOM_ETAPA:{};
+    var det=MEDS.slice().sort(function(a,b){return String(b.fecha).localeCompare(String(a.fecha));}).map(function(m){var fh=String(m.fecha||'');
+      return {fe:fechaLocal(fh.slice(0,10)),h:t(fh.slice(11)),e:t(m.estilo),ve:t(m.version),g:t(m.grupo),c:t(m.color),et:t(ET[m.etapa]||m.etapa),au:t(m.auditora),ta:t(m.taller),nm:+m.nMedidas||0,nf:+m.nFuera||0,r:t(m.resultado)};});
+    var cd=[{campo:'fe',titulo:'Fecha',tipo:'fecha',fija:1},{campo:'h',titulo:'Hora',tipo:'alfanumerico'},{campo:'e',titulo:'Estilo',tipo:'alfanumerico',fija:1},{campo:'ve',titulo:'Versión',tipo:'alfanumerico'},{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'c',titulo:'Color',tipo:'texto'},
+      {campo:'et',titulo:'Etapa',tipo:'texto'},{campo:'au',titulo:'Auditora',tipo:'texto'},{campo:'ta',titulo:'Taller',tipo:'texto'},{campo:'nm',titulo:'Medidas',tipo:'entero',fija:1},{campo:'nf',titulo:'Fuera de tolerancia',tipo:'entero',fija:1},{campo:'r',titulo:'Resultado',tipo:'texto',fija:1}];
+    return libro({titulo:'Historial de control de medidas',sub:lbl,formula:'Mediciones de control de medidas de la búsqueda actual. El detalle de cada medida se ve en la hoja de la auditoría.',origen:'Fichas Técnicas · historial',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:'Una fila por auditoría de medidas de la búsqueda actual.'}});
+  }
+};
+
+/* --- Tablero de Proyectos IA --- */
+var TPR={
+  detecta:function(){return typeof dashCore==='function'&&typeof state!=='undefined'&&typeof obsFilter!=='undefined'&&typeof horasSemDe==='function';},
+  pone:function(){boton(document.querySelector('button[onclick*="imprimirDash"]')||document.querySelector('.dash-bar button[onclick*="print"]'),true,'tb',TPR.exporta);},
+  exporta:function(){
+    if(!state||!state.items||!state.items.length)throw new Error('el tablero todavía está cargando los proyectos');
+    var fl=obsFilter,v=fl==='Todas'?state.items:state.items.filter(function(d){return d.area===fl;}),lbl=fl==='Todas'?'Todas las áreas':'Área '+fl;
+    var act=function(a){return a.filter(function(d){return d.estado==='aplicado'||d.estado==='aplicando';});};
+    var sav=function(a){return act(a).reduce(function(s,d){return s+horasSemDe(d);},0);},r1=function(n){return Math.round(n*10)/10;};
+    var c=function(e){return v.filter(function(d){return d.estado===e;}).length;};
+    var done=v.filter(function(d){return d.estado==='aplicado'&&d.creado&&d.completado;});
+    var avgT=done.length?Math.round(done.reduce(function(s,d){return s+daysBetween(d.creado,d.completado);},0)/done.length):null;
+    var st=sav(v),tm=v.reduce(function(s,d){return s+(+d.vecesMod||0);},0);
+    var nota='Horas ahorradas = horas por vez × veces por semana de los proyectos terminados y en aplicación. Horas/mes = h/semana × 4.33; personas equivalentes = h/semana ÷ 48. Avance = promedio del avance de cada proyecto, sin los no logrados (igual que el tablero). No hay meta ni período anterior guardado.';
+    var res=[{titulo:'Indicadores — '+lbl,nota:nota,columnas:[{campo:'k',titulo:'Indicador',tipo:'texto'},{campo:'v',titulo:'Valor',tipo:'decimal'},{campo:'u',titulo:'Unidad',tipo:'texto'}],
+      filas:[{k:'Productividad ganada',v:r1(st),u:'h/semana'},{k:'Equivalente al mes',v:r1(st*4.33),u:'h/mes'},{k:'Personas equivalentes',v:r1(st/48),u:'personas'},
+        {k:'Avance (promedio de los proyectos)',v:avgAvance(v),u:'%'},{k:'Proyectos',v:v.length,u:'proyectos'},{k:'Terminados',v:c('aplicado'),u:'proyectos'},{k:'En aplicación',v:c('aplicando'),u:'proyectos'},
+        {k:'Por hacer',v:c('pendiente'),u:'proyectos'},{k:'No logrados',v:c('no_logrado'),u:'proyectos'},{k:'Entrega promedio',v:avgT,u:'días'},{k:'Modificaciones por proyecto',v:v.length?r1(tm/v.length):0,u:'modificaciones'}]}];
+    var ar=state.areas.filter(function(a){return fl==='Todas'||a.name===fl;}).map(function(a){var it=state.items.filter(function(x){return x.area===a.name;});
+      return {k:a.name,n:it.length,t:it.filter(function(d){return d.estado==='aplicado';}).length,ap:it.filter(function(d){return d.estado==='aplicando';}).length,av:avgAvance(it)/100,h:r1(sav(it))};});
+    res.push({titulo:'Por área',nota:'Avance del área = promedio del avance de sus proyectos, sin los no logrados (como en el tablero).',
+      columnas:[{campo:'k',titulo:'Área',tipo:'texto'},{campo:'n',titulo:'Proyectos',tipo:'entero'},{campo:'t',titulo:'Terminados',tipo:'entero'},{campo:'ap',titulo:'En aplicación',tipo:'entero'},{campo:'av',titulo:'Avance',tipo:'porcentaje'},{campo:'h',titulo:'Horas ahorradas por semana',tipo:'decimal'}],filas:ar});
+    var EL=function(e){return typeof estadoLabel==='function'?estadoLabel(e):e;},t=function(x){return vacio(x)?null:String(x);};
+    var det=v.map(function(d){return {a:t(d.area),ti:t(d.titulo),de:t(d.descripcion||d.desc),es:EL(d.estado),av:(+d.avance||0)/100,cr:fechaLocal(d.creado),co:fechaLocal(d.completado),
+      hv:+d.horasPorVez||0,fr:t(typeof freqLabel==='function'?freqLabel(d.frecuencia):d.frecuencia),hs:(d.estado==='aplicado'||d.estado==='aplicando')?r1(horasSemDe(d)):0,vm:+d.vecesMod||0,mo:t(d.motivo)};});
+    var cd=[{campo:'a',titulo:'Área',tipo:'texto',fija:1},{campo:'ti',titulo:'Proyecto',tipo:'texto',fija:1},{campo:'de',titulo:'Descripción',tipo:'texto'},{campo:'es',titulo:'Estado',tipo:'texto',fija:1},{campo:'av',titulo:'Avance',tipo:'porcentaje',fija:1},
+      {campo:'cr',titulo:'Creado',tipo:'fecha'},{campo:'co',titulo:'Terminado',tipo:'fecha'},{campo:'hv',titulo:'Horas ahorradas por vez',tipo:'decimal'},{campo:'fr',titulo:'Frecuencia',tipo:'texto'},{campo:'hs',titulo:'Horas ahorradas por semana',tipo:'decimal',fija:1},
+      {campo:'vm',titulo:'Modificaciones',tipo:'entero'},{campo:'mo',titulo:'Motivo (no logrado)',tipo:'texto'}];
+    return libro({titulo:'Tablero de Proyectos IA',sub:lbl,formula:nota,origen:'Tablero de Proyectos IA',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:2,nota:'Un proyecto por fila. Horas por semana solo cuentan en proyectos terminados o en aplicación.'}});
+  }
+};
+
+/* --- Segundas Interno (tablero en vivo) --- */
+var SGV={
+  detecta:function(){return typeof STATE!=='undefined'&&typeof acumY==='function'&&typeof repWeeks==='function'&&typeof dataPeriod==='function'&&typeof periodLabel==='function'&&document.getElementById('printBtn');},
+  pone:function(){boton(document.getElementById('printBtn'),true,'btn',SGV.exporta);},
+  exporta:function(){
+    if(!STATE||!STATE.dataAll)throw new Error('el tablero todavía está cargando los datos');
+    var isYear=CURMODE==='year',isMonth=CURMODE==='month',Y=CURYEAR;
+    var vals=isYear?[]:(Array.isArray(CURVAL)?CURVAL:[CURVAL]).slice().sort(function(a,b){return a-b;});
+    var conf=isYear?acumY(Y):(isMonth?repMonths(vals):repWeeks(vals));
+    var plabel=isYear?('Acumulado '+Y):periodLabel(CURMODE,vals,Y);
+    var base=isYear?ydata():dataPeriod(CURMODE,vals),dr=CURCLI?base.filter(function(r){return r.cli===CURCLI;}):base;
+    var lbl=plabel+(CURCLI?' · Cliente '+CURCLI:''),pc=function(a,b){return b?a/b:null;};
+    var nota='% de segundas = prendas de segunda ÷ prendas despachadas del período (reporte semanal). Meta declarada en el tablero: '+META+'%.'+(CURCLI?' El filtro de cliente se aplica a las secciones por motivo, área, cliente y estilo; el indicador es del período completo, igual que en pantalla.':'');
+    var aY=acumY(Y);
+    var ind=[{k:'Período · '+plabel,c:conf.conf,s:conf.seg,p:pc(conf.seg,conf.conf),m:META/100}];
+    if(!isYear)ind.push({k:'Acumulado '+Y,c:aY.conf,s:aY.seg,p:pc(aY.seg,aY.conf),m:META/100});
+    var res=[{titulo:'% de segundas — '+lbl,nota:nota,columnas:[{campo:'k',titulo:'Ámbito',tipo:'texto'},{campo:'c',titulo:'Prendas despachadas',tipo:'entero'},{campo:'s',titulo:'Prendas de segunda',tipo:'entero'},{campo:'p',titulo:'% de segundas',tipo:'porcentaje'},{campo:'m',titulo:'Meta',tipo:'porcentaje'}],filas:ind}];
+    var tot=dr.reduce(function(s,r){return s+r.cant;},0);
+    var grp=function(key,tt,et){return {titulo:tt,nota:'% = prendas de segunda del grupo ÷ '+tot+' prendas de segunda del detalle'+(CURCLI?' del cliente':'')+'.',
+      columnas:[{campo:'k',titulo:et,tipo:'texto'},{campo:'v',titulo:'Prendas de segunda',tipo:'entero'},{campo:'p',titulo:'% del total',tipo:'porcentaje'}],
+      filas:groupSum(dr,key).map(function(x){return {k:String(x.k),v:x.v,p:pc(x.v,tot)};})};};
+    res.push(grp('mot','Por motivo','Motivo'));res.push(grp('area','Por área generadora','Área'));res.push(grp('cli','Por cliente','Cliente'));res.push(grp('est','Por estilo','Estilo'));
+    var t=function(x){return vacio(x)?null:String(x);};
+    var det=dr.map(function(r){return {y:r.year,s:r.sem||null,m:(r.mcal!=null&&typeof MESES!=='undefined')?MESES[r.mcal]:null,cl:t(r.cli),g:t(r.grp),e:t(r.est),a:t(r.area),mo:t(r.mot),c:r.cant};})
+      .sort(function(a,b){return (a.s||0)-(b.s||0);});
+    var cd=[{campo:'y',titulo:'Año',tipo:'entero'},{campo:'s',titulo:'Semana',tipo:'entero'},{campo:'m',titulo:'Mes',tipo:'texto'},{campo:'cl',titulo:'Cliente',tipo:'texto',fija:1},{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'e',titulo:'Estilo',tipo:'alfanumerico',fija:1},
+      {campo:'a',titulo:'Área generadora',tipo:'texto'},{campo:'mo',titulo:'Motivo de segunda',tipo:'texto',fija:1},{campo:'c',titulo:'Cantidad',tipo:'entero',fija:1}];
+    return libro({titulo:'Segundas · Interno',sub:lbl,formula:nota,origen:'Segundas · Interno',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:'Una fila por registro de segundas del período'+(CURCLI?' y del cliente elegido':'')+'.'}});
+  }
+};
+
+var ADAPT=[CAL,IFC,CHK,MEJ,POT,COR,ATX,CMU,PCO,WIP,AVI,AAU,CDA,SPO,VFT,FTH,TPR,SGV];
 prepararXLSX();
 function iniciar(){var hay=false;ADAPT.forEach(function(a){try{if(a.detecta()){hay=true;a.pone();}}catch(e){}});if(hay)vigilar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
