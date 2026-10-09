@@ -1739,7 +1739,9 @@ cargarDatos();
 <!-- ===== fin lives-franja v4 ===== -->
 
 
-<!-- ===== lives-excel-reporte v1.2 · 2026-10-09 · botón "Descargar Excel" con formato de reporte LIVES (estándar lives-excel).
+
+
+<!-- ===== lives-excel-reporte v1.3 · 2026-10-09 · botón "Descargar Excel" con formato de reporte LIVES (estándar lives-excel).
      Hoja Resumen = lo que se ve en pantalla con los filtros activos; hoja Detalle = cada registro del período.
      Solo agrega un botón: no cambia cálculos, datos ni guardados del tablero. ExcelJS se carga recién al presionar. ===== -->
 <script id="lsXlsJs">(function(){try{
@@ -2422,7 +2424,93 @@ var AAU={
   }
 };
 
+/* ================================================================ Excel que ya existían (SheetJS)
+   Las pantallas que ya tenían su propio "Descargar Excel" siguen usando su mismo botón y sus mismas
+   columnas y filas: aquí solo se cambia CÓMO se escribe el archivo (formato de reporte LIVES).
+   Si algo falla, se descarga el archivo de siempre. Donde el archivo puede volver a subirse
+   (cargas, programas, avance de encajado) los encabezados se quedan en la fila 1 (modo plano). */
+var PLANO=/\/(Avances-packing\/index\.html|Avances-packing\/?$|lives-registro-auditorias\/programas\/|segundas\/carga-)/;
+function esPlano(){return PLANO.test(location.pathname);}
+function serialAFecha(v,X){var fr0=v-Math.floor(v);v=(fr0>1-1/720||fr0<1/720)?Math.round(v):Math.round(v*1440)/1440;if(X&&X.SSF&&X.SSF.parse_date_code){var p=X.SSF.parse_date_code(v);if(p)return new Date(p.y,p.m-1,p.d,p.H||0,p.M||0,Math.round(p.S||0));}var d=new Date(Math.round((v-25569)*864e5));return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds());}
+function valorCelda(c,X){if(!c)return null;if(c.t==='z'||c.v===undefined)return null;if(c.t==='d')return c.v instanceof Date?c.v:new Date(c.v);
+  if(c.t==='n'&&c.z&&/[dmy]/i.test(String(c.z))&&!/0\.0|#/.test(String(c.z)))return serialAFecha(c.v,X);if(c.t==='b')return c.v?'Sí':'No';if(c.t==='s'&&c.v==='')return null;return c.v;}
+function hojaSheetJS(X,ws){var ref=ws&&ws['!ref'];if(!ref)return [];var R=X.utils.decode_range(ref),aoa=[];
+  for(var r=R.s.r;r<=R.e.r;r++){var f=[];for(var c=R.s.c;c<=R.e.c;c++)f.push(valorCelda(ws[X.utils.encode_cell({r:r,c:c})],X));aoa.push(f);}return aoa;}
+var RX_DMY=/^\d{1,2}\/\d{1,2}\/\d{4}$/,RX_ISO=/^\d{4}-\d{2}-\d{2}$/,RX_ISOH=/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
+function aFechaTxt(s){s=String(s);var m;if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)))return new Date(+m[3],+m[2]-1,+m[1]);
+  if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/)))return new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));return s;}
+function tipoColumna(titulo,vals){
+  var v=vals.filter(function(x){return !vacio(x);});if(!v.length)return {tipo:'texto'};
+  if(v.every(function(x){return x instanceof Date;}))return {tipo:v.some(function(d){return d.getHours()||d.getMinutes();})?'fecha_hora':'fecha'};
+  if(v.every(function(x){return typeof x==='string'&&(RX_DMY.test(x)||RX_ISO.test(x));}))return {tipo:'fecha',conv:aFechaTxt};
+  if(v.every(function(x){return typeof x==='string'&&(RX_ISOH.test(x)||RX_ISO.test(x));}))return {tipo:'fecha_hora',conv:aFechaTxt};
+  if(v.every(function(x){return typeof x==='number'&&isFinite(x);})){
+    if(/%/.test(titulo)&&v.every(function(x){return Math.abs(x)<=1.0001;}))return {tipo:'porcentaje'};
+    return {tipo:v.every(function(x){return Math.round(x)===x;})?'entero':'decimal'};}
+  return {tipo:'texto'};}
+function libroDesdeHojas(hojas,archivo){
+  var plano=esPlano();
+  return cargarExcelJS().then(function(){
+    var wb=new ExcelJS.Workbook();wb.creator='LIVES';wb.created=new Date();
+    var hoy=new Date().toLocaleString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var tit=(document.title||'').replace(/\s*[·|—–-]\s*LIVES\s*$/i,'').replace(/^LIVES\s*[·|—–-]\s*/i,'').trim();
+    hojas.forEach(function(H){
+      var aoa=H.aoa.filter(function(f){return f.some(function(x){return !vacio(x);});});if(!aoa.length)return;
+      var cab=aoa[0].map(function(x,j){return vacio(x)?('Columna '+(j+1)):String(x);}),cuerpo=aoa.slice(1),n=cab.length;
+      var cols=cab.map(function(t,j){var k=tipoColumna(t,cuerpo.map(function(f){return f[j];}));return {campo:'c'+j,titulo:t,tipo:k.tipo,conv:k.conv};});
+      var filas=cuerpo.map(function(f){var o={};cols.forEach(function(c,j){var v=f[j];if(c.conv&&typeof v==='string')v=c.conv(v);o[c.campo]=vacio(v)?null:v;});return o;});
+      var h=wb.addWorksheet(String(H.nombre||'Hoja').slice(0,31),{pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+      var fe=plano?1:cabecera(wb,h,Math.max(n,4),{titulo:tit||String(H.nombre),sub:H.nombre+' · '+filas.length+' fila(s)'});
+      encabezados(h,fe,cols);datos(h,fe+1,cols,filas);
+      h.views=[{state:'frozen',xSplit:0,ySplit:fe}];
+      h.autoFilter={from:{row:fe,column:1},to:{row:fe+Math.max(filas.length,1),column:n}};
+      if(!plano)pie(h,fe+filas.length+2,Math.max(n,4),'Generado el '+hoy+' desde '+(tit||'LIVES')+' · '+filas.length+' fila(s)');
+      anchos(h,n,[{cols:cols,filas:filas}]);
+    });
+    if(!wb.worksheets.length)throw new Error('sin datos');
+    return wb.xlsx.writeBuffer().then(function(buf){
+      var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=/\.xlsx$/i.test(archivo||'')?archivo:((archivo||tit||'reporte').replace(/\.[a-z0-9]+$/i,'')+'.xlsx');
+      document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+    });
+  });
+}
+function envolverXLSX(X){
+  if(!X||!X.writeFile||X.__lives)return X;
+  var orig=X.writeFile;
+  X.writeFile=function(wb,archivo,opts){
+    var self=this,args=arguments;
+    try{var hojas=(wb.SheetNames||[]).map(function(n){return {nombre:n,aoa:hojaSheetJS(X,wb.Sheets[n])};});
+      libroDesdeHojas(hojas,archivo).catch(function(){try{orig.apply(self,args);}catch(e){}});}
+    catch(e){return orig.apply(self,args);}
+  };
+  X.__lives=1;return X;
+}
+/* Pantallas que llaman a XLSX sin haber cargado la librería: se les da lo mínimo para que su botón funcione. */
+function xlsxMinimo(){
+  var hoja=function(aoa){return {__aoa:aoa,'!ref':'A1'};};
+  return {__lives:1,__minimo:1,utils:{
+    book_new:function(){return {SheetNames:[],Sheets:{}};},
+    book_append_sheet:function(wb,ws,n){n=n||('Hoja'+(wb.SheetNames.length+1));wb.SheetNames.push(n);wb.Sheets[n]=ws;},
+    aoa_to_sheet:function(aoa){return hoja(aoa.map(function(f){return f.slice();}));},
+    json_to_sheet:function(arr,o){var ks=(o&&o.header)?o.header.slice():[];arr.forEach(function(r){Object.keys(r).forEach(function(k){if(ks.indexOf(k)<0)ks.push(k);});});
+      return hoja([ks].concat(arr.map(function(r){return ks.map(function(k){var v=r[k];return v===undefined?null:v;});})));}},
+    writeFile:function(wb,archivo){libroDesdeHojas(wb.SheetNames.map(function(n){return {nombre:n,aoa:wb.Sheets[n].__aoa||[]};}),archivo)
+      .catch(function(e){alert('No se pudo generar el Excel: '+(e&&e.message||e));});}};
+}
+var SIN_LIB=/\/segundas\/(segundas|corte|defectos|tintoreria)\.html$/;
+function prepararXLSX(){
+  try{
+    if(window.XLSX){envolverXLSX(window.XLSX);return;}
+    var actual;
+    Object.defineProperty(window,'XLSX',{configurable:true,enumerable:true,
+      get:function(){if(!actual&&SIN_LIB.test(location.pathname))actual=xlsxMinimo();return actual;},
+      set:function(v){actual=envolverXLSX(v);}});
+  }catch(e){}
+}
+
 var ADAPT=[CAL,IFC,CHK,MEJ,POT,COR,ATX,CMU,PCO,WIP,AVI,AAU];
+prepararXLSX();
 function iniciar(){var hay=false;ADAPT.forEach(function(a){try{if(a.detecta()){hay=true;a.pone();}}catch(e){}});if(hay)vigilar();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
 window.addEventListener('load',iniciar);
