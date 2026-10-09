@@ -1737,5 +1737,697 @@ cargarDatos();
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
 }catch(e){}})();</script>
 <!-- ===== fin lives-franja v4 ===== -->
+
+
+<!-- ===== lives-excel-reporte v1.2 · 2026-10-09 · botón "Descargar Excel" con formato de reporte LIVES (estándar lives-excel).
+     Hoja Resumen = lo que se ve en pantalla con los filtros activos; hoja Detalle = cada registro del período.
+     Solo agrega un botón: no cambia cálculos, datos ni guardados del tablero. ExcelJS se carga recién al presionar. ===== -->
+<script id="lsXlsJs">(function(){try{
+/* ---------------------------------------------------------------- estándar lives-excel */
+var LX={PETROLEO:'FF0E3B36',SALVIA:'FF0F7A5A',SALVIA_OSC:'FF0B815E',SLATE:'FF4E6B78',WARM:'FFF1F6F4',BORDE:'FFDCE5E2',GRIS:'FF5F726C',TXT:'FF333333',
+  LOGO_B64:'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'};
+var FMT={texto:'@',alfanumerico:'@',entero:'#,##0',decimal:'#,##0.00',porcentaje:'0.00%',fecha:'dd/mm/yyyy',fecha_hora:'dd/mm/yyyy hh:mm',horas:'#,##0.0" h"',moneda:'"S/ "#,##0.00'};
+function cargarExcelJS(){
+  if(window.ExcelJS) return Promise.resolve();
+  return new Promise(function(ok,mal){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    s.onload=function(){ok();}; s.onerror=function(){mal(new Error('No se pudo cargar el generador de Excel (sin conexión).'));};
+    document.head.appendChild(s);
+  });
+}
+function vacio(v){return v===null||v===undefined||v==='';}
+function largo(v,tipo){if(vacio(v))return 0;if(v instanceof Date)return 11;if(typeof v==='number')return (tipo==='porcentaje'?7:String(Math.round(v)).length+4);return String(v).length;}
+function banda(h,fila,n,texto,tipo){
+  h.mergeCells(fila,1,fila,n);var c=h.getCell(fila,1);c.value=texto;
+  if(tipo==='titulo'){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:LX.PETROLEO}};c.font={name:'Calibri',size:13,bold:true,color:{argb:'FFFFFFFF'}};c.alignment={vertical:'middle',horizontal:'left',indent:18};h.getRow(fila).height=34;}
+  else if(tipo==='sub'){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:LX.SLATE}};c.font={name:'Calibri',size:10,bold:true,color:{argb:'FFFFFFFF'}};c.alignment={vertical:'middle',horizontal:'left',indent:18};h.getRow(fila).height=18;}
+  else {c.font={name:'Calibri',size:9,italic:true,color:{argb:LX.GRIS}};c.alignment={vertical:'middle',horizontal:'left',indent:1,wrapText:true};h.getRow(fila).height=tipo==='formula'?30:16;}
+}
+function cabecera(wb,h,n,ctx){
+  var f=1;banda(h,f++,n,ctx.titulo,'titulo');
+  if(LX.LOGO_B64){var img=wb.addImage({base64:LX.LOGO_B64,extension:'png'});h.addImage(img,{tl:{col:0.12,row:0.22},ext:{width:120,height:31}});}
+  if(ctx.sub) banda(h,f++,n,ctx.sub,'sub');
+  if(ctx.formula) banda(h,f++,n,ctx.formula,'formula');
+  return f;
+}
+function encabezados(h,fila,cols){
+  cols.forEach(function(c,j){var cel=h.getCell(fila,j+1);cel.value=c.titulo;
+    cel.fill={type:'pattern',pattern:'solid',fgColor:{argb:LX.SALVIA_OSC}};cel.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    cel.alignment={vertical:'middle',horizontal:'center',wrapText:true};cel.border={bottom:{style:'thin',color:{argb:LX.BORDE}}};});
+  h.getRow(fila).height=22;
+}
+function datos(h,fila,cols,filas){
+  filas.forEach(function(f,i){cols.forEach(function(c,j){var cel=h.getCell(fila+i,j+1),v=f[c.campo];
+    cel.value=vacio(v)?null:v;cel.numFmt=FMT[c.tipo]||'@';cel.font={name:'Calibri',size:11,color:{argb:LX.TXT},bold:!!f.__total};
+    cel.alignment={vertical:'middle',horizontal:(c.tipo==='texto'||c.tipo==='alfanumerico')?'left':'right'};
+    if(i%2===1)cel.fill={type:'pattern',pattern:'solid',fgColor:{argb:LX.WARM}};
+    cel.border=f.__total?{top:{style:'thin',color:{argb:LX.SALVIA_OSC}}}:{bottom:{style:'hair',color:{argb:LX.BORDE}}};});});
+}
+function anchos(h,n,grupos){
+  for(var j=0;j<n;j++){var max=9;grupos.forEach(function(g){var c=g.cols[j];if(!c)return;
+      var m=String(c.titulo).length;g.filas.forEach(function(f){var L=largo(f[c.campo],c.tipo);if(L>m)m=L;});if(m+3>max)max=m+3;});
+    h.getColumn(j+1).width=Math.min(Math.max(max,9),42);}
+}
+function pie(h,fila,n,texto){h.mergeCells(fila,1,fila,n);var c=h.getCell(fila,1);c.value=texto;c.font={name:'Calibri',size:9,italic:true,color:{argb:LX.GRIS}};}
+/* Libro: hoja Resumen (secciones como en pantalla) + hoja Detalle (cada registro). */
+function libro(cfg){
+  return cargarExcelJS().then(function(){
+    var wb=new ExcelJS.Workbook();wb.creator='LIVES';wb.created=new Date();
+    var hoy=new Date().toLocaleString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    /* Resumen */
+    var secs=(cfg.resumen||[]).filter(function(s){return s.filas&&s.filas.length;});
+    if(secs.length){
+      var n=Math.max.apply(null,secs.map(function(s){return s.columnas.length;}));
+      var h=wb.addWorksheet('Resumen',{pageSetup:{orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+      var f=cabecera(wb,h,n,cfg)+1;
+      secs.forEach(function(s){
+        var ct=h.getCell(f,1);ct.value=s.titulo;ct.font={name:'Calibri',size:12,bold:true,color:{argb:LX.PETROLEO}};h.getRow(f).height=20;f++;
+        if(s.nota){banda(h,f++,n,s.nota,'nota');}
+        encabezados(h,f,s.columnas);f++;datos(h,f,s.columnas,s.filas);f+=s.filas.length+1;
+      });
+      pie(h,f,n,'Generado el '+hoy+' desde '+(cfg.origen||cfg.titulo));
+      anchos(h,n,secs.map(function(s){return {cols:s.columnas,filas:s.filas};}));
+      if(h.getColumn(1).width<24)h.getColumn(1).width=24;
+    }
+    /* Detalle */
+    var d=cfg.detalle;
+    if(d&&d.columnas&&d.columnas.length){
+      var nd=d.columnas.length;
+      var hd=wb.addWorksheet('Detalle',{pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+      var fe=cabecera(wb,hd,nd,{titulo:cfg.titulo+' — Detalle',sub:cfg.sub,formula:d.nota||''});
+      encabezados(hd,fe,d.columnas);datos(hd,fe+1,d.columnas,d.filas);
+      hd.views=[{state:'frozen',xSplit:d.congelarCols||0,ySplit:fe}];
+      hd.autoFilter={from:{row:fe,column:1},to:{row:fe+Math.max(d.filas.length,1),column:nd}};
+      pie(hd,fe+d.filas.length+2,nd,'Generado el '+hoy+' desde '+(cfg.origen||cfg.titulo)+' · '+d.filas.length+' fila(s)');
+      anchos(hd,nd,[{cols:d.columnas,filas:d.filas}]);
+    }
+    return wb.xlsx.writeBuffer().then(function(buf){
+      var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download=(cfg.titulo+(cfg.sub?'_'+cfg.sub:'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,90)+'.xlsx';
+      document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+    });
+  });
+}
+function txt(sel){var e=typeof sel==='string'?document.querySelector(sel):sel;return e?(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim():'';}
+function titulo(){return (document.title||'').replace(/\s*·\s*LIVES\s*$/,'').trim();}
+function boton(ref,antes,clase,click){
+  if(!ref||document.getElementById('lsXlsBtn'))return;
+  var b=document.createElement('button');b.type='button';b.id='lsXlsBtn';b.className=clase;b.textContent='Descargar Excel';
+  b.title='Descarga en Excel lo que estás viendo (resumen) y cada registro (detalle).';
+  b.addEventListener('click',function(){
+    var t=b.textContent;b.disabled=true;b.textContent='Preparando…';
+    Promise.resolve().then(click).then(function(){b.textContent=t;b.disabled=false;},function(e){
+      b.textContent=t;b.disabled=false;
+      var m=document.getElementById('lsXlsErr');if(!m){m=document.createElement('div');m.id='lsXlsErr';m.style.cssText='color:#B42318;font-size:12px;margin:4px 0';b.parentNode.insertBefore(m,b.nextSibling);}
+      m.textContent='No se pudo generar el Excel: '+(e&&e.message||e);setTimeout(function(){if(m)m.remove();},8000);});
+  });
+  if(antes)ref.parentNode.insertBefore(b,ref);else ref.parentNode.insertBefore(b,ref.nextSibling);
+}
+
+/* ================================================================ adaptadores por tablero */
+var MESES_L=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+function fechaLocal(v){if(v instanceof Date)return v;var m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3]):(vacio(v)?null:v);}
+function numero(v){if(typeof v==='number')return isFinite(v)?v:null;if(vacio(v))return null;var n=Number(String(v).replace(/,/g,''));return isFinite(n)?n:v;}
+
+/* --- Dashboards de auditoría de Calidad Manufactura (Líneas, Inspección, Empaque, Cliente, Final) --- */
+var CAL={
+  detecta:function(){return typeof STATE!=='undefined'&&typeof SB_A_CSV!=='undefined'&&document.getElementById('weekSel')&&document.getElementById('exportBtn');},
+  pone:function(){boton(document.getElementById('exportBtn'),true,'btn',CAL.exporta);},
+  periodo:function(){
+    var S=STATE,vis=function(id){var e=document.getElementById(id);return e&&getComputedStyle(e).display!=='none';};
+    var cmp=document.getElementById('compareView'),rows,lbl,anio=S.year||'';
+    if(cmp&&getComputedStyle(cmp).display!=='none'){rows=S.rows;lbl='Año '+anio;}
+    else if(vis('weekWrap')){var w=+document.getElementById('weekSel').value;rows=S.rows.filter(function(r){return Number(r['SEMANA'])===w;});lbl='Semana '+w+' · '+anio;}
+    else if(vis('monthWrap')){var m=+document.getElementById('monthSel').value;rows=S.rows.filter(function(r){return monthOf(r['FECHA'])===m;});lbl=MESES_L[m]+' '+anio;}
+    else {rows=S.rows;lbl='Año '+anio;}
+    var cli=(typeof CURCLI!=='undefined')?CURCLI:'';
+    if(cli){rows=rows.filter(function(r){return r['CLIENTE']===cli;});lbl+=' · Cliente '+cli;}
+    return {rows:rows,lbl:lbl};
+  },
+  grupo:function(rows,col,rech,titulo,etq){
+    var m={};rows.forEach(function(r){var k=r[col];if(vacio(k))return;(m[k]=m[k]||{n:0,re:0});m[k].n++;if(rech(r))m[k].re++;});
+    var filas=Object.keys(m).map(function(k){var o=m[k];return {k:String(k),n:o.n,ap:o.n-o.re,re:o.re,pr:o.n?o.re/o.n:null};})
+      .sort(function(a,b){return b.n-a.n||String(a.k).localeCompare(String(b.k));});
+    return {titulo:titulo,columnas:[{campo:'k',titulo:etq,tipo:'texto'},{campo:'n',titulo:'Auditorías',tipo:'entero'},{campo:'ap',titulo:'Aprobadas',tipo:'entero'},{campo:'re',titulo:'Rechazadas',tipo:'entero'},{campo:'pr',titulo:'% de rechazo',tipo:'porcentaje'}],filas:filas};
+  },
+  exporta:function(){
+    if(!STATE||!STATE.rows)throw new Error('el tablero todavía está cargando los datos');
+    var P=CAL.periodo(),rows=P.rows,esFinal=!!document.getElementById('L_aud');
+    var rech=esFinal?function(r){return r['RESULTADO']==='RECHAZADO';}:function(r){return r['RESULTADO']!=='APROBADO';};
+    var nota='Aprobadas y rechazadas según el resultado de cada auditoría. % de rechazo = rechazadas ÷ auditorías (calculado sobre el total, no promediando porcentajes).';
+    var res=[],sum=function(a,c){return a.reduce(function(s,r){var v=Number(r[c]);return s+(isFinite(v)?v:0);},0);};
+    var ind=function(nom,a){var re=a.filter(rech).length;return {k:nom,n:a.length,ap:a.length-re,re:re,pr:a.length?re/a.length:null,lote:sum(a,'LOTE'),pzre:sum(a.filter(rech),'LOTE')};};
+    var colInd=[{campo:'k',titulo:'Grupo',tipo:'texto'},{campo:'n',titulo:'Auditorías',tipo:'entero'},{campo:'ap',titulo:'Aprobadas',tipo:'entero'},{campo:'re',titulo:'Rechazadas',tipo:'entero'},{campo:'pr',titulo:'% de rechazo',tipo:'porcentaje'}];
+    if(esFinal){
+      var liv=rows.filter(esInterno),tal=rows.filter(esExterno);
+      var t=ind('Total',rows);t.__total=true;
+      res.push({titulo:'Indicadores — '+P.lbl,nota:nota,columnas:colInd.concat([{campo:'lote',titulo:'Prendas auditadas (lote)',tipo:'entero'},{campo:'pzre',titulo:'Prendas en lotes rechazados',tipo:'entero'}]),
+        filas:[ind('LIVES (interna)',liv),ind('Talleres',tal),t]});
+      res.push(CAL.grupo(tal,'SERVICIO',rech,'Talleres','Taller'));
+      res.push(CAL.grupo(rows,'AUDITOR',rech,'Por auditora','Auditora'));
+      res.push(CAL.grupo(rows,'CLIENTE',rech,'Por cliente','Cliente'));
+    } else {
+      var tt=ind('Total del período',rows);
+      res.push({titulo:'Indicadores — '+P.lbl,nota:nota,columnas:colInd,filas:[tt]});
+      var ents=(typeof CFG!=='undefined'&&CFG.entities)?CFG.entities.map(function(e){return {col:e.col,label:e.label};})
+        :[{col:'CLIENTE',label:'Cliente'},{col:'DESTINO',label:'Destino'},{col:'AUDITOR',label:'Auditora'}];
+      ents.forEach(function(e){if(rows.some(function(r){return !vacio(r[e.col]);}))res.push(CAL.grupo(rows,e.col,rech,'Por '+e.label.toLowerCase(),e.label));});
+    }
+    /* defectos, contados igual que en el tablero */
+    if(typeof defCount==='function'){
+      var acc={},aud={};rows.forEach(function(r){var a={};defCount(r['DEFECTOS'],a);Object.keys(a).forEach(function(k){acc[k]=(acc[k]||0)+a[k];aud[k]=(aud[k]||0)+1;});});
+      var tot=Object.keys(acc).reduce(function(s,k){return s+acc[k];},0);
+      res.push({titulo:'Defectos',nota:'Incidencias = cantidad de veces que se registró el defecto. % del total = incidencias del defecto ÷ incidencias de todos los defectos del período.',
+        columnas:[{campo:'k',titulo:'Defecto',tipo:'texto'},{campo:'i',titulo:'Incidencias',tipo:'entero'},{campo:'a',titulo:'Auditorías con el defecto',tipo:'entero'},{campo:'p',titulo:'% del total de defectos',tipo:'porcentaje'}],
+        filas:Object.keys(acc).map(function(k){return {k:k,i:acc[k],a:aud[k],p:tot?acc[k]/tot:null};}).sort(function(a,b){return b.i-a.i;})});
+    }
+    /* detalle: cada auditoría del período, con las columnas que trae la base */
+    var NUM={SEMANA:1,ANIO:1,MES:1,LOTE:1,MUESTRA:1,OBS:1,CAJAS:1,'TOTAL DERIVADOS':1,'N° DE AUDITORÍA':1,'N° PARCIAL':1};
+    var FUERA={DERIVADOS:1,ID_AUDITORIA:0};
+    var orden=['FECHA','SEMANA'].concat(Object.keys(SB_A_CSV).map(function(k){return SB_A_CSV[k];}).filter(function(c){return c!=='FECHA'&&c!=='SEMANA'&&c!=='ANIO'&&c!=='MES';}));
+    if(rows.some(function(r){return !vacio(r['__LINEA__']);})&&orden.indexOf('LINEA')>=0)orden[orden.indexOf('LINEA')]='__LINEA__';
+    var cols=orden.filter(function(c){return !FUERA[c]&&rows.some(function(r){return !vacio(r[c]);});}).map(function(c){
+      return {campo:c,titulo:c==='__LINEA__'?'LÍNEA':c,tipo:c==='FECHA'?'fecha':(c==='%'?'porcentaje':(NUM[c]?'entero':'alfanumerico'))};});
+    var det=rows.map(function(r){var o={};cols.forEach(function(c){var v=r[c.campo];o[c.campo]=c.tipo==='fecha'?fechaLocal(v):((c.tipo==='entero'||c.tipo==='porcentaje')?numero(v):(vacio(v)?null:String(v)));});return o;})
+      .sort(function(a,b){return (a.FECHA||0)-(b.FECHA||0);});
+    return libro({titulo:titulo(),sub:P.lbl,formula:txt('#srcNote').replace(/^Fuente:\s*/,''),origen:titulo(),resumen:res,
+      detalle:{columnas:cols,filas:det,congelarCols:2,nota:'Una fila por auditoría del período, tal como está registrada.'}});
+  }
+};
+
+
+/* --- Tablero Inspección Final Costura --- */
+var IFC={
+  detecta:function(){return typeof DATA!=='undefined'&&typeof met==='function'&&typeof filtrarRangoEfi==='function'&&document.getElementById('btnPdf');},
+  pone:function(){boton(document.getElementById('btnPdf'),true,'',IFC.exporta);},
+  exporta:function(){
+    if(!DATA||!DATA.filas)throw new Error('el tablero todavía está cargando los datos');
+    var k=document.getElementById('fPeriodo').value;if(!k)throw new Error('no hay inspecciones con estos filtros');
+    var R=rangoPeriodo(k),C=filtrarRango(R.ini,R.fin),E=filtrarRangoEfi(R.ini,R.fin);
+    var L=document.getElementById('fLinea').value,I=document.getElementById('fIns').value;
+    var lbl=etiquetaPeriodo(k)+(L?' · Línea '+L:'')+(I?' · '+I:'');
+    var m=met(C),me=met(E),pc=function(a,b){return b>0?a/b:null;};
+    var res=[];
+    res.push({titulo:'Indicadores — '+lbl,nota:'Calidad sobre las inspecciones sin SERVICIO; eficiencia sobre todas las inspecciones del período (como en el tablero). Cada % se calcula sobre el total del período.',
+      columnas:[{campo:'k',titulo:'Indicador',tipo:'texto'},{campo:'v',titulo:'Valor',tipo:'porcentaje'},{campo:'a',titulo:'Numerador',tipo:'entero'},{campo:'b',titulo:'Denominador',tipo:'entero'},{campo:'c',titulo:'Cómo se calcula',tipo:'texto'}],
+      filas:[{k:'% Primeras',v:pc(m.pri,m.carga),a:m.pri,b:m.carga,c:'primeras ÷ prendas revisadas'},
+             {k:'% Con defecto',v:pc(m.noPri,m.carga),a:m.noPri,b:m.carga,c:'prendas que no salieron primeras ÷ prendas revisadas'},
+             {k:'% Segundas',v:pc(m.seg,m.carga),a:m.seg,b:m.carga,c:'segundas ÷ prendas revisadas'},
+             {k:'% Eficiencia',v:pc(me.min,me.hProd*60),a:me.min,b:me.hProd*60,c:'minutos producidos ÷ minutos asistidos'}]});
+    var grp=function(rows,idx){var g={};rows.forEach(function(f){var key=f[idx]||'(sin dato)';(g[key]=g[key]||[]).push(f);});return g;};
+    var gi=grp(E,F_INS);
+    res.push({titulo:'Por inspectora',nota:'Incluye SERVICIO, igual que la eficiencia del tablero.',
+      columnas:[{campo:'k',titulo:'Inspectora',tipo:'texto'},{campo:'n',titulo:'Inspecciones',tipo:'entero'},{campo:'car',titulo:'Prendas revisadas',tipo:'entero'},{campo:'pri',titulo:'Primeras',tipo:'entero'},{campo:'pp',titulo:'% Primeras',tipo:'porcentaje'},{campo:'min',titulo:'Min. producidos',tipo:'decimal'},{campo:'h',titulo:'Horas asistidas',tipo:'horas'},{campo:'ef',titulo:'% Eficiencia',tipo:'porcentaje'}],
+      filas:Object.keys(gi).map(function(x){var q=met(gi[x]);return {k:x,n:q.n,car:q.carga,pri:q.pri,pp:pc(q.pri,q.carga),min:q.min,h:q.hProd,ef:pc(q.min,q.hProd*60)};}).sort(function(a,b){return b.n-a.n;})});
+    var gl=grp(C,F_LIN);
+    res.push({titulo:'Por línea',nota:'Sin SERVICIO.',
+      columnas:[{campo:'k',titulo:'Línea',tipo:'texto'},{campo:'n',titulo:'Inspecciones',tipo:'entero'},{campo:'car',titulo:'Prendas revisadas',tipo:'entero'},{campo:'pri',titulo:'Primeras',tipo:'entero'},{campo:'pp',titulo:'% Primeras',tipo:'porcentaje'},{campo:'seg',titulo:'Segundas',tipo:'entero'},{campo:'ps',titulo:'% Segundas',tipo:'porcentaje'}],
+      filas:Object.keys(gl).map(function(x){var q=met(gl[x]);return {k:x,n:q.n,car:q.carga,pri:q.pri,pp:pc(q.pri,q.carga),seg:q.seg,ps:pc(q.seg,q.carga)};}).sort(function(a,b){return String(a.k).localeCompare(String(b.k));})});
+    if(typeof totalesDefectosDe==='function'){
+      var td=totalesDefectosDe(C),tot=td.reduce(function(s,x){return s+x.v;},0);
+      res.push({titulo:'Defectos',nota:'Cantidad de prendas marcadas con cada defecto (sin SERVICIO). % del total = prendas con el defecto ÷ total de defectos marcados.',
+        columnas:[{campo:'k',titulo:'Defecto',tipo:'texto'},{campo:'c',titulo:'Categoría',tipo:'texto'},{campo:'v',titulo:'Prendas',tipo:'entero'},{campo:'p',titulo:'% del total',tipo:'porcentaje'}],
+        filas:td.map(function(x){var d=(CAT.defectos||[])[x.i]||{};return {k:d.defecto||('#'+x.i),c:d.categoria||'',v:x.v,p:tot?x.v/tot:null};})});
+    }
+    var det=E.slice().sort(function(a,b){return a[F_FEC]<b[F_FEC]?-1:a[F_FEC]>b[F_FEC]?1:0;}).map(function(f){return {
+      fec:fechaLocal(f[F_FEC]),ins:f[F_INS],lin:f[F_LIN],est:vacio(f[F_EST])?null:String(f[F_EST]),grp:f[F_GRP]||null,car:f[F_CAR],pri:f[F_PRI],pp:f[F_CAR]>0?f[F_PRI]/f[F_CAR]:null,
+      def:f[F_DEF],rei:f[F_REI],det:detTexto(f)||null,hi:f[F_HI]||null,hf:f[F_HF]||null,ht:f[F_HTOT],him:f[F_HIMP],std:f[F_STD]||null,min:f[F_MIN],obs:f[F_OBS]||null,id:f[F_ID]};});
+    return libro({titulo:'Inspección Final Costura',sub:lbl,formula:'Tablero de Inspección Final de Costura. Los porcentajes se calculan sobre el total del período (suma de numeradores ÷ suma de denominadores).',origen:'Inspección Final Costura',resumen:res,
+      detalle:{congelarCols:3,nota:'Una fila por inspección del período, incluye SERVICIO (columna Línea).',filas:det,columnas:[
+        {campo:'fec',titulo:'Fecha',tipo:'fecha'},{campo:'ins',titulo:'Inspectora',tipo:'texto'},{campo:'lin',titulo:'Línea',tipo:'alfanumerico'},{campo:'est',titulo:'Estilo',tipo:'alfanumerico'},{campo:'grp',titulo:'Grupo',tipo:'alfanumerico'},
+        {campo:'car',titulo:'Prendas revisadas',tipo:'entero'},{campo:'pri',titulo:'Primeras',tipo:'entero'},{campo:'pp',titulo:'% Primeras',tipo:'porcentaje'},{campo:'def',titulo:'Defectos marcados',tipo:'entero'},{campo:'rei',titulo:'Reinspección',tipo:'entero'},
+        {campo:'det',titulo:'Detalle de defectos',tipo:'texto'},{campo:'hi',titulo:'Hora inicio',tipo:'alfanumerico'},{campo:'hf',titulo:'Hora fin',tipo:'alfanumerico'},{campo:'ht',titulo:'Horas totales',tipo:'horas'},{campo:'him',titulo:'Horas improductivas',tipo:'horas'},
+        {campo:'std',titulo:'STD (min/prenda)',tipo:'decimal'},{campo:'min',titulo:'Min. producidos',tipo:'decimal'},{campo:'obs',titulo:'Observación',tipo:'texto'},{campo:'id',titulo:'ID',tipo:'alfanumerico'}]}});
+  }
+};
+
+
+/* --- utilidades comunes de los adaptadores --- */
+function sinVacias(cols,filas){return cols.filter(function(c){return c.fija||filas.some(function(f){return !vacio(f[c.campo]);});});}
+function fr(v){return (v===null||v===undefined||!isFinite(v))?null:v/100;}
+function porSi(cond,v){return cond?v:null;}
+
+/* --- Check List de Orden y Limpieza --- */
+var CHK={
+  detecta:function(){return typeof contar==='function'&&typeof fabsActivas==='function'&&typeof hojaHTML==='function'&&document.getElementById('btnPdf');},
+  pone:function(){boton(document.getElementById('btnPdf'),true,'btn',CHK.exporta);},
+  exporta:function(){
+    if(!FILAS||!FILAS.length||!F.sem)throw new Error('el tablero todavía está cargando los datos');
+    var fabs=fabsActivas(),sem=F.sem,nsem=+sem.split('-S')[1];
+    var lbl='Semana '+nsem+' · '+rangoSemana(sem)+' · '+(F.fab==='TODAS'?'Todas las fábricas':F.fab);
+    var rows=FILAS.filter(function(f){return f.semanaEtq===sem&&fabs.indexOf(f.sede)>=0;});
+    var pc=function(c){return c.ev?c.ok/c.ev:null;};
+    var uniq=function(a){var o=[];a.forEach(function(x){if(!vacio(x)&&o.indexOf(x)<0)o.push(x);});return o;};
+    var fila=function(k,r){var c=contar(r);return {k:k,dias:uniq(r.map(function(x){return x.dia;})).length,ev:c.ev,ok:c.ok,x:c.x,na:c.na,p:pc(c),aud:uniq(r.map(function(x){return x.auditor;})).join(', ')||null};};
+    var ind=fabs.map(function(fb){return fila(fb,rows.filter(function(r){return r.sede===fb;}));});
+    if(fabs.length>1){var t=fila('Total',rows);t.__total=true;ind.push(t);}
+    var nota='% de cumplimiento = ítems OK ÷ (OK + X), sobre el total de marcas de la semana. Los N/A no entran al denominador. No hay meta definida por LIVES para este check list.';
+    var res=[{titulo:'Cumplimiento — '+lbl,nota:nota,columnas:[{campo:'k',titulo:'Fábrica',tipo:'texto'},{campo:'dias',titulo:'Días registrados',tipo:'entero'},{campo:'ev',titulo:'Evaluados (OK + X)',tipo:'entero'},{campo:'ok',titulo:'OK',tipo:'entero'},{campo:'x',titulo:'No conformidades (X)',tipo:'entero'},{campo:'na',titulo:'N/A',tipo:'entero'},{campo:'p',titulo:'% Cumplimiento',tipo:'porcentaje'},{campo:'aud',titulo:'Auditor(es)',tipo:'texto'}],filas:ind}];
+    var sec=[];fabs.forEach(function(fb){var its=itemsDeFabrica(fb),orden=[];its.forEach(function(i){if(orden.indexOf(i.seccion)<0)orden.push(i.seccion);});
+      rows.forEach(function(r){if(r.sede===fb&&orden.indexOf(r.seccion)<0)orden.push(r.seccion);});
+      orden.forEach(function(s){var r=rows.filter(function(x){return x.sede===fb&&x.seccion===s;});var c=contar(r);sec.push({f:fb,s:s,ev:c.ev,ok:c.ok,x:c.x,p:pc(c)});});});
+    res.push({titulo:'Por sección',columnas:[{campo:'f',titulo:'Fábrica',tipo:'texto'},{campo:'s',titulo:'Sección',tipo:'texto'},{campo:'ev',titulo:'Evaluados',tipo:'entero'},{campo:'ok',titulo:'OK',tipo:'entero'},{campo:'x',titulo:'No conformidades',tipo:'entero'},{campo:'p',titulo:'% Cumplimiento',tipo:'porcentaje'}],filas:sec});
+    var cmp=function(a,b){return String(a.fecha).localeCompare(String(b.fecha))||String(a.sede).localeCompare(String(b.sede))||String(a.seccion).localeCompare(String(b.seccion))||(a.n-b.n);};
+    var marca=function(r){return {fe:fechaLocal(r.fecha),d:r.dia||null,f:r.sede,s:r.seccion,n:numero(r.n),it:r.item,re:r.res==='OK'||r.res==='X'?r.res:'N/A',o:vacio(r.obs)?null:r.obs,a:vacio(r.auditor)?null:r.auditor};};
+    var colM=[{campo:'fe',titulo:'Fecha',tipo:'fecha'},{campo:'d',titulo:'Día',tipo:'texto'},{campo:'f',titulo:'Fábrica',tipo:'texto'},{campo:'s',titulo:'Sección',tipo:'texto'},{campo:'n',titulo:'N°',tipo:'entero'},{campo:'it',titulo:'Ítem',tipo:'texto'},{campo:'re',titulo:'Resultado',tipo:'texto'},{campo:'o',titulo:'Observación',tipo:'texto'},{campo:'a',titulo:'Auditor',tipo:'texto'}];
+    var nc=rows.filter(function(r){return r.res==='X';}).sort(cmp).map(marca);
+    res.push({titulo:'No conformidades de la semana ('+nc.length+')',nota:'Lo que se marcó X, con la observación que dejó el auditor en planta.',columnas:colM.filter(function(c){return c.campo!=='re';}),filas:nc});
+    var base=typeof baseStats==='function'?baseStats():FILAS,gs={};base.forEach(function(r){(gs[r.semanaEtq]=gs[r.semanaEtq]||[]).push(r);});
+    res.push({titulo:'Semana a semana — '+(F.fab==='TODAS'?'todas las fábricas':F.fab),nota:'Histórico completo, de la semana más reciente a la más antigua. Mismo cálculo: OK ÷ (OK + X) de cada semana.',
+      columnas:[{campo:'s',titulo:'Semana',tipo:'texto'},{campo:'r',titulo:'Fechas',tipo:'texto'},{campo:'ev',titulo:'Evaluados',tipo:'entero'},{campo:'ok',titulo:'OK',tipo:'entero'},{campo:'x',titulo:'No conformidades',tipo:'entero'},{campo:'p',titulo:'% Cumplimiento',tipo:'porcentaje'}],
+      filas:Object.keys(gs).filter(Boolean).sort().reverse().map(function(k){var c=contar(gs[k]);return {s:'Semana '+(+k.split('-S')[1])+' · '+k.split('-S')[0],r:rangoSemana(k),ev:c.ev,ok:c.ok,x:c.x,p:pc(c)};})});
+    return libro({titulo:'Check List de Orden y Limpieza',sub:lbl,formula:nota,origen:'Check List de Orden y Limpieza',resumen:res,
+      detalle:{columnas:colM,filas:rows.slice().sort(cmp).map(marca),congelarCols:3,nota:'Una fila por cada ítem marcado en la semana, tal como lo registró el auditor.'}});
+  }
+};
+
+/* --- Tablero Círculo de Mejoras --- */
+var MEJ={
+  detecta:function(){return typeof porArea==='function'&&typeof vencidasList==='function'&&typeof estadoDe==='function'&&typeof M!=='undefined';},
+  pone:function(){var r=document.querySelector('#app .bar .hstate')||document.querySelector('#app .bar .spacer');if(r)boton(r,true,'btn',MEJ.exporta);},
+  exporta:function(){
+    if(!M||!M.length)throw new Error('el tablero todavía está cargando los datos');
+    var d=window.datos(),pa=porArea(),hoy=hoyISO(),lbl=AREA?('Área '+AREA):'Todas las áreas',pc=function(a,b){return b?a/b:null;};
+    var ev={};E.forEach(function(x){ev[x.idMejora]=(ev[x.idMejora]||0)+1;});
+    var res=[];
+    res.push({titulo:'Avance — '+lbl,nota:'Avance = suma de los avances de cada idea (0 · 0.3 · 0.5 · 0.7 · 1) ÷ número de ideas. Meta declarada en el tablero: '+META+'%.',
+      columnas:[{campo:'k',titulo:'Ámbito',tipo:'texto'},{campo:'n',titulo:'Ideas',tipo:'entero'},{campo:'s',titulo:'Suma de avances',tipo:'decimal'},{campo:'a',titulo:'Avance',tipo:'porcentaje'},{campo:'m',titulo:'Meta',tipo:'porcentaje'}],
+      filas:[{k:lbl,n:d.n,s:d.suma,a:pc(d.suma,d.n),m:META/100}]});
+    res.push({titulo:'Estado de las ideas — '+lbl,nota:'% = cantidad ÷ '+d.n+' ideas del ámbito.',
+      columnas:[{campo:'k',titulo:'Estado',tipo:'texto'},{campo:'v',titulo:'Ideas',tipo:'entero'},{campo:'p',titulo:'% del total',tipo:'porcentaje'},{campo:'c',titulo:'Qué cuenta',tipo:'texto'}],
+      filas:[{k:'Cerradas',v:d.cerr,p:pc(d.cerr,d.n),c:'llegaron al 100%'},{k:'En curso',v:d.proc,p:pc(d.proc,d.n),c:'entre 30% y 70% de avance'},{k:'Sin empezar',v:d.nini,p:pc(d.nini,d.n),c:'0% de avance'},
+        {k:'Con fecha vencida',v:d.venc,p:pc(d.venc,d.n),c:'abiertas y con la fecha de cierre ya pasada'},{k:'Con evidencia',v:d.conFoto,p:pc(d.conFoto,d.n),c:'al menos un archivo cargado ('+d.fotos+' archivos en total)'},
+        {k:'Reprogramadas',v:d.reprog,p:pc(d.reprog,d.n),c:'movieron su fecha de cierre al menos una vez'}]});
+    var ta={n:0,s:0,c:0,p:0,z:0,v:0,f:0,r:0};
+    var fa=pa.map(function(x){ta.n+=x.n;ta.s+=x.avance*x.n/100;ta.c+=x.cerr;ta.p+=x.curso;ta.z+=x.nada;ta.v+=x.venc;ta.f+=x.foto;ta.r+=x.reprog;
+      return {k:x.area,n:x.n,c:x.cerr,p:x.curso,z:x.nada,v:x.venc,f:x.foto,r:x.reprog,a:x.avance/100,pf:x.pctFoto/100};});
+    fa.push({k:'Total',n:ta.n,c:ta.c,p:ta.p,z:ta.z,v:ta.v,f:ta.f,r:ta.r,a:pc(ta.s,ta.n),pf:pc(ta.f,ta.n),__total:true});
+    res.push({titulo:'Ranking por área',nota:'Avance del área = suma de los avances de sus ideas ÷ número de ideas del área. El total se calcula sobre todas las ideas, no promediando las áreas.',
+      columnas:[{campo:'k',titulo:'Área',tipo:'texto'},{campo:'n',titulo:'Ideas',tipo:'entero'},{campo:'c',titulo:'Cerradas',tipo:'entero'},{campo:'p',titulo:'En curso',tipo:'entero'},{campo:'z',titulo:'Sin empezar',tipo:'entero'},{campo:'v',titulo:'Vencidas',tipo:'entero'},{campo:'f',titulo:'Con evidencia',tipo:'entero'},{campo:'r',titulo:'Reprogramadas',tipo:'entero'},{campo:'a',titulo:'% Avance',tipo:'porcentaje'},{campo:'pf',titulo:'% Con evidencia',tipo:'porcentaje'}],filas:fa});
+    var vl=vencidasList();
+    res.push({titulo:'Mejoras vencidas ('+vl.length+')',nota:'Abiertas y con la fecha comprometida ya pasada, de la más atrasada a la menos atrasada.',
+      columnas:[{campo:'id',titulo:'Código',tipo:'alfanumerico'},{campo:'ar',titulo:'Área',tipo:'texto'},{campo:'i',titulo:'Idea de mejora',tipo:'texto'},{campo:'re',titulo:'Responsable',tipo:'texto'},{campo:'p',titulo:'Avance',tipo:'porcentaje'},{campo:'fc',titulo:'Fecha de cierre',tipo:'fecha'},{campo:'d',titulo:'Días de atraso',tipo:'entero'},{campo:'rp',titulo:'Reprogramaciones',tipo:'entero'}],
+      filas:vl.map(function(m){return {id:m.id,ar:m.area,i:m.idea,re:vacio(m.responsable)?null:m.responsable,p:m.pct,fc:fechaLocal(m.fechaCierre),d:m._d,rp:m.vecesReprog||0};})});
+    var det=d.f.slice().sort(function(a,b){return a.area===b.area?String(a.id).localeCompare(String(b.id)):String(a.area).localeCompare(String(b.area));}).map(function(m){
+      var fc=String(m.fechaCierre||'').substring(0,10),t=function(v){return vacio(v)?null:String(v);};
+      return {id:m.id,ar:m.area,i:t(m.idea),re:t(m.responsable),p:m.pct,es:estadoDe(m.pct),fc:fechaLocal(fc),v:(fc&&fc<hoy&&m.pct<1)?'Sí':'No',rp:m.vecesReprog||0,rv:t(m.revisar),ev:ev[m.id]||0,
+        sa:t(m.situacionAntes),co:t(m.comentarios),rs:t(m.resultado),im:t(m.impacto),at:t(m.ahorroTiempo),am:t(m.ahorroMonto),fr:fechaLocal(m.fechaReg),fa:fechaLocal(m.fechaAct),ap:t(m.actualizadoPor)};});
+    var cd=[{campo:'id',titulo:'Código',tipo:'alfanumerico',fija:1},{campo:'ar',titulo:'Área',tipo:'texto',fija:1},{campo:'i',titulo:'Idea de mejora',tipo:'texto',fija:1},{campo:'re',titulo:'Responsable',tipo:'texto'},{campo:'p',titulo:'Avance',tipo:'porcentaje',fija:1},{campo:'es',titulo:'Escalón',tipo:'texto',fija:1},
+      {campo:'fc',titulo:'Fecha de cierre',tipo:'fecha',fija:1},{campo:'v',titulo:'Vencida',tipo:'texto',fija:1},{campo:'rp',titulo:'Reprogramaciones',tipo:'entero',fija:1},{campo:'rv',titulo:'Revisar',tipo:'texto'},{campo:'ev',titulo:'Archivos de evidencia',tipo:'entero',fija:1},
+      {campo:'sa',titulo:'Situación antes',tipo:'texto'},{campo:'co',titulo:'Comentarios',tipo:'texto'},{campo:'rs',titulo:'Resultado',tipo:'texto'},{campo:'im',titulo:'Impacto',tipo:'texto'},{campo:'at',titulo:'Ahorro de tiempo',tipo:'texto'},{campo:'am',titulo:'Ahorro (monto)',tipo:'texto'},
+      {campo:'fr',titulo:'Fecha de registro',tipo:'fecha'},{campo:'fa',titulo:'Última actualización',tipo:'fecha'},{campo:'ap',titulo:'Actualizado por',tipo:'texto'}];
+    return libro({titulo:'Tablero Círculo de Mejoras',sub:lbl,formula:'Avance = suma de los avances de cada idea ÷ número de ideas (nunca promedio de porcentajes). Meta declarada: '+META+'% de avance.',origen:'Tablero Círculo de Mejoras',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:2,nota:'Una fila por idea de mejora del ámbito elegido.'}});
+  }
+};
+
+/* --- Potenciales de Planta --- */
+var POT={
+  detecta:function(){return typeof personas==='function'&&typeof filasArea==='function'&&typeof comparaSemana==='function'&&typeof ST!=='undefined'&&typeof INFO!=='undefined';},
+  pone:function(){boton(document.querySelector('#bar button[onclick*="print"]'),true,'btn',POT.exporta);},
+  det:function(rows){
+    var cols=[{campo:'y',titulo:'Año',tipo:'entero',fija:1},{campo:'s',titulo:'Semana',tipo:'entero',fija:1},{campo:'a',titulo:'Área',tipo:'texto',fija:1},{campo:'c',titulo:'Código',tipo:'alfanumerico',fija:1},{campo:'n',titulo:'Nombre',tipo:'texto',fija:1},{campo:'k',titulo:'Cat',tipo:'alfanumerico'},
+      {campo:'g',titulo:'Línea / proceso',tipo:'alfanumerico'},{campo:'o',titulo:'Ocupación',tipo:'texto'},{campo:'op',titulo:'Cód. operación',tipo:'alfanumerico'},{campo:'on',titulo:'Operación',tipo:'texto'},{campo:'m',titulo:'Máquina',tipo:'alfanumerico'},
+      {campo:'d',titulo:'Dificultad',tipo:'alfanumerico'},{campo:'t',titulo:'TSD (min)',tipo:'decimal'},{campo:'gr',titulo:'Grupo / pedido',tipo:'alfanumerico'},{campo:'e',titulo:'Estilo',tipo:'alfanumerico'},{campo:'te',titulo:'Tela',tipo:'alfanumerico'},{campo:'p',titulo:'Potencial',tipo:'porcentaje',fija:1}];
+    var t=function(v){return vacio(v)?null:v;};
+    var filas=rows.slice().sort(function(x,z){return (x.y*100+x.s)-(z.y*100+z.s)||String(x.a).localeCompare(String(z.a))||String(x.g).localeCompare(String(z.g))||String(x.n).localeCompare(String(z.n));})
+      .map(function(r){return {y:r.y,s:r.s,a:INFO[r.a]?INFO[r.a].nom:r.a,c:t(r.c),n:t(r.n),k:t(r.k),g:t(r.g),o:t(r.o),op:t(r.op),on:t(r.on),m:t(r.m),d:t(r.d),t:r.t,gr:t(r.gr),e:t(r.e),te:t(r.te),p:fr(r.p)};});
+    return {columnas:sinVacias(cols,filas),filas:filas,congelarCols:5,nota:'Una fila por medición, tal como se subió al sistema. Potencial en % de habilidad.'};
+  },
+  lista:function(rows,keyf,titulo,etq,ord){
+    var l=lista(rows,keyf,ord);
+    return {titulo:titulo,columnas:[{campo:'k',titulo:etq,tipo:'alfanumerico'},{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'b',titulo:'Muestra',tipo:'texto'}],
+      filas:l.map(function(x){return {k:vacio(x.k)?'(sin dato)':String(x.k),p:fr(x.p),n:x.n,b:x.low?'Muestra baja':null};})};
+  },
+  exporta:function(){
+    if(!DATA||!DATA.length)throw new Error('el tablero todavía está cargando los datos');
+    var nota='Potencial promedio = suma de los potenciales medidos ÷ número de mediciones (igual que la tabla dinámica del archivo POTENCIALES). No hay meta fijada.';
+    var sl=function(k,multi){return 'S'+(k%100)+(multi?' · '+Math.floor(k/100):'');};
+    if(ST.area==='PLANTA'){
+      var fil=[],detR=[];
+      AREAS.forEach(function(a){var rows=filasArea(a,''),ws=semanas(a);if(!ws.length)return;var last=ws[ws.length-1],c=comparaSemana(a,rows,last);
+        fil.push({a:INFO[a].nom,s:sl(last,true),p:c.cur?fr(c.cur.p):null,n:c.cur?c.cur.n:null,sp:c.prevK!=null?sl(c.prevK,true):null,pp:c.prev?fr(c.prev.p):null,d:c.d==null?null:c.d});
+        rows.forEach(function(r){if(wk(r)===last)detR.push(r);});});
+      return libro({titulo:'Potenciales de Planta',sub:'Planta · última semana de cada área',formula:nota,origen:'Potenciales de Planta',
+        resumen:[{titulo:'Última semana de cada área',nota:'Cada área se compara con su propia semana anterior. Los niveles de cada área no son comparables entre sí (Costura mide por operación; Corte y Acabados, por persona y semana).',
+          columnas:[{campo:'a',titulo:'Área',tipo:'texto'},{campo:'s',titulo:'Última semana',tipo:'texto'},{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'sp',titulo:'Semana anterior',tipo:'texto'},{campo:'pp',titulo:'Potencial semana anterior',tipo:'porcentaje'},{campo:'d',titulo:'Diferencia (puntos)',tipo:'decimal'}],filas:fil}],
+        detalle:POT.det(detR)});
+    }
+    var a=ST.area,I=INFO[a],multi=multiAnio(a),rowsA=filasArea(a,ST.grupo),semk=ST.sem[a];
+    var wsA=semanas(a).filter(function(w){return rowsA.some(function(r){return wk(r)===w;});});
+    var rows=filasPeriodo(rowsA,ST.modo,semk);
+    var per=ST.modo==='sem'?('Semana '+(semk%100)+' · '+Math.floor(semk/100)):('Acumulado '+(wsA.length?sl(wsA[0],multi)+' a '+sl(wsA[wsA.length-1],multi):''));
+    var lbl=I.nom+' · '+per+(ST.grupo?' · '+I.grupo+' '+ST.grupo:'');
+    if(!rows.length)throw new Error('no hay mediciones en '+per);
+    var tot=prom(rows),pers=personas(rows,ST.modo),R=calcRef(pers,tot.p);
+    var est=function(x){if(x.low)return 'Muestra baja';if(!R)return 'Sin referencia';if(x.p>=R.m+R.sd)return 'Sobre el promedio';if(x.p<=R.m-R.sd)return 'Bajo el promedio';return 'En el promedio';};
+    var bajo=pers.filter(function(x){return est(x)==='Bajo el promedio';}).length;
+    var c=ST.modo==='sem'?comparaSemana(a,rowsA,semk):null;
+    var fi0={p:fr(tot.p),n:tot.n,pe:pers.length,sp:c&&c.prevK!=null?sl(c.prevK,multi):null,pp:c&&c.prev?fr(c.prev.p):null,d:c&&c.d!=null?c.d:null,b:R?bajo:null,rm:R?fr(R.m):null,rs:R?R.sd:null};
+    var res=[{titulo:'Indicadores — '+lbl,nota:nota,
+      columnas:[{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'pe',titulo:'Personas medidas',tipo:'entero'},{campo:'sp',titulo:'Semana anterior',tipo:'texto'},{campo:'pp',titulo:'Potencial semana anterior',tipo:'porcentaje'},{campo:'d',titulo:'Diferencia (puntos)',tipo:'decimal'},
+        {campo:'b',titulo:'Personas bajo el promedio',tipo:'entero'},{campo:'rm',titulo:'Promedio de referencia',tipo:'porcentaje'},{campo:'rs',titulo:'Desviación típica (puntos)',tipo:'decimal'}],
+      filas:[fi0]}];
+    res[0].columnas=sinVacias(res[0].columnas,[fi0]);
+    var ser=serieSemanal(rowsA,wsA);
+    res.push({titulo:'Potencial semana a semana — '+(ST.grupo?I.grupo+' '+ST.grupo:I.nom),nota:'Promedio simple de las mediciones de cada semana. Muestra baja = menos de '+CFG.MIN_GRUPO.sem+' mediciones.',
+      columnas:[{campo:'s',titulo:'Semana',tipo:'texto'},{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'b',titulo:'Muestra',tipo:'texto'}],
+      filas:wsA.map(function(w,i){var q=ser[i];return {s:sl(w,multi),p:q?fr(q.p):null,n:q?q.n:null,b:q&&q.n<CFG.MIN_GRUPO.sem?'Muestra baja':null};})});
+    if(!ST.grupo)res.push(POT.lista(rows,function(r){return r.g;},'Por '+I.grupo.toLowerCase(),I.grupo));
+    var ps=pers.slice().sort(function(x,y){return (x.low-y.low)||(y.p-x.p);});
+    var cp=[{campo:'nom',titulo:'Persona',tipo:'texto'},{campo:'c',titulo:'Código',tipo:'alfanumerico'},{campo:'k',titulo:'Cat',tipo:'alfanumerico'},{campo:'g',titulo:I.grupo,tipo:'alfanumerico'}];
+    if(a!=='COSTURA')cp.push({campo:'o',titulo:'Ocupación',tipo:'texto'});
+    cp=cp.concat([{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'e',titulo:'Estado',tipo:'texto'}]);
+    if(a==='COSTURA')cp.push({campo:'mq',titulo:'Por máquina',tipo:'texto'});
+    res.push({titulo:'Por persona',nota:'Estado = comparación con el promedio del área'+(R?' ('+R.m.toFixed(1)+'% ± '+R.sd.toFixed(1)+' puntos)':'')+(minP()>1?'. Muestra baja = menos de '+minP()+' mediciones en el período.':'.'),
+      columnas:cp,filas:ps.map(function(x){return {nom:x.nom,c:x.c,k:vacio(x.k)?null:x.k,g:vacio(x.g)?null:x.g,o:vacio(x.o)?null:x.o,n:x.n,p:fr(x.p),e:est(x),
+        mq:x.maqs.map(function(m){return (m.m||'—')+' '+m.p.toFixed(1)+'%'+(m.n>1?' ('+m.n+')':'');}).join(' · ')||null};})});
+    var alf=function(x,y){return x.k>y.k?1:-1;};
+    res.push(POT.lista(rows,function(r){return r.k;},'Por categoría del trabajador','Categoría',alf));
+    if(a==='COSTURA'){
+      res.push(POT.lista(rows,function(r){return r.d;},'Por dificultad de la operación','Dificultad',alf));
+      res.push(POT.lista(rows,function(r){return r.m;},'Por máquina','Máquina'));
+      var om={};rows.forEach(function(r){var k=r.op+'|'+r.on;(om[k]=om[k]||[]).push(r);});
+      var ol=Object.keys(om).map(function(k){var v=om[k],q=prom(v),pv=v.map(function(r){return r.p;});var pz={};v.forEach(function(r){pz[r.c]=1;});
+        return {op:vacio(v[0].op)?null:v[0].op,on:v[0].on||null,m:v[0].m||null,d:v[0].d||null,t:v[0].t,pe:Object.keys(pz).length,n:q.n,p:fr(q.p),mn:fr(Math.min.apply(null,pv)),mx:fr(Math.max.apply(null,pv)),low:q.n<minG()};})
+        .sort(function(x,y){return (x.low-y.low)||(x.p-y.p);});
+      res.push({titulo:'Por operación',nota:'De menor a mayor potencial promedio. Mín y Máx = la persona más baja y la más alta en la misma operación.',
+        columnas:[{campo:'op',titulo:'Cód.',tipo:'alfanumerico'},{campo:'on',titulo:'Operación',tipo:'texto'},{campo:'m',titulo:'Máq',tipo:'alfanumerico'},{campo:'d',titulo:'Dif',tipo:'alfanumerico'},{campo:'t',titulo:'TSD (min)',tipo:'decimal'},{campo:'pe',titulo:'Personas',tipo:'entero'},{campo:'n',titulo:'Mediciones',tipo:'entero'},{campo:'p',titulo:'Potencial promedio',tipo:'porcentaje'},{campo:'mn',titulo:'Mínimo',tipo:'porcentaje'},{campo:'mx',titulo:'Máximo',tipo:'porcentaje'}],
+        filas:ol.map(function(x){x.b=x.low?'Muestra baja':null;return x;})});
+    } else res.push(POT.lista(rows,function(r){return r.o;},'Por ocupación','Ocupación'));
+    return libro({titulo:'Potenciales de Planta',sub:lbl,formula:nota,origen:'Potenciales de Planta',resumen:res,detalle:POT.det(rows)});
+  }
+};
+
+/* --- Corte · Eficiencia e Incentivos --- */
+var COR={
+  detecta:function(){return typeof agregar==='function'&&typeof serieSemanas==='function'&&typeof CACHE!=='undefined'&&typeof etiquetaLarga==='function';},
+  pone:function(){boton(document.querySelector('.bar button[onclick*="print"]'),true,'btn',COR.exporta);},
+  exporta:function(){
+    if(!SEM_ACTIVA)throw new Error('todavía no hay registros de producción guardados');
+    var filas=filtrar(CACHE[SEM_ACTIVA]||[]);
+    if(!filas.length)throw new Error('no hay registros para este filtro');
+    var tipoLbl=TIPO_ACTIVO?NOMBRE_FILTRO[TIPO_ACTIVO]:'Todos los tipos',lbl=etiquetaLarga(SEM_ACTIVA)+' · '+tipoLbl;
+    var ag=function(k,x){var a=agregar(x),s=a.conSistema;return {k:k,n:a.n,mp:a.sumMinProd,mt:a.sumMinTrab,er:fr(a.efReal),ms:porSi(s,a.sumMinSist),es:porSi(s,fr(a.efSist)),ir:a.incReal,is:porSi(s,a.incSist),d:porSi(s,a.diferencia)};};
+    var colA=function(et){return [{campo:'k',titulo:et,tipo:'texto'},{campo:'n',titulo:'Colaboradores',tipo:'entero'},{campo:'mp',titulo:'Min. producidos',tipo:'decimal'},{campo:'mt',titulo:'Min. trabajados',tipo:'decimal'},{campo:'er',titulo:'EF Real',tipo:'porcentaje'},
+      {campo:'ms',titulo:'Min. del sistema',tipo:'decimal'},{campo:'es',titulo:'EF Sistema',tipo:'porcentaje'},{campo:'ir',titulo:'Incentivo Real',tipo:'moneda'},{campo:'is',titulo:'Incentivo Sistema',tipo:'moneda'},{campo:'d',titulo:'Diferencia Real − Sistema',tipo:'moneda'}];};
+    var nota='EF Real = minutos producidos ÷ minutos trabajados de la semana (ponderado). EF Sistema = la del SIGE, ponderada con los minutos del sistema. Diferencia = Incentivo Real − Incentivo Sistema. No hay meta de eficiencia fijada.';
+    var res=[{titulo:'Indicadores — '+lbl,nota:nota,columnas:colA('Semana'),filas:[ag(etiquetaCorta(SEM_ACTIVA),filas)]}];
+    if(!TIPO_ACTIVO){var tps=[];filas.forEach(function(f){if(tps.indexOf(f.tipo)<0)tps.push(f.tipo);});
+      if(tps.length>1)res.push({titulo:'Por tipo de registro',columnas:colA('Tipo'),filas:tps.map(function(t){return ag(NOMBRE_TIPO[t]||t,filas.filter(function(f){return f.tipo===t;}));})});}
+    var ser=serieSemanas();
+    if(ser.length>1)res.push({titulo:'Semana a semana (últimas '+ser.length+' con registros)',nota:'Semanas sin extracto del sistema quedan en blanco en las columnas del sistema.',columnas:colA('Semana'),
+      filas:ser.map(function(x){return ag(etiquetaLarga(x.s),filtrar(CACHE[x.s]));})});
+    var pc=filas.slice().sort(function(a,b){return String(a.nombre).localeCompare(String(b.nombre));}).map(function(f){var s=f.minTrabSist>0;
+      return {k:f.nombre,c:f.codigo||null,ca:f.categoria||null,t:NOMBRE_TIPO[f.tipo]||f.tipo,dd:f.diasTrabajados,mp:f.minProducido||0,mt:f.minTrabajado||0,er:fr(f.efReal||0),ms:porSi(s,f.minTrabSist),es:porSi(s,fr(f.efSist||0)),ir:f.incReal||0,is:porSi(s,f.incSist||0),d:porSi(s,f.diferencia||0)};});
+    var colP=[{campo:'k',titulo:'Colaborador',tipo:'texto'},{campo:'c',titulo:'Código',tipo:'alfanumerico'},{campo:'ca',titulo:'Cat',tipo:'alfanumerico'},{campo:'t',titulo:'Tipo',tipo:'texto'},{campo:'dd',titulo:'Días',tipo:'entero'}].concat(colA('x').slice(2));
+    res.push({titulo:'Por colaborador',nota:'Bajo 55 % de EF no se cobra incentivo.',columnas:colP,filas:pc});
+    var detCol=pc.length?null:null;
+    var lun=lunesDe(SEM_ACTIVA),dom=new Date(lun);dom.setUTCDate(lun.getUTCDate()+6);
+    var iso=function(d){return d.toISOString().slice(0,10);};
+    var armar=function(dias){
+      var df=(dias||[]).filter(function(f){return !TIPO_ACTIVO||f.tipo===TIPO_ACTIVO;}).map(function(f){var s=f.minTrabSist>0;
+        return {fe:fechaLocal(f.fecha),k:f.nombre,c:f.codigo||null,ca:f.categoria||null,t:NOMBRE_TIPO[f.tipo]||f.tipo,mp:f.minProducido,mt:f.minTrabajado,er:fr(f.efReal),ms:porSi(s,f.minTrabSist),es:porSi(s,fr(f.efSist)),
+          b:f.basico,pi:fr(f.pctInc),ir:f.incReal,is:porSi(s,f.incSist),d:porSi(s,f.diferencia)};});
+      return libro({titulo:'Corte · Eficiencia e Incentivos',sub:lbl,formula:nota,origen:'Corte · Eficiencia e Incentivos',resumen:res,
+        detalle:{congelarCols:2,nota:'Una fila por colaborador y día de la semana, con su incentivo del día.',filas:df,columnas:[{campo:'fe',titulo:'Fecha',tipo:'fecha'},{campo:'k',titulo:'Colaborador',tipo:'texto'},{campo:'c',titulo:'Código',tipo:'alfanumerico'},{campo:'ca',titulo:'Cat',tipo:'alfanumerico'},{campo:'t',titulo:'Tipo',tipo:'texto'},
+          {campo:'mp',titulo:'Min. producidos',tipo:'decimal'},{campo:'mt',titulo:'Min. trabajados',tipo:'decimal'},{campo:'er',titulo:'EF Real',tipo:'porcentaje'},{campo:'ms',titulo:'Min. del sistema',tipo:'decimal'},{campo:'es',titulo:'EF Sistema',tipo:'porcentaje'},
+          {campo:'b',titulo:'Básico',tipo:'moneda'},{campo:'pi',titulo:'% de incentivo',tipo:'porcentaje'},{campo:'ir',titulo:'Incentivo Real',tipo:'moneda'},{campo:'is',titulo:'Incentivo Sistema',tipo:'moneda'},{campo:'d',titulo:'Diferencia Real − Sistema',tipo:'moneda'}]}});
+    };
+    if(typeof api!=='function')return armar([]);
+    return api('eficiencias',{desde:iso(lun),hasta:iso(dom)}).then(armar,function(){return armar([]);});
+  }
+};
+
+/* Botón que se vuelve a poner si el tablero redibuja su barra (ej. Círculo de Mejoras). */
+var VIGIA=null;
+function vigilar(){if(VIGIA||!window.MutationObserver)return;var pend=false;
+  VIGIA=new MutationObserver(function(){if(pend||document.getElementById('lsXlsBtn'))return;pend=true;setTimeout(function(){pend=false;iniciar();},60);});
+  VIGIA.observe(document.body,{childList:true,subtree:true});}
+
+/* --- Avance Textil PCP (hilado, tejeduría y tintorería) --- */
+var ATX={
+  detecta:function(){return typeof gruposFiltrados==='function'&&typeof filasFiltradas==='function'&&typeof agrupar==='function'&&typeof ROWS!=='undefined'&&typeof prepararSerie==='function';},
+  pone:function(){boton(document.querySelector('#app .bar button[onclick*="print"]'),true,'btn',ATX.exporta);},
+  exporta:function(){
+    if(!ROWS||!ROWS.length)throw new Error('el tablero todavía está cargando los datos');
+    var G=gruposFiltrados(),pc=function(a,b){return b>0?a/b:null;},sum=function(k){return G.reduce(function(s,g){return s+(g[k]||0);},0);};
+    var filt=[];if(F.cliente)filt.push('Cliente '+F.cliente);if(F.grupo)filt.push('Grupo '+F.grupo);if(F.prov)filt.push('Proveedor '+F.prov);if(F.estado)filt.push('Estado '+F.estado);if(F.buscar)filt.push('Búsqueda "'+F.buscar+'"');
+    filt.push(F.twill?'sin Twill':'con Twill');
+    var corte=(typeof ACT!=='undefined'&&ACT)?('Corte '+fmtCorte(ACT.corte)):'Último corte';
+    var lbl=corte+' · '+(filt.length>1?filt.join(' · '):'Toda la empresa · '+filt[0]);
+    if(!G.length)throw new Error('no hay grupos que coincidan con los filtros');
+    var rT=sum('reqTinto'),aT=sum('avTinto'),rJ=sum('reqTej'),aJ=sum('avTej'),hC=sum('hilComp'),hR=sum('hilRec');
+    var nota='% de avance = kilos avanzados ÷ kilos requeridos, sumados sobre todos los grupos (no se promedian porcentajes). Pendiente = requerido − avanzado, línea por línea. Vencido = pendiente cuyo compromiso del proveedor ya pasó.';
+    var res=[{titulo:'Avance por etapa — '+lbl,nota:nota,
+      columnas:[{campo:'k',titulo:'Etapa',tipo:'texto'},{campo:'r',titulo:'Requerido (kg)',tipo:'decimal'},{campo:'a',titulo:'Avanzado (kg)',tipo:'decimal'},{campo:'p',titulo:'Pendiente (kg)',tipo:'decimal'},{campo:'v',titulo:'Vencido (kg)',tipo:'decimal'},{campo:'x',titulo:'% Avance',tipo:'porcentaje'}],
+      filas:[{k:'Tejeduría (solo servicio)',r:rJ,a:aJ,p:sum('pendTej'),v:sum('vencTej'),x:pc(aJ,rJ)},
+             {k:'Tintorería',r:rT,a:aT,p:sum('pendTinto'),v:sum('vencTinto'),x:pc(aT,rT)},
+             {k:'Hilado en hilandería (comprado → recibido)',r:hC,a:hR,p:sum('hilPendRec'),v:null,x:pc(hR,hC)},
+             {k:'Total tejeduría + tintorería',r:null,a:null,p:sum('pendiente'),v:sum('vencido'),x:null,__total:true}]}];
+    res.push({titulo:'Por grupo ('+G.length+')',nota:'Ordenado como en el tablero: primero los que más kilos vencidos tienen. Estado = la peor situación entre sus líneas.',
+      columnas:[{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'c',titulo:'Cliente',tipo:'texto'},{campo:'t',titulo:'Tipo',tipo:'texto'},{campo:'pj',titulo:'% Tejeduría',tipo:'porcentaje'},{campo:'pt',titulo:'% Tintorería',tipo:'porcentaje'},{campo:'ph',titulo:'% Hilado recibido',tipo:'porcentaje'},
+        {campo:'p',titulo:'Pendiente (kg)',tipo:'decimal'},{campo:'v',titulo:'Vencido (kg)',tipo:'decimal'},{campo:'d',titulo:'Despacho',tipo:'fecha'},{campo:'e',titulo:'Estado',tipo:'texto'}],
+      filas:G.map(function(g){return {g:g.grupo,c:g.cliente||null,t:g.tipo,pj:fr(g.pctTej),pt:fr(g.pctTinto),ph:fr(g.pctHilRec),p:g.pendiente,v:g.vencido,d:g.despacho,e:g.estado};})});
+    var ven=[];G.forEach(function(g){g.vencidas.forEach(function(v){ven.push({g:g.grupo,e:v.etapa,t:v.tela||null,c:v.color||null,p:v.prov||null,k:v.kg,f:v.fc,d:v.dias});});});
+    ven.sort(function(a,b){return b.k-a.k;});
+    res.push({titulo:'Atrasos: líneas vencidas ('+ven.length+')',nota:'Kilos pendientes cuyo compromiso del proveedor ya pasó, de mayor a menor.',
+      columnas:[{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'e',titulo:'Etapa',tipo:'texto'},{campo:'t',titulo:'Tela',tipo:'texto'},{campo:'c',titulo:'Color',tipo:'texto'},{campo:'p',titulo:'Proveedor',tipo:'texto'},{campo:'k',titulo:'Kilos vencidos',tipo:'decimal'},{campo:'f',titulo:'Compromiso',tipo:'fecha'},{campo:'d',titulo:'Días de atraso',tipo:'entero'}],filas:ven});
+    var hil=[];G.forEach(function(g){g.hilLineas.forEach(function(l){if(l.pend>0.5)hil.push({g:g.grupo,h:l.hilado,o:l.oc||null,c:l.comp,r:l.rec,p:l.pend});});});
+    hil.sort(function(a,b){return b.p-a.p;});
+    if(hil.length){var th=hil.reduce(function(s,r){return s+r.p;},0);hil.push({g:'Total por llegar',p:th,__total:true});
+      res.push({titulo:'Hilado por llegar',nota:'Solo hilado comprado en hilandería (comprado > 0). El que ya está en stock no se persigue.',
+        columnas:[{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'h',titulo:'Hilado',tipo:'texto'},{campo:'o',titulo:'OC',tipo:'alfanumerico'},{campo:'c',titulo:'Comprado (kg)',tipo:'decimal'},{campo:'r',titulo:'Recibido (kg)',tipo:'decimal'},{campo:'p',titulo:'Por llegar (kg)',tipo:'decimal'}],filas:hil});}
+    var exc=[];G.forEach(function(g){g.excesos.forEach(function(e){exc.push({g:g.grupo,t:e.tela||null,c:e.color||null,r:e.req,a:e.av,x:e.ex,p:fr(e.pct)});});});
+    exc.sort(function(a,b){return b.x-a.x;});
+    if(exc.length){var tx=exc.reduce(function(s,r){return s+r.x;},0);exc.push({g:'Total exceso',x:tx,__total:true});
+      res.push({titulo:'Tintorería por encima de lo requerido',nota:'Colores teñidos por encima del requerido. El exceso de un color no cubre el faltante de otro.',
+        columnas:[{campo:'g',titulo:'Grupo',tipo:'alfanumerico'},{campo:'t',titulo:'Tela',tipo:'texto'},{campo:'c',titulo:'Color',tipo:'texto'},{campo:'r',titulo:'Requerido (kg)',tipo:'decimal'},{campo:'a',titulo:'Avanzado (kg)',tipo:'decimal'},{campo:'x',titulo:'Exceso (kg)',tipo:'decimal'},{campo:'p',titulo:'% Avance',tipo:'porcentaje'}],filas:exc});}
+    if(typeof SERIE!=='undefined'&&SERIE.length>1)res.push({titulo:'Evolución por corte (toda la empresa)',nota:'Totales de cada corte publicado, sin filtros: el histórico se guarda por grupo, no por combinación de filtros.',
+      columnas:[{campo:'c',titulo:'Corte',tipo:'texto'},{campo:'n',titulo:'Grupos',tipo:'entero'},{campo:'pj',titulo:'% Tejeduría',tipo:'porcentaje'},{campo:'pt',titulo:'% Tintorería',tipo:'porcentaje'},{campo:'ph',titulo:'% Hilado recibido',tipo:'porcentaje'},{campo:'p',titulo:'Pendiente (kg)',tipo:'decimal'},{campo:'v',titulo:'Vencido (kg)',tipo:'decimal'}],
+      filas:SERIE.slice().reverse().map(function(s){return {c:fmtCorte(s.corte),n:s.grupos,pj:fr(s.pctTej),pt:fr(s.pctTinto),ph:fr(s.pctHilRec),p:s.pend,v:s.venc};})});
+    var enG={};G.forEach(function(g){enG[g.grupo]=1;});
+    var t=function(v){return vacio(v)?null:v;};
+    var det=filasFiltradas().filter(function(r){return enG[r.grupo];}).sort(function(a,b){return String(a.grupo).localeCompare(String(b.grupo))||String(a.descTela).localeCompare(String(b.descTela))||String(a.descColor).localeCompare(String(b.descColor));})
+      .map(function(r){var pT=Math.max(0,r.reqTinto-r.avTinto),pJ=r.esCompra?null:Math.max(0,r.reqTej-r.avTej);
+        return {g:r.grupo,cl:t(r.cliente),ct:t(r.codTela),te:t(r.descTela),co:t(r.descCombo),cc:t(r.codColor),c:t(r.descColor),oc:t(r.claseOC),tw:r.esTwill?'Sí':'No',
+          rj:r.esCompra?null:r.reqTej,aj:r.esCompra?null:r.avTej,pj:pJ,ej:r.esCompra?null:estadoLinea(pJ,r.fcTej),vj:t(r.provTej),oj:t(r.ocTej),fj:r.fcTej,
+          rt:r.reqTinto,at:r.avTinto,pt:pT,et:estadoLinea(pT,r.fcTinto),vt:t(r.provTinto),ot:t(r.ocTinto),ft:r.fcTinto,
+          hn:t(r.hilNombre),hq:r.hilReq,hc:r.hilComp,hr:r.hilRec,hs:r.hilStock,hg:r.hilGirado,ho:t(r.hilOC),fd:r.fecDespacho};});
+    var cd=[{campo:'g',titulo:'Grupo',tipo:'alfanumerico',fija:1},{campo:'cl',titulo:'Cliente',tipo:'texto'},{campo:'ct',titulo:'Cód. tela',tipo:'alfanumerico'},{campo:'te',titulo:'Tela',tipo:'texto'},{campo:'co',titulo:'Combo',tipo:'texto'},{campo:'cc',titulo:'Cód. color',tipo:'alfanumerico'},{campo:'c',titulo:'Color',tipo:'texto'},{campo:'oc',titulo:'Clase OC',tipo:'texto'},{campo:'tw',titulo:'Twill',tipo:'texto'},
+      {campo:'rj',titulo:'Tejeduría requerido (kg)',tipo:'decimal'},{campo:'aj',titulo:'Tejeduría avanzado (kg)',tipo:'decimal'},{campo:'pj',titulo:'Tejeduría pendiente (kg)',tipo:'decimal'},{campo:'ej',titulo:'Estado tejeduría',tipo:'texto'},{campo:'vj',titulo:'Proveedor tejeduría',tipo:'texto'},{campo:'oj',titulo:'OC tejeduría',tipo:'alfanumerico'},{campo:'fj',titulo:'Compromiso tejeduría',tipo:'fecha'},
+      {campo:'rt',titulo:'Tintorería requerido (kg)',tipo:'decimal',fija:1},{campo:'at',titulo:'Tintorería avanzado (kg)',tipo:'decimal',fija:1},{campo:'pt',titulo:'Tintorería pendiente (kg)',tipo:'decimal',fija:1},{campo:'et',titulo:'Estado tintorería',tipo:'texto'},{campo:'vt',titulo:'Proveedor tintorería',tipo:'texto'},{campo:'ot',titulo:'OC tintorería',tipo:'alfanumerico'},{campo:'ft',titulo:'Compromiso tintorería',tipo:'fecha'},
+      {campo:'hn',titulo:'Hilado',tipo:'texto'},{campo:'hq',titulo:'Hilado requerido (kg)',tipo:'decimal'},{campo:'hc',titulo:'Hilado comprado (kg)',tipo:'decimal'},{campo:'hr',titulo:'Hilado recibido (kg)',tipo:'decimal'},{campo:'hs',titulo:'Hilado en stock (kg)',tipo:'decimal'},{campo:'hg',titulo:'Hilado girado (kg)',tipo:'decimal'},{campo:'ho',titulo:'OC hilado',tipo:'alfanumerico'},{campo:'fd',titulo:'Fecha de despacho',tipo:'fecha'}];
+    return libro({titulo:'Avance Textil PCP',sub:lbl,formula:nota,origen:'Avance Textil PCP',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:1,nota:'Una fila por línea del reporte del sistema (grupo, tela y color), con los mismos filtros de la pantalla. La tela comprada acabada no tiene tejeduría.'}});
+  }
+};
+
+/* --- Contramuestras (consulta de analistas y almacén) --- */
+function fechaDMY(v){var m=String(v||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]):fechaLocal(v);}
+var CMU={
+  caja:function(){return document.getElementById('buscar')||document.getElementById('qc');},
+  detecta:function(){return typeof INV!=='undefined'&&typeof tagDe==='function'&&CMU.caja();},
+  pone:function(){var c=CMU.caja();boton(c,false,'btn',CMU.exporta);var b=document.getElementById('lsXlsBtn');if(b){b.style.width='auto';b.style.display='inline-block';b.style.margin='8px 0 10px';b.style.padding='8px 16px';}},
+  exporta:function(){
+    if(!INV||!INV.length)throw new Error('el inventario todavía está cargando');
+    var q=(CMU.caja().value||'').trim().toUpperCase(),todas=q.length>=2;
+    var rows=!todas?INV.slice():INV.filter(function(r){return (r.estilo+' '+r.cliente+' '+r.color).toUpperCase().indexOf(q)!==-1;});
+    if(!rows.length)throw new Error('no hay prendas con ese dato');
+    var lbl=todas?('Búsqueda "'+q+'" · '+rows.length+' registros'):'Todo el inventario';
+    var cant=function(r){return Number(r.cantidad)||0;},EST=['DISPONIBLE','PRESTADA','DEPURADA'];
+    var te={},tr={},tot=0,totR=0;rows.forEach(function(r){te[r.estado]=(te[r.estado]||0)+cant(r);tr[r.estado]=(tr[r.estado]||0)+1;tot+=cant(r);totR++;});
+    var est=EST.concat(Object.keys(te).filter(function(e){return EST.indexOf(e)<0;})).filter(function(e){return te[e]!==undefined;});
+    var fe=est.map(function(e){return {k:e,r:tr[e],p:te[e],x:tot?te[e]/tot:null};});fe.push({k:'Total',r:totR,p:tot,x:tot?1:null,__total:true});
+    var res=[{titulo:'Inventario por estado — '+lbl,nota:'Prendas = suma de la cantidad de cada registro. % = prendas del estado ÷ prendas totales. DISPONIBLE = en su taper · PRESTADA = la tiene alguien · DEPURADA = dada de baja.',
+      columnas:[{campo:'k',titulo:'Estado',tipo:'texto'},{campo:'r',titulo:'Registros',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'x',titulo:'% de prendas',tipo:'porcentaje'}],filas:fe}];
+    var cl={};rows.forEach(function(r){var k=r.cliente||'(sin cliente)';var o=cl[k]=cl[k]||{d:0,p:0,x:0};if(r.estado==='DISPONIBLE')o.d+=cant(r);else if(r.estado==='PRESTADA')o.p+=cant(r);else if(r.estado==='DEPURADA')o.x+=cant(r);});
+    res.push({titulo:'Por cliente',columnas:[{campo:'k',titulo:'Cliente',tipo:'texto'},{campo:'d',titulo:'Disponibles',tipo:'entero'},{campo:'p',titulo:'Prestadas',tipo:'entero'},{campo:'x',titulo:'Depuradas',tipo:'entero'},{campo:'t',titulo:'Total prendas',tipo:'entero'}],
+      filas:Object.keys(cl).map(function(k){var o=cl[k];return {k:k,d:o.d,p:o.p,x:o.x,t:o.d+o.p+o.x};}).sort(function(a,b){return b.t-a.t;})});
+    var tp={};rows.forEach(function(r){if(r.estado==='DEPURADA'||r.estado==='PRESTADA')return;var t=parseInt(r.taper,10);if(isNaN(t))return;var o=tp[t]=tp[t]||{p:0,r:0};o.p+=cant(r);o.r++;});
+    var cap=(typeof CFG!=='undefined'&&CFG&&CFG.capacidad)?CFG.capacidad:null;
+    var ct=[{campo:'k',titulo:'Taper',tipo:'entero'},{campo:'r',titulo:'Registros',tipo:'entero'},{campo:'p',titulo:'Prendas en la caja',tipo:'entero'}];
+    if(cap)ct.push({campo:'o',titulo:'Ocupación (capacidad '+cap+')',tipo:'porcentaje'});
+    res.push({titulo:'Prendas en el almacén por taper',nota:'Solo prendas disponibles (en su caja). Las prestadas y depuradas no ocupan espacio.'+(cap?' Ocupación = prendas ÷ capacidad de '+cap+' por taper.':''),columnas:ct,
+      filas:Object.keys(tp).map(Number).sort(function(a,b){return a-b;}).map(function(t){return {k:t,r:tp[t].r,p:tp[t].p,o:cap?tp[t].p/cap:null};})});
+    var pr=rows.filter(function(r){return r.estado==='PRESTADA';}).sort(function(a,b){return (fechaDMY(a.salida||a.regFecha)||0)-(fechaDMY(b.salida||b.regFecha)||0);});
+    if(pr.length)res.push({titulo:'Prendas prestadas ('+pr.length+')',nota:'De la que lleva más tiempo fuera a la más reciente.',
+      columnas:[{campo:'t',titulo:'La tiene',tipo:'texto'},{campo:'s',titulo:'Desde',tipo:'fecha'},{campo:'c',titulo:'Cliente',tipo:'texto'},{campo:'e',titulo:'Estilo',tipo:'alfanumerico'},{campo:'f',titulo:'Fase',tipo:'texto'},{campo:'co',titulo:'Color',tipo:'texto'},{campo:'n',titulo:'Cant.',tipo:'entero'},{campo:'m',titulo:'Motivo',tipo:'texto'}],
+      filas:pr.map(function(r){return {t:r.prestadaA||null,s:fechaDMY(r.salida||r.regFecha),c:r.cliente,e:r.estilo,f:r.fase||null,co:r.color||null,n:cant(r),m:r.motivoP||null};})});
+    var t=function(v){return vacio(v)?null:String(v);};
+    var det=rows.slice().sort(function(a,b){return String(a.cliente).localeCompare(String(b.cliente))||String(a.estilo).localeCompare(String(b.estilo));}).map(function(r){
+      return {id:t(r.id),c:t(r.cliente),e:t(r.estilo),f:t(r.fase),co:t(r.color),n:cant(r),tp:numero(r.taper),cr:fechaDMY(r.creacion),me:numero(r.meses),es:t(r.estado),rt:t(r.regTipo),rf:fechaDMY(r.regFecha),rh:t(r.regHora),
+        pa:t(r.prestadaA),sa:fechaDMY(r.salida),mp:t(r.motivoP),dv:fechaDMY(r.devolucion),dp:fechaDMY(r.depuracion),md:t(r.motivoD)};});
+    var cd=[{campo:'id',titulo:'Código',tipo:'alfanumerico',fija:1},{campo:'c',titulo:'Cliente',tipo:'texto',fija:1},{campo:'e',titulo:'Estilo',tipo:'alfanumerico',fija:1},{campo:'f',titulo:'Fase',tipo:'texto'},{campo:'co',titulo:'Color',tipo:'texto'},{campo:'n',titulo:'Cant.',tipo:'entero',fija:1},{campo:'tp',titulo:'Taper',tipo:'entero'},
+      {campo:'cr',titulo:'Creada',tipo:'fecha'},{campo:'me',titulo:'Meses desde creada',tipo:'entero'},{campo:'es',titulo:'Estado',tipo:'texto',fija:1},{campo:'rt',titulo:'Último movimiento',tipo:'texto'},{campo:'rf',titulo:'Fecha del movimiento',tipo:'fecha'},{campo:'rh',titulo:'Hora',tipo:'alfanumerico'},
+      {campo:'pa',titulo:'La tiene',tipo:'texto'},{campo:'sa',titulo:'Fecha de salida',tipo:'fecha'},{campo:'mp',titulo:'Motivo del préstamo',tipo:'texto'},{campo:'dv',titulo:'Devolución',tipo:'fecha'},{campo:'dp',titulo:'Depuración',tipo:'fecha'},{campo:'md',titulo:'Motivo de depuración',tipo:'texto'}];
+    return libro({titulo:'Almacén de Contramuestras',sub:lbl,formula:'Inventario del almacén de contramuestras de Desarrollo. Prendas = suma de cantidades; un registro puede tener más de una prenda.',origen:(CMU.caja().id==='buscar'?'Consulta de Contramuestras':'Almacén de Contramuestras'),resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:todas?'Todos los registros que coinciden con la búsqueda (no solo los 60 que muestra la pantalla).':'Todos los registros del inventario.'}});
+  }
+};
+
+/* --- Programa de Corte PCP --- */
+var PCO={
+  detecta:function(){return typeof applyFilters==='function'&&typeof computeDailySchedule==='function'&&typeof getPref==='function'&&typeof state!=='undefined'&&state&&state.rows&&document.getElementById('dashboardBtn');},
+  pone:function(){boton(document.getElementById('dashboardBtn'),true,'btn',PCO.exporta);},
+  exporta:function(){
+    if(!state.rows.length)throw new Error('el programa todavía está cargando');
+    var rows=state.filtered||[];if(!rows.length)throw new Error('ninguna orden cumple los filtros');
+    var tx=function(id){var e=document.getElementById(id);return e&&e.value?e.options?e.options[e.selectedIndex].text:e.value:'';};
+    var f=[];var q=(document.getElementById('searchInput')||{}).value;if(q)f.push('Búsqueda "'+q+'"');['priorityFilter','routeFilter','typeFilter'].forEach(function(id){var t=tx(id);if(t)f.push(t);});
+    if(typeof moduleViewSel!=='undefined'&&moduleViewSel&&moduleViewSel!=='Todos')f.push(moduleViewSel);
+    var lbl=f.length?f.join(' · '):'Todas las órdenes';
+    var n=rows.length,pc=function(a){return n?a/n:null;},S=function(k){return rows.reduce(function(s,r){return s+(Number(r[k])||0);},0);};
+    var tipo=function(r){return getPref(r.id).tipo||'Servicio';};
+    var oc={};rows.forEach(function(r){oc[r.oc]=1;});
+    var res=[{titulo:'Volumen — '+lbl,nota:'Órdenes = filas del listado que cumplen los filtros (solo pieza CUERPO, sin prendas reales todavía).',
+      columnas:[{campo:'o',titulo:'Órdenes',tipo:'entero'},{campo:'u',titulo:'O/C únicas',tipo:'entero'},{campo:'p',titulo:'Prendas programadas',tipo:'entero'},{campo:'k',titulo:'Kg programados',tipo:'decimal'},{campo:'m',titulo:'Minutos de corte (suma)',tipo:'decimal'}],
+      filas:[{o:n,u:Object.keys(oc).length,p:S('pdas'),k:S('kg'),m:S('minProg')}]}];
+    var c=function(fn){return rows.filter(fn).length;};
+    var av=[['Servicio (corte tercerizado)',c(function(r){return tipo(r)==='Servicio';})],['Planta (corte en planta)',c(function(r){return tipo(r)==='Planta';})],
+      ['Ruta OK (molde asignado)',c(function(r){return r.rutaOk;})],['Tizado OK',c(function(r){return r.tizOk;})],['Medidas OK (o corte directo)',c(function(r){return r.medidasOk;})],
+      ['Ruta, tizado y medidas completos',c(function(r){return r.rutaOk&&r.tizOk&&r.medidasOk;})],['Con fecha de reposo',c(function(r){return getPref(r.id).reposoDate;})],['Con envío a servicio',c(function(r){return getPref(r.id).envioDate;})],
+      ['Sin programar ni enviar',c(function(r){var p=getPref(r.id);return !p.programDate&&!p.envioDate;})]];
+    res.push({titulo:'Avance y asignación',nota:'% = órdenes que cumplen ÷ '+n+' órdenes del filtro.',columnas:[{campo:'k',titulo:'Concepto',tipo:'texto'},{campo:'v',titulo:'Órdenes',tipo:'entero'},{campo:'p',titulo:'% de órdenes',tipo:'porcentaje'}],
+      filas:av.map(function(a){return {k:a[0],v:a[1],p:pc(a[1])};})});
+    var grp=function(fn){var m={};rows.forEach(function(r){var k=fn(r);if(vacio(k))return;(m[k]=m[k]||[]).push(r);});return m;};
+    var gp=grp(function(r){return r.prioridad||'(sin prioridad)';});
+    res.push({titulo:'Por prioridad',columnas:[{campo:'k',titulo:'Prioridad',tipo:'texto'},{campo:'o',titulo:'Órdenes',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'g',titulo:'Kg',tipo:'decimal'}],
+      filas:Object.keys(gp).sort().map(function(k){var g=gp[k];return {k:k,o:g.length,p:g.reduce(function(s,r){return s+(Number(r.pdas)||0);},0),g:g.reduce(function(s,r){return s+(Number(r.kg)||0);},0)};})});
+    var CAP=typeof MODULE_CAP!=='undefined'?MODULE_CAP:null;
+    var gm=grp(function(r){var p=getPref(r.id);return (p.tipo==='Planta'&&p.programDate&&p.modulo)?p.programDate+'|'+p.modulo:null;});
+    var fm=Object.keys(gm).sort().map(function(k){var g=gm[k],m=g.reduce(function(s,r){return s+(Number(r.minProg)||0);},0),pp=k.split('|');return {f:fechaLocal(pp[0]),m:pp[1],o:g.length,mi:m,c:CAP,u:CAP?m/CAP:null};});
+    if(fm.length)res.push({titulo:'Planta por módulo y fecha',nota:'Igual que el resumen de la pantalla: minutos de corte de las órdenes asignadas ÷ capacidad del módulo ('+CAP+' min por día).',
+      columnas:[{campo:'f',titulo:'Fecha prog.',tipo:'fecha'},{campo:'m',titulo:'Módulo',tipo:'texto'},{campo:'o',titulo:'Órdenes',tipo:'entero'},{campo:'mi',titulo:'Minutos',tipo:'decimal'},{campo:'c',titulo:'Capacidad (min)',tipo:'decimal'},{campo:'u',titulo:'% de uso',tipo:'porcentaje'}],filas:fm});
+    var gs=grp(function(r){var p=getPref(r.id);return (p.tipo||'Servicio')==='Servicio'?p.servicioCorte:null;});
+    if(Object.keys(gs).length)res.push({titulo:'Servicios de corte',columnas:[{campo:'k',titulo:'Servicio',tipo:'texto'},{campo:'o',titulo:'Órdenes (O/C)',tipo:'entero'},{campo:'m',titulo:'Minutos',tipo:'decimal'}],
+      filas:Object.keys(gs).sort().map(function(k){var g=gs[k];return {k:k,o:g.length,m:g.reduce(function(s,r){return s+(Number(r.minProg)||0);},0)};})});
+    var si=function(b){return b?'Sí':'No';},t=function(v){return vacio(v)?null:v;};
+    var det=rows.map(function(r){var p=getPref(r.id);return {pr:t(r.prioridad),fd:fechaDMY(r.fechaDespacho),ti:p.tipo||'Servicio',g:t(r.grupo),e:t(r.estilo),co:t(r.color),oc:t(r.oc),pa:t(r.partida),te:t(r.tela),kg:numero(r.kg),pd:numero(r.pdas),mp:numero(r.minProg),
+      ru:si(r.rutaOk),tz:si(r.tizOk),me:si(r.medidasOk),fp:fechaLocal(p.programDate),mo:t(p.modulo),tc:t(p.tallerCostura),sc:t(p.servicioCorte),re:fechaLocal(p.reposoDate),en:fechaLocal(p.envioDate),ob:t(p.obs),pv:t(r.proveedor),rt:t(r.rutaTexto)};});
+    var cd=[{campo:'pr',titulo:'Prioridad',tipo:'texto',fija:1},{campo:'fd',titulo:'Fec. despacho',tipo:'fecha'},{campo:'ti',titulo:'Tipo',tipo:'texto',fija:1},{campo:'g',titulo:'Grupo',tipo:'alfanumerico',fija:1},{campo:'e',titulo:'Estilo',tipo:'alfanumerico'},{campo:'co',titulo:'Color',tipo:'texto'},{campo:'oc',titulo:'O/C',tipo:'alfanumerico',fija:1},{campo:'pa',titulo:'Partida',tipo:'alfanumerico'},{campo:'te',titulo:'Tela',tipo:'texto'},
+      {campo:'kg',titulo:'Kg',tipo:'decimal',fija:1},{campo:'pd',titulo:'Prendas',tipo:'entero',fija:1},{campo:'mp',titulo:'Min prog',tipo:'decimal',fija:1},{campo:'ru',titulo:'Ruta OK',tipo:'texto',fija:1},{campo:'tz',titulo:'Tizado OK',tipo:'texto',fija:1},{campo:'me',titulo:'Medidas OK',tipo:'texto',fija:1},
+      {campo:'fp',titulo:'Fecha prog.',tipo:'fecha'},{campo:'mo',titulo:'Módulo',tipo:'texto'},{campo:'tc',titulo:'Taller costura',tipo:'texto'},{campo:'sc',titulo:'Servicio de corte',tipo:'texto'},{campo:'re',titulo:'Reposo',tipo:'fecha'},{campo:'en',titulo:'Envío a servicio',tipo:'fecha'},{campo:'ob',titulo:'Observación',tipo:'texto'},{campo:'pv',titulo:'Proveedor lavandería',tipo:'texto'},{campo:'rt',titulo:'Ruta (texto)',tipo:'texto'}];
+    return libro({titulo:'Programa de Corte',sub:lbl,formula:'Programa de corte de PCP con las asignaciones de planta, servicio, reposo y envíos. Los % se calculan sobre las órdenes del filtro.',origen:'Programa de Corte · PCP',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:4,nota:'Una fila por orden del filtro, en el mismo orden de la pantalla.'}});
+  }
+};
+
+/* --- WIP Muestras (programa WIP) --- */
+var WIP={
+  detecta:function(){return typeof visibles==='function'&&typeof PE!=='undefined'&&typeof imprimirWip==='function'&&document.getElementById('btnImpr');},
+  pone:function(){boton(document.getElementById('btnImpr'),true,'impr',WIP.exporta);},
+  exporta:function(){
+    if(!PE.filas||!PE.filas.length)throw new Error('el programa todavía está cargando');
+    var L=visibles();if(!L.length)throw new Error('no hay nada con ese filtro');
+    var fl=[];if(PE.semana!=='TODAS')fl.push(PE.semana==='SIN FECHA'?'Sin fecha de despacho':'Semana '+PE.semana);if(PE.status!=='TODOS')fl.push(etiquetaStatus(PE.status));
+    var q=(document.getElementById('buscaPE')||{}).value;if(q&&q.trim())fl.push('Búsqueda "'+q.trim()+'"');
+    var lbl=fl.length?fl.join(' · '):'Todo el programa';
+    var cant=function(f){return typeof f.cant==='number'?f.cant:0;},mins=function(f){var m=Number(f.minutos);return (f.minutos===''||f.minutos==null||isNaN(m))?null:m*cant(f);};
+    var acum=function(lista){var o={l:lista.length,e:{},p:0,m:0,sm:0,at:0};lista.forEach(function(f){o.e[f.lives]=1;o.p+=cant(f);var m=mins(f);if(m==null)o.sm++;else o.m+=m;if(f.atraso>0)o.at++;});o.ne=Object.keys(o.e).length;return o;};
+    var T=acum(L);
+    var res=[{titulo:'Totales — '+lbl,nota:'Minutos = minutaje por prenda × prendas, solo de las líneas que tienen minutaje. Estilos se cuentan sin repetir (un estilo en dos colores es uno).',
+      columnas:[{campo:'l',titulo:'Líneas',tipo:'entero'},{campo:'ne',titulo:'Estilos',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'m',titulo:'Minutos',tipo:'entero'},{campo:'sm',titulo:'Líneas sin minutaje',tipo:'entero'},{campo:'at',titulo:'Líneas con despacho vencido',tipo:'entero'}],filas:[T]}];
+    var gr=function(fn){var m={},ord=[];L.forEach(function(f){var k=fn(f);if(!m[k]){m[k]=[];ord.push(k);}m[k].push(f);});return {m:m,ord:ord};};
+    var gd=gr(function(f){return f.clave||'';});
+    res.push({titulo:'Por fecha de despacho',columnas:[{campo:'f',titulo:'Despacho',tipo:'fecha'},{campo:'d',titulo:'Día',tipo:'texto'},{campo:'l',titulo:'Líneas',tipo:'entero'},{campo:'ne',titulo:'Estilos',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'m',titulo:'Minutos',tipo:'entero'}],
+      filas:gd.ord.map(function(k){var o=acum(gd.m[k]);return {f:k?fechaLocal(k):null,d:k?gd.m[k][0].dia:'Sin fecha de despacho',l:o.l,ne:o.ne,p:o.p,m:o.m};})});
+    var gs=gr(function(f){return f.status||'(sin status)';});
+    res.push({titulo:'Por status',columnas:[{campo:'k',titulo:'Status',tipo:'texto'},{campo:'l',titulo:'Líneas',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'x',titulo:'% de prendas',tipo:'porcentaje'}],
+      filas:gs.ord.sort().map(function(k){var o=acum(gs.m[k]);return {k:k,l:o.l,p:o.p,x:T.p?o.p/T.p:null};})});
+    var gc=gr(function(f){return f.cliente||'(sin cliente)';});
+    res.push({titulo:'Por cliente',columnas:[{campo:'k',titulo:'Cliente',tipo:'texto'},{campo:'ne',titulo:'Estilos',tipo:'entero'},{campo:'p',titulo:'Prendas',tipo:'entero'},{campo:'m',titulo:'Minutos',tipo:'entero'}],
+      filas:gc.ord.map(function(k){var o=acum(gc.m[k]);return {k:k,ne:o.ne,p:o.p,m:o.m};}).sort(function(a,b){return b.p-a.p;})});
+    var t=function(v){return vacio(v)?null:v;};
+    var det=L.map(function(f){return {fd:f.clave?fechaLocal(f.clave):null,di:t(f.dia),se:numero(f.semana),g:t(f.grupo),lv:t(f.lives),ec:t(f.estcli),cl:t(f.cliente),co:t(f.codigo),ar:t(f.articulo),fa:t(f.fase),cb:t(f.combo),ta:t(f.talla),
+      ca:typeof f.cant==='number'?f.cant:null,mp:numero(f.minutos),mt:mins(f),st:t(f.status),rq:fechaDMY(f.freq),at:f.atraso>0?f.atraso:null,sv:t(f.servicio),cs:t(f.costurera),au:t(f.auditora),te:fechaDMY(f.tela),av:fechaDMY(f.avios),or:t(f.orden),ob:t(f.obs)};});
+    var cd=[{campo:'fd',titulo:'Despacho',tipo:'fecha',fija:1},{campo:'di',titulo:'Día',tipo:'texto'},{campo:'se',titulo:'Semana',tipo:'entero'},{campo:'g',titulo:'Grupo',tipo:'alfanumerico',fija:1},{campo:'lv',titulo:'Estilo LIVES',tipo:'alfanumerico',fija:1},{campo:'ec',titulo:'Estilo cliente',tipo:'alfanumerico'},{campo:'cl',titulo:'Cliente',tipo:'texto'},
+      {campo:'co',titulo:'Código',tipo:'alfanumerico'},{campo:'ar',titulo:'Artículo',tipo:'texto'},{campo:'fa',titulo:'Fase',tipo:'texto'},{campo:'cb',titulo:'Combo',tipo:'texto'},{campo:'ta',titulo:'Talla',tipo:'alfanumerico'},{campo:'ca',titulo:'Prendas',tipo:'entero',fija:1},{campo:'mp',titulo:'Minutaje por prenda',tipo:'decimal'},{campo:'mt',titulo:'Minutos totales',tipo:'decimal'},
+      {campo:'st',titulo:'Status',tipo:'texto',fija:1},{campo:'rq',titulo:'Fecha de requerimiento',tipo:'fecha'},{campo:'at',titulo:'Días de atraso',tipo:'entero'},{campo:'sv',titulo:'Servicio',tipo:'texto'},{campo:'cs',titulo:'Costurera',tipo:'texto'},{campo:'au',titulo:'Auditora',tipo:'texto'},{campo:'te',titulo:'Tela proyectada',tipo:'fecha'},{campo:'av',titulo:'Avíos proyectados',tipo:'fecha'},{campo:'or',titulo:'Orden',tipo:'alfanumerico'},{campo:'ob',titulo:'Observación',tipo:'texto'}];
+    return libro({titulo:'Programa WIP Muestras',sub:lbl,formula:'Programa WIP de muestras de Planta Barranco, con los filtros de semana, status y búsqueda de la pantalla.',origen:'WIP Muestras · Planta Barranco',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:5,nota:'Una fila por línea del programa, en el orden de la pantalla (por fecha de despacho).'}});
+  }
+};
+
+/* --- Visor de artes de avíos --- */
+var AVI={
+  detecta:function(){return typeof filtrar==='function'&&typeof cargasPorItem==='function'&&typeof abrirFicha==='function'&&typeof FILAS!=='undefined'&&document.getElementById('btnLimpiar');},
+  pone:function(){boton(document.getElementById('btnLimpiar'),true,'btn',AVI.exporta);},
+  exporta:function(){
+    if(!FILAS||!FILAS.length)throw new Error('todavía no hay artes cargados');
+    var V=filtrar();if(!V.length)throw new Error('ninguna carga coincide con la búsqueda');
+    V.sort(function(a,b){return String(b.fecha+b.id).localeCompare(String(a.fecha+a.id));});
+    var tx=function(id){var e=document.getElementById(id);return e&&e.value&&e.options?e.options[e.selectedIndex].text:'';};
+    var f=[];var q=document.getElementById('q').value.trim();if(q)f.push('Búsqueda "'+q+'"');['selCliente','selProveedor','selTipo'].forEach(function(id){var t=tx(id);if(t)f.push(t);});
+    var est=document.getElementById('selEstado').value||'VIGENTES';f.push(est==='VIGENTES'?'Vigentes (sin anulados)':tx('selEstado')||est);
+    var lbl=f.join(' · ');
+    var ET=function(e){return typeof estadoTxt==='function'?estadoTxt(e):e;};
+    var cuenta=function(fn,etq){var m={};V.forEach(function(r){var k=fn(r)||'(sin dato)';var o=m[k]=m[k]||{c:0,i:{}};o.c++;o.i[r.item]=1;});
+      return {titulo:'Por '+etq.toLowerCase(),columnas:[{campo:'k',titulo:etq,tipo:'texto'},{campo:'c',titulo:'Cargas',tipo:'entero'},{campo:'i',titulo:'Items',tipo:'entero'}],
+        filas:Object.keys(m).map(function(k){return {k:k,c:m[k].c,i:Object.keys(m[k].i).length};}).sort(function(a,b){return b.c-a.c;})};};
+    var items={};V.forEach(function(r){items[r.item]=1;});
+    var res=[{titulo:'Total — '+lbl,nota:'Una carga = uno o más archivos de un mismo arte con sus datos. Un item puede tener varias cargas.',
+      columnas:[{campo:'c',titulo:'Cargas',tipo:'entero'},{campo:'i',titulo:'Items',tipo:'entero'},{campo:'a',titulo:'Archivos',tipo:'entero'}],
+      filas:[{c:V.length,i:Object.keys(items).length,a:V.reduce(function(s,r){return s+((r.archivos||[]).length);},0)}]},
+      cuenta(function(r){return ET(r.estado);},'Estado'),
+      cuenta(function(r){return typeof descDe==='function'&&typeof CAT!=='undefined'&&CAT.clientes?(descDe(CAT.clientes,r.cliente)||r.cliente):r.cliente;},'Cliente'),
+      cuenta(function(r){return r.proveedor;},'Proveedor'),cuenta(function(r){return r.tipo;},'Tipo de avío')];
+    var cpi=cargasPorItem(),t=function(v){return vacio(v)?null:String(v);};
+    var fh=function(v){if(vacio(v))return null;var d=new Date(String(v).replace(' ','T'));return isNaN(d)?String(v):d;};
+    var det=V.map(function(r){return {fe:fh(r.fecha),it:t(r.item),cl:t(r.cliente),pv:t(r.proveedor),tp:t(r.tipo),oc:t(r.oc),pe:t(r.pedido),es:t(r.estilo),st:ET(r.estado),na:(r.archivos||[]).length,
+      ar:(r.archivos||[]).map(function(a){return a.nombre;}).join(' · ')||null,ci:cpi[r.item]||null,po:t(r.por),aa:t(r.area),co:t(r.comentario),id:t(r.id)};});
+    var cd=[{campo:'fe',titulo:'Fecha de carga',tipo:'fecha_hora',fija:1},{campo:'it',titulo:'Item',tipo:'alfanumerico',fija:1},{campo:'cl',titulo:'Cliente',tipo:'texto'},{campo:'pv',titulo:'Proveedor',tipo:'texto'},{campo:'tp',titulo:'Tipo de avío',tipo:'texto'},{campo:'oc',titulo:'OC',tipo:'alfanumerico'},{campo:'pe',titulo:'Pedido',tipo:'alfanumerico'},
+      {campo:'es',titulo:'Estilo',tipo:'alfanumerico'},{campo:'st',titulo:'Estado',tipo:'texto',fija:1},{campo:'na',titulo:'Archivos',tipo:'entero',fija:1},{campo:'ar',titulo:'Nombres de archivo',tipo:'texto'},{campo:'ci',titulo:'Cargas del item (vigentes)',tipo:'entero'},{campo:'po',titulo:'Subido por',tipo:'texto'},{campo:'aa',titulo:'Área',tipo:'texto'},{campo:'co',titulo:'Comentario',tipo:'texto'},{campo:'id',titulo:'ID',tipo:'alfanumerico'}];
+    return libro({titulo:'Artes de avíos',sub:lbl,formula:'Listado de artes de avíos cargados por Logística y Calidad, con los filtros de la pantalla. Los archivos se abren desde el visor.',origen:'Artes de avíos',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:2,nota:'Una fila por carga, de la más reciente a la más antigua.'}});
+  }
+};
+
+/* --- Avances Auditoría (Packing) --- */
+var AAU={
+  detecta:function(){return typeof getFiltrados==='function'&&typeof elegiblesCliente==='function'&&typeof serieSemanal==='function'&&typeof DATOS!=='undefined'&&document.getElementById('f-estado');},
+  pone:function(){boton(document.querySelector('.bar button[onclick*="limpiarFiltros"]'),true,'btn',AAU.exporta);},
+  exporta:function(){
+    if(!DATOS||!DATOS.length)throw new Error('el tablero todavía está cargando los datos');
+    var R=getFiltrados();if(!R.length)throw new Error('no hay registros para este filtro');
+    var f=[];['f-cliente','f-grupo','f-estilo','f-po','f-color','f-semana','f-mes','f-estado','f-clistatus'].forEach(function(id){var e=document.getElementById(id);if(e&&e.value){var lb=e.closest('.fgroup')&&e.closest('.fgroup').querySelector('.flbl');f.push((lb?lb.textContent+' ':'')+e.options[e.selectedIndex].text);}});
+    var q=document.getElementById('f-search').value.trim();if(q)f.push('Búsqueda "'+q+'"');
+    var d1=document.getElementById('f-cli-desde').value,d2=document.getElementById('f-cli-hasta').value;if(d1||d2)f.push('Cliente evaluó '+(d1||'…')+' a '+(d2||'…'));
+    var lbl=f.length?f.join(' · '):'Todos los registros';
+    var apr=0,rech=0,sin=0;R.forEach(function(r){if(r.estatusAuditoria==='APROBADO')apr++;else if(r.estatusAuditoria==='RECHAZADO')rech++;else sin++;});
+    var el=elegiblesCliente(R),ac=0,rc=0,pe=0;el.forEach(function(r){if(r.statusCliente==='APROBADO_CLIENTE')ac++;else if(r.statusCliente==='RECHAZADO_CLIENTE')rc++;else pe++;});
+    var pc=function(a,b){return b>0?a/b:null;};
+    var nota='% Aprobación interna = aprobadas ÷ auditorías cerradas (aprobadas + rechazadas). % Rechazo cliente = rechazadas por el cliente ÷ evaluadas por el cliente; solo cuentan los registros aprobados internamente.';
+    var res=[{titulo:'Indicadores — '+lbl,nota:nota,columnas:[{campo:'k',titulo:'Indicador',tipo:'texto'},{campo:'v',titulo:'Valor',tipo:'porcentaje'},{campo:'a',titulo:'Numerador',tipo:'entero'},{campo:'b',titulo:'Denominador',tipo:'entero'}],
+      filas:[{k:'% Aprobación interna',v:pc(apr,apr+rech),a:apr,b:apr+rech},{k:'% Rechazo cliente',v:pc(rc,ac+rc),a:rc,b:ac+rc}]},
+      {titulo:'Conteo de registros',columnas:[{campo:'k',titulo:'Estado',tipo:'texto'},{campo:'n',titulo:'Registros',tipo:'entero'}],
+        filas:[{k:'Registros en el filtro',n:R.length},{k:'Aprobados en auditoría',n:apr},{k:'Rechazados en auditoría',n:rech},{k:'Sin auditar',n:sin},{k:'Aprobados por el cliente',n:ac},{k:'Rechazados por el cliente',n:rc},{k:'Pendientes de evaluación del cliente',n:pe},{k:'Sin cantidad lista (sin reporte de encajado)',n:R.filter(function(r){return !r.cantidadLista;}).length}]}];
+    var S=serieSemanal(R);
+    if(S.semanas.length)res.push({titulo:'Semana a semana',columnas:[{campo:'s',titulo:'Semana',tipo:'alfanumerico'},{campo:'t',titulo:'Auditorías cerradas',tipo:'entero'},{campo:'a',titulo:'Aprobadas',tipo:'entero'},{campo:'pa',titulo:'% Aprobación interna',tipo:'porcentaje'},{campo:'ac',titulo:'Aprobadas por cliente',tipo:'entero'},{campo:'rc',titulo:'Rechazadas por cliente',tipo:'entero'},{campo:'pr',titulo:'% Rechazo cliente',tipo:'porcentaje'}],
+      filas:S.semanas.map(function(s){var w=S.porSemana[s];return {s:s,t:w.tot,a:w.apr,pa:pc(w.apr,w.tot),ac:w.ac,rc:w.rc,pr:pc(w.rc,w.ac+w.rc)};})});
+    var pcl={};R.forEach(function(r){var c=r.cliente||'—';var g=pcl[c]=pcl[c]||{t:0,a:0,r:0,ac:0,rc:0,pe:0};g.t++;if(r.estatusAuditoria==='APROBADO')g.a++;else if(r.estatusAuditoria==='RECHAZADO')g.r++;
+      if(r.statusCliente==='APROBADO_CLIENTE')g.ac++;else if(r.statusCliente==='RECHAZADO_CLIENTE')g.rc++;else if(r.estatusAuditoria==='APROBADO')g.pe++;});
+    res.push({titulo:'Por cliente',nota:'% de aprobación interna sobre las auditorías cerradas de cada cliente.',columnas:[{campo:'k',titulo:'Cliente',tipo:'texto'},{campo:'t',titulo:'Registros',tipo:'entero'},{campo:'au',titulo:'Auditados',tipo:'entero'},{campo:'p',titulo:'% Aprobación interna',tipo:'porcentaje'},{campo:'ac',titulo:'Aprobados cliente',tipo:'entero'},{campo:'rc',titulo:'Rechazados cliente',tipo:'entero'},{campo:'pe',titulo:'Pendientes cliente',tipo:'entero'}],
+      filas:Object.keys(pcl).map(function(k){var g=pcl[k];return {k:k,t:g.t,au:g.a+g.r,p:pc(g.a,g.a+g.r),ac:g.ac,rc:g.rc,pe:g.pe};}).sort(function(a,b){return b.au-a.au;})});
+    var EA=function(r){return r.estatusAuditoria||'Sin auditar';},EC=function(r){return r.statusCliente==='APROBADO_CLIENTE'?'Aprobado cliente':r.statusCliente==='RECHAZADO_CLIENTE'?'Rechazado cliente':(r.estatusAuditoria==='APROBADO'?'Pendiente':null);};
+    var t=function(v){return vacio(v)?null:v;};
+    var det=R.map(function(r){return {fe:fechaDMY(r.fecha),se:t(r.semana),cl:t(r.cliente),g:t(r.grupo),e:t(r.estilo),op:t(r.op),po:t(r.po),co:t(r.color),cp:r.cantidadPedido||null,cl2:r.cantidadLista||null,pl:r.pctListo,pa:r.pctAuditado,
+      ea:EA(r),na:r.numAuditorias,ec:EC(r),fc:fechaDMY(r.fechaCliente)};});
+    var cd=[{campo:'fe',titulo:'Fecha',tipo:'fecha'},{campo:'se',titulo:'Semana',tipo:'alfanumerico'},{campo:'cl',titulo:'Cliente',tipo:'texto',fija:1},{campo:'g',titulo:'Grupo',tipo:'alfanumerico',fija:1},{campo:'e',titulo:'Estilo',tipo:'alfanumerico',fija:1},{campo:'op',titulo:'OP',tipo:'alfanumerico'},{campo:'po',titulo:'PO',tipo:'alfanumerico',fija:1},{campo:'co',titulo:'Color',tipo:'texto',fija:1},
+      {campo:'cp',titulo:'Cantidad pedido',tipo:'entero'},{campo:'cl2',titulo:'Cantidad lista',tipo:'entero'},{campo:'pl',titulo:'% Listo',tipo:'porcentaje'},{campo:'pa',titulo:'% Auditado',tipo:'porcentaje'},{campo:'ea',titulo:'Estatus auditoría',tipo:'texto',fija:1},{campo:'na',titulo:'N° de auditorías',tipo:'entero',fija:1},{campo:'ec',titulo:'Estatus cliente',tipo:'texto'},{campo:'fc',titulo:'Fecha evaluación cliente',tipo:'fecha'}];
+    return libro({titulo:'Avances Auditoría · Packing',sub:lbl,formula:nota,origen:'Avances Auditoría · Calidad Manufactura',resumen:res,
+      detalle:{columnas:sinVacias(cd,det),filas:det,congelarCols:3,nota:'Una fila por registro del filtro (grupo, estilo, PO y color), con su avance de empaque y sus estatus.'}});
+  }
+};
+
+var ADAPT=[CAL,IFC,CHK,MEJ,POT,COR,ATX,CMU,PCO,WIP,AVI,AAU];
+function iniciar(){var hay=false;ADAPT.forEach(function(a){try{if(a.detecta()){hay=true;a.pone();}}catch(e){}});if(hay)vigilar();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+window.addEventListener('load',iniciar);
+}catch(e){}})();
+</script>
+<!-- ===== fin lives-excel-reporte v1 ===== -->
 </body>
 </html>
