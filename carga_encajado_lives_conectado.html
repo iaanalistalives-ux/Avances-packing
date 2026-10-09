@@ -1508,7 +1508,8 @@ render();
 
 
 
-<!-- ===== lives-franja v4 · 2026-10-07 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+
+<!-- ===== lives-franja v5 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
      1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
         el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
         solo quedan esos, en una línea delgada.
@@ -1520,7 +1521,11 @@ render();
      4) v4 · Si la herramienta se abre dentro del portal LIVES antiguo y ese portal todavía es la versión vieja (sin el aviso
         de mudanza, bloque lsMudJs), se recarga el portal completo para que la persona vea el aviso de mudanza.
         Solo pasa al abrir la herramienta (todavía sin nada escrito), como máximo una vez cada 10 minutos;
-        en el portal nuevo de Sistemas no hace nada. ===== -->
+        en el portal nuevo de Sistemas no hace nada.
+     5) v5 · Botones de exportar, imprimir, actualizar, Excel o HTML que flotaban encima de la barra de filtros pasan a esa
+        barra (si no hay barra, se crea una). La barra con filtros queda fija al bajar y, mientras está fija, los botones de
+        acción se esconden; al subir vuelven. Las barras que solo tienen botones suben con la página.
+        El dato "N registros · datos al …" ya no se muestra. Acabados no se toca. ===== -->
 <style id="lsFrCss">
 @media screen{
 .lsSinBarra{padding:2px 12px 0!important;gap:2px 8px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
@@ -1618,6 +1623,78 @@ render();
   }catch(e){}
   if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
 }catch(e){}})();</script>
-<!-- ===== fin lives-franja v4 ===== -->
+<style id="lsBaCss">
+@media screen{
+.lsBaOc{display:none!important}
+.lsAcc{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.lsBarra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;background:#fff;border:1px solid #DCE5E2;border-radius:12px;padding:8px 12px;margin:0 0 12px;box-shadow:0 1px 3px rgba(14,59,54,.06)}
+.lsBaFijo{position:sticky!important;top:0;z-index:30}
+.lsBaSuelta{position:static!important}
+.lsPegada .lsAccBtn{display:none!important}
+}
+</style>
+<script id="lsBaJs">(function(){try{
+  /* v5 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+     La barra con filtros queda fija al bajar; los botones de acción se esconden mientras está fija y vuelven al subir.
+     El dato de "N registros · datos al …" no se muestra (el aviso flotante "Actualizado" ya lo dice).
+     No cambia cálculos, datos ni guardados: solo ubica botones que ya existen. Acabados (Lady) no se toca. */
+  if(/\/formulario-acabados\//.test(location.pathname))return;
+  var ACC=/^(exportar|descargar|imprimir|actualizar|recargar|compartir|copiar enlace)\b|\b(excel|pdf|html|csv)\b/i;
+  var EST=/(datos al \d|le[ií]d[oa]s? a las|datos de las \d|actualizad[oa] a las|[uú]ltima (lectura|actualizaci)|datos en vivo|en vivo ·)/i;
+  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="toolbar"]';
+  var CTL='select,input:not([type=hidden]):not([type=file]):not([type=button]):not([type=submit])';
+  function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
+  function txt(e){return (e.textContent||'').replace(/\s+/g,' ').trim();}
+  function limpio(t){return t.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]+/,'');}
+  function esAcc(b){if(b.closest('#lsFrToast,#lsAct,#lsMud,.lsSinBarra .lsFrOc'))return false;var t=limpio(txt(b));return t.length>0&&t.length<40&&ACC.test(t);}
+  function poner(e,c){if(!e.classList.contains(c))e.classList.add(c);}
+  function hayCtl(e){return Array.prototype.some.call(e.querySelectorAll('a,button,'+CTL+',textarea,canvas,img,table,svg'),vis);}
+  function enBarra(e){var b=e.closest(BARRA);return b&&!b.closest('.lsSinBarra')?b:null;}
+  function externa(b){var p=b.parentElement&&b.parentElement.closest(BARRA);while(p&&!p.closest('.lsSinBarra')&&vis(p)){b=p;p=b.parentElement&&b.parentElement.closest(BARRA);}return b;}
+  function barraFiltros(){var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest('.lsSinBarra,dialog,[role=dialog],.modal:not(.on):not(.show):not(.abierto)')&&Array.prototype.some.call(b.querySelectorAll(CTL),vis);}).map(externa);
+    c.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top;});return c[0]||null;}
+  function contScroll(e){var p=e.parentElement;while(p&&p!==document.body){var o=getComputedStyle(p).overflowY;if(o==='auto'||o==='scroll')return p;p=p.parentElement;}return null;}
+  var F=null,FIX=null;
+  function arreglar(){
+    var f=barraFiltros(),tope=f?f.getBoundingClientRect().top:260;
+    /* 1) dato de estado arriba */
+    Array.prototype.forEach.call(document.querySelectorAll('div,span,p,small'),function(e){
+      if(e.classList.contains('lsBaOc')||e.children.length>3||!vis(e))return;var t=txt(e);
+      if(t.length>160||!EST.test(t)||hayCtl(e))return;if(e.getBoundingClientRect().top>tope+4)return;
+      if(e.closest('.lsAcc,.lsBarra,'+BARRA))return;poner(e,'lsBaOc');});
+    /* 2) botones flotando encima de la barra */
+    var sueltos=Array.prototype.filter.call(document.querySelectorAll('button,a.btn,a[class*="btn"]'),function(b){
+      if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra'))return false;if(f&&f.contains(b))return false;
+      if(b.closest('dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana'))return false;
+      var r=b.getBoundingClientRect();if(f)return r.bottom<=tope+2;
+      return r.top<200&&!enBarra(b)&&!b.closest('.panel,.card,.kpi,form,table');});
+    if(sueltos.length){
+      var dest=f,caja;
+      if(!dest){var ref=sueltos[0];var fila=ref.parentElement;dest=document.createElement('div');dest.className='lsBarra';fila.parentNode.insertBefore(dest,fila);caja=dest;}
+      else{caja=dest.querySelector(':scope > .lsAcc');if(!caja){caja=document.createElement('span');caja.className='lsAcc';dest.appendChild(caja);}}
+      sueltos.forEach(function(b){var antes=b.parentElement;caja.appendChild(b);
+        var p=antes,n=0;while(p&&p!==document.body&&n<4){if(p.contains(dest))break;if(!hayCtl(p)&&p.getBoundingClientRect().height<140){poner(p,'lsBaOc');p=p.parentElement;n++;}else break;}});
+      if(!f)f=null;
+    }
+    /* 3) barra con filtros fija; botones de acción marcados para esconderse mientras está fija */
+    if(f){
+      Array.prototype.forEach.call(f.querySelectorAll('button,a'),function(b){if(esAcc(b))poner(b,'lsAccBtn');});
+      if(getComputedStyle(f).position==='static'){poner(f,'lsBaFijo');var bg=getComputedStyle(f).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')f.style.backgroundColor=getComputedStyle(document.body).backgroundColor||'#F1F6F4';}
+      F=f;FIX=contScroll(f);
+    }
+    /* barras pegajosas que solo tienen botones (sin filtros): que suban con la página */
+    Array.prototype.forEach.call(document.querySelectorAll(BARRA),function(b){if(b===f||!vis(b))return;var s=getComputedStyle(b).position;
+      if((s==='sticky'||s==='fixed')&&!Array.prototype.some.call(b.querySelectorAll(CTL),vis)&&Array.prototype.some.call(b.querySelectorAll('button,a'),esAcc))poner(b,'lsBaSuelta');});
+    pegada();
+  }
+  function pegada(){if(!F||!F.isConnected)return;var top=parseFloat(getComputedStyle(F).top)||0,base=FIX?FIX.getBoundingClientRect().top:0,desp=FIX?FIX.scrollTop:(window.scrollY||document.documentElement.scrollTop);
+    var en=desp>4&&(F.getBoundingClientRect().top-base)<=top+1.5;if(en!==F.classList.contains('lsPegada'))F.classList.toggle('lsPegada',en);}
+  document.addEventListener('scroll',function(){pegada();},true);window.addEventListener('resize',function(){pegada();});
+  var t=null;function luego(){if(t)return;t=setTimeout(function(){t=null;try{arreglar();}catch(e){}},250);}
+  function inicio(){luego();new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){if(ms[i].addedNodes.length||ms[i].removedNodes.length){luego();return;}}}).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('load',luego);var k=0,iv=setInterval(function(){luego();if(++k>20)clearInterval(iv);},700);}
+  if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
+}catch(e){}})();</script>
+<!-- ===== fin lives-franja v5 ===== -->
 </body>
 </html>
