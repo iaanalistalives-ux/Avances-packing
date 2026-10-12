@@ -3034,5 +3034,40 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
 }catch(e){}})();</script>
 <!-- ===== fin lives-franja v6.1 ===== -->
 <script id="lsLimp2Js">(function(){try{if(window.top!==window.self)document.documentElement.classList.add("lsEnPortal");}catch(e){document.documentElement.classList.add("lsEnPortal");}var re=/^\s*¿\s*(C[oó]mo|Qu[eé] (hace|pasa))/i,p=0;function f(){p=0;var d=document.querySelectorAll("details");for(var i=0;i<d.length;i++){var s=d[i].querySelector("summary");if(s&&re.test(s.textContent))d[i].style.display="none";}}f();document.addEventListener("DOMContentLoaded",f);try{new MutationObserver(function(){if(!p){p=1;setTimeout(f,60);}}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}})();</script>
+<!-- ===== lives-leyenda v1 · 2026-10-12 · en los gráficos de líneas (tendencias), el símbolo de la leyenda
+     sale del color de su línea (antes podía salir blanco por el borde blanco de los puntos o el relleno
+     degradado). No cambia datos, líneas ni etiquetas. ===== -->
+<script id="lsLeyJs">(function(){
+  'use strict';
+  if (window.__lsLey) return; window.__lsLey = true;
+  var colorDe = function(ds){
+    var c = ds.borderColor; if (Array.isArray(c)) c = c[0];
+    return (typeof c === 'string' && c) ? c : null;
+  };
+  var plugin = { id: 'lsLeyenda', afterUpdate: function(ch){
+    var lg = ch.legend; if (!lg || !lg.legendItems) return;
+    lg.legendItems.forEach(function(it){
+      var ds = ch.data && ch.data.datasets ? ch.data.datasets[it.datasetIndex] : null; if (!ds) return;
+      var t = ds.type || (ch.config && ch.config.type);
+      if (t !== 'line' && t !== 'radar') return;
+      var c = colorDe(ds); if (!c) return;
+      it.fillStyle = c; it.strokeStyle = c;
+    });
+  }};
+  var n = 0;
+  (function esperar(){
+    var C = window.Chart;
+    if (C && C.register){
+      try{
+        C.register(plugin);
+        var ins = C.instances ? Object.keys(C.instances).map(function(k){ return C.instances[k]; }) : [];
+        ins.forEach(function(ch){ try{ ch.update('none'); }catch(e){} });
+      }catch(e){}
+      return;
+    }
+    if (++n < 600) setTimeout(esperar, 100);
+  })();
+})();</script>
+<!-- ===== fin lives-leyenda v1 ===== -->
 </body>
 </html>
