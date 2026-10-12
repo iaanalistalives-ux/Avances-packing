@@ -838,7 +838,7 @@ function mostrarResultadosOP(op){
   const cont = document.getElementById('op-resultados');
   const filas = DATOS.filter(r => String(r.op) === String(op));
   if (!filas.length){
-    cont.innerHTML = '<div class="vacio">La OP ' + op + ' no está en el Sheet. ' +
+    cont.innerHTML = '<div class="vacio">La OP ' + op + ' no está en la base. ' +
       'Si es nueva, primero hay que subir su reporte de encajado.</div>';
     return;
   }
