@@ -1453,58 +1453,102 @@ render();
 <script id="lsSbJs">(function(){try{var h=document.querySelector(".header");if(!h)return;h.setAttribute("data-ls-sin-barra","");var m=[];["hstate"].forEach(function(i){var e=document.getElementById(i);if(e&&h.contains(e))m.push(e);});Array.prototype.forEach.call(h.querySelectorAll("a,button,select,input"),function(e){if(!m.some(function(x){return x===e||x.contains(e);}))m.push(e);});m=m.filter(function(e){return !m.some(function(x){return x!==e&&x.contains(e);});});if(!m.length)return;m.sort(function(a,b){return a.compareDocumentPosition(b)&4?-1:1;});var b=document.createElement("div");b.className="lsSinBarra";m.forEach(function(e){b.appendChild(e);});h.parentNode.insertBefore(b,h);}catch(e){}})();</script>
 <!-- ===== fin lives-sin-barra v1 ===== -->
 
-<!-- ===== lives-actualizar v1 · 2026-10-06 · aviso de versión nueva (común a todas las herramientas).
-     Revisa cada 3 minutos (y al volver a la pestaña) si el archivo publicado cambió. Si cambió,
-     muestra "Hay una versión nueva · Actualizar". Nunca recarga sola: la persona decide, así no
-     pierde lo que está llenando. Solo pide el encabezado del archivo (HEAD), no lo descarga. ===== -->
+<!-- ===== lives-actualizar v2 · 2026-10-12 · aviso de versión nueva OBLIGATORIO (común a todas las herramientas).
+     Revisa cada 3 minutos (y al volver a la pestaña) si el archivo publicado cambió. Si cambió, tapa la
+     herramienta con un aviso que no se puede cerrar: un solo botón, "Actualizar". En celular ocupa toda la
+     pantalla; en computadora sale al centro. No aparece mientras la persona está escribiendo (espera a que
+     pase 20 s sin teclear) y, antes de recargar, pide a la herramienta que guarde su borrador si tiene uno.
+     Solo pide el encabezado del archivo (HEAD), no lo descarga. ===== -->
 <style id="lsActCss">
-#lsAct{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483000;display:none;
-  align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);
-  background:#0E3B36;color:#fff;border:2px solid #10B981;border-radius:12px;padding:10px 14px;
-  box-shadow:0 8px 24px rgba(14,59,54,.30);font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.35}
-#lsAct b{font-weight:700}
-#lsAct button{font-family:inherit;font-size:14px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;min-height:38px}
-#lsActSi{background:#10B981;color:#0E3B36;border:none}
-#lsActNo{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.55)}
+#lsAct{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;
+  background:rgba(14,59,54,.78);padding:16px;font-family:Calibri,Arial,sans-serif}
+#lsAct .lsActCaja{background:#fff;border-radius:12px;border-top:4px solid #10B981;box-shadow:0 10px 30px rgba(0,0,0,.25);
+  max-width:440px;width:100%;padding:26px 24px 22px;text-align:center;color:#1a1a1a}
+#lsAct .lsActIco{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:#E7F6EF;color:#0F7A5A;
+  display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1}
+#lsAct h2{margin:0 0 8px;font-size:21px;color:#0E3B36}
+#lsAct p{margin:0 0 18px;font-size:15.5px;line-height:1.45;color:#3d4f4b}
+#lsActSi{display:block;width:100%;background:#0F7A5A;color:#fff;border:none;border-radius:10px;font-family:inherit;
+  font-size:17px;font-weight:700;padding:14px 16px;min-height:52px;cursor:pointer}
+#lsActSi:hover{background:#0B6349}
+#lsActSi:focus{outline:3px solid #10B981;outline-offset:2px}
+@media (max-width:640px){
+  #lsAct{padding:0;background:#fff}
+  #lsAct .lsActCaja{max-width:none;height:100%;border-radius:0;box-shadow:none;border-top:6px solid #10B981;
+    display:flex;flex-direction:column;justify-content:center;padding:32px 22px}
+  #lsAct h2{font-size:24px}
+  #lsAct p{font-size:17px}
+  #lsActSi{font-size:19px;min-height:58px}
+}
 @media print{#lsAct{display:none!important}}
 </style>
 <script id="lsActJs">(function(){
   'use strict';
   if (window.__lsAct) return; window.__lsAct = true;
   if (!/^https?:$/.test(location.protocol)) return;
-  var url = location.origin + location.pathname, base = null, hasta = 0, mostrado = false;
+  var url = location.origin + location.pathname, base = null, pendiente = false, ultimaTecla = 0;
+  /* Mientras la persona escribe no se interrumpe: se espera a que pasen 20 s sin teclear. */
+  ['input','keydown','change'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ if (!e.target || !e.target.closest || !e.target.closest('#lsAct')) ultimaTecla = Date.now(); }, true);
+  });
   function firma(){
     return fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function(r){
       if (!r.ok) return null;
       return r.headers.get('etag') || r.headers.get('last-modified') || null;
     }, function(){ return null; });
   }
+  function recargar(){
+    /* Si la herramienta guarda borrador (p. ej. el formulario de auditoría), se guarda antes de recargar. */
+    if (ultimaTecla){
+      ['guardarBorradorAhora','guardarBorradorPeriodico','guardarBorrador'].some(function(n){
+        try { if (typeof window[n] === 'function'){ window[n](); return true; } } catch(e){}
+        return false;
+      });
+    }
+    setTimeout(function(){ location.reload(); }, 150);
+  }
   function aviso(){
-    if (mostrado || Date.now() < hasta) return;
+    if (document.getElementById('lsAct') && document.getElementById('lsAct').style.display === 'flex') return;
+    if (Date.now() - ultimaTecla < 20000){ setTimeout(aviso, 5000); return; }
     var d = document.getElementById('lsAct');
     if (!d){
-      d = document.createElement('div'); d.id = 'lsAct'; d.setAttribute('role', 'status');
-      d.innerHTML = '<span><b>Hay una versión nueva de esta herramienta.</b> Guarda lo que estés haciendo y toca Actualizar.</span>' +
-                    '<button id="lsActSi" type="button">Actualizar</button><button id="lsActNo" type="button">Después</button>';
-      document.body.appendChild(d);
-      document.getElementById('lsActSi').onclick = function(){ location.reload(); };
-      document.getElementById('lsActNo').onclick = function(){ d.style.display = 'none'; mostrado = false; hasta = Date.now() + 10 * 60000; };
+      d = document.createElement('div'); d.id = 'lsAct';
+      d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'lsActT');
+      d.innerHTML = '<div class="lsActCaja"><div class="lsActIco" aria-hidden="true">&#8635;</div>' +
+        '<h2 id="lsActT">Hay una versión nueva</h2>' +
+        '<p>Esta herramienta se actualizó. Toca <b>Actualizar</b> para seguir trabajando con la versión nueva.</p>' +
+        '<button id="lsActSi" type="button">Actualizar</button></div>';
+      (document.body || document.documentElement).appendChild(d);
+      document.getElementById('lsActSi').onclick = recargar;
     }
-    d.style.display = 'flex'; mostrado = true;
+    d.style.display = 'flex';
+    document.documentElement.style.overflow = 'hidden';
+    var b = document.getElementById('lsActSi'); if (b) b.focus();
   }
+  /* No se puede cerrar: Escape no hace nada, el foco no sale del aviso y si algo lo quita vuelve a salir. */
+  document.addEventListener('keydown', function(e){
+    var d = document.getElementById('lsAct'); if (!d || d.style.display !== 'flex') return;
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); }
+    if (e.key === 'Tab'){ e.preventDefault(); var b = document.getElementById('lsActSi'); if (b) b.focus(); }
+  }, true);
+  setInterval(function(){
+    if (!pendiente) return;
+    var d = document.getElementById('lsAct');
+    if (!d || d.style.display !== 'flex') aviso();
+  }, 1500);
   function revisar(){
-    if (document.hidden) return;
+    if (document.hidden || pendiente) return;
     firma().then(function(f){
       if (!f) return;
       if (base === null){ base = f; return; }
-      if (f !== base) aviso();
+      if (f !== base){ pendiente = true; aviso(); }
     });
   }
   revisar();
   setInterval(revisar, 3 * 60000);
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) revisar(); });
 })();</script>
-<!-- ===== fin lives-actualizar v1 ===== -->
+<!-- ===== fin lives-actualizar v2 ===== -->
 
 
 
