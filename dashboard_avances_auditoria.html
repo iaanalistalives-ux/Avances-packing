@@ -646,6 +646,7 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
   display:flex;align-items:center;justify-content:center;} }
 </style>
 <style id="lsLimpCss">/* lives-limpieza v1 · sin enlaces repetidos (cada pantalla tiene su entrada en el portal), sin "Cambiar archivo" y sin títulos que ya pone el portal */nav.navlinks,.lsSinBarra a[href="./"],.lsSinBarra a[href="./dashboard_avances_auditoria.html"],.lsSinBarra a[href="./estatus_cliente_lives.html"],.lsSinBarra a[href="./carga_encajado_lives_v7.html"],.lsSinBarra a[href="./carga_encajado_lives_conectado.html"]{display:none!important}</style>
+<style id="lsLimp2Css">/* lives-limpieza v2 · sin notas, veredictos ni paneles de título arriba */.verdict,#verdict{display:none!important}#insight{display:none!important}</style>
 </head>
 <body>
 
@@ -2856,5 +2857,6 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
   window.__lsBa={arreglar:arreglar,MOV:MOV,F:function(){return F;},bf:barraFiltros};
 }catch(e){}})();</script>
 <!-- ===== fin lives-franja v6.1 ===== -->
+<script id="lsLimp2Js">(function(){try{if(window.top!==window.self)document.documentElement.classList.add("lsEnPortal");}catch(e){document.documentElement.classList.add("lsEnPortal");}var re=/^\s*¿\s*(C[oó]mo|Qu[eé] (hace|pasa))/i,p=0;function f(){p=0;var d=document.querySelectorAll("details");for(var i=0;i<d.length;i++){var s=d[i].querySelector("summary");if(s&&re.test(s.textContent))d[i].style.display="none";}}f();document.addEventListener("DOMContentLoaded",f);try{new MutationObserver(function(){if(!p){p=1;setTimeout(f,60);}}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}})();</script>
 </body>
 </html>
