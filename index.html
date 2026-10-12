@@ -709,6 +709,7 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 @media print{
   .gblock,.tchip{box-shadow:none;border:1px solid var(--warm);break-inside:avoid;}
 }
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
 </style>
 <style id="lsLimpCss">/* lives-limpieza v1 · sin enlaces repetidos (cada pantalla tiene su entrada en el portal), sin "Cambiar archivo" y sin títulos que ya pone el portal */nav.navlinks,.lsSinBarra a[href="./"],.lsSinBarra a[href="./dashboard_avances_auditoria.html"],.lsSinBarra a[href="./estatus_cliente_lives.html"],.lsSinBarra a[href="./carga_encajado_lives_v7.html"],.lsSinBarra a[href="./carga_encajado_lives_conectado.html"]{display:none!important}</style>
 </head>
@@ -2215,7 +2216,9 @@ function renderTabla(sku, T){
     return '<th class="orden'+(col.num?' num':'')+'" onclick="ordenar(\''+col.k+'\')">'+col.t+fl+'</th>';
   }).join("");
 
-  var tb=det.map(function(g){
+  /* Regla 500: sin filtros se dibujan solo 500 tallas (mismo orden de la tabla); el TOTAL usa todas. */
+  var detDib=(!hayFiltros() && det.length>500) ? det.slice(0,500) : det;
+  var tb=detDib.map(function(g){
     return '<tr>'+
       '<td>'+esc(g.po)+'</td><td>'+esc(g.op||"—")+'</td><td>'+esc(g.grupo||"—")+'</td>'+
       '<td>'+esc(g.estilo||"—")+(g.match==="SIN MATCH"?' <span class="st low">sin OPS</span>':'')+'</td>'+
@@ -2237,7 +2240,9 @@ function renderTabla(sku, T){
     '<tfoot><tr><td colspan="8">TOTAL de las '+fmt(det.length)+' tallas mostradas</td>'+
       '<td class="num">'+fmt(T.req)+'</td><td class="num">'+fmt(T.enc)+'</td>'+
       '<td class="num">'+pctTotal(T.enc,T.req,2)+'</td>'+
-      '<td class="num">'+fmt(T.sal)+'</td><td></td></tr></tfoot></table>';
+      '<td class="num">'+fmt(T.sal)+'</td><td></td></tr></tfoot></table>'+
+    (detDib.length<det.length ? '<div class="lsTope500">Se muestran las primeras 500 tallas de '+
+      Number(det.length).toLocaleString('es-PE')+'. Usa los filtros para ver las demás.</div>' : '');
 }
 
 function agrupar(sku,k){

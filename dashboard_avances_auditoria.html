@@ -644,6 +644,7 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
 .navlinks a:hover{color:#fff;border-color:var(--emer);}
 @media(max-width:600px){ .navlinks{order:3;width:100%;} .navlinks a{flex:1;text-align:center;min-height:38px;
   display:flex;align-items:center;justify-content:center;} }
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
 </style>
 <style id="lsLimpCss">/* lives-limpieza v1 · sin enlaces repetidos (cada pantalla tiene su entrada en el portal), sin "Cambiar archivo" y sin títulos que ya pone el portal */nav.navlinks,.lsSinBarra a[href="./"],.lsSinBarra a[href="./dashboard_avances_auditoria.html"],.lsSinBarra a[href="./estatus_cliente_lives.html"],.lsSinBarra a[href="./carga_encajado_lives_v7.html"],.lsSinBarra a[href="./carga_encajado_lives_conectado.html"]{display:none!important}</style>
 <style id="lsLimp2Css">/* lives-limpieza v2 · sin notas, veredictos ni paneles de título arriba */.verdict,#verdict{display:none!important}#insight{display:none!important}</style>
@@ -1351,9 +1352,34 @@ function enlaceEncajado(r) {
     style="color:var(--sage);font-weight:700;text-decoration:underline">ver</a>`;
 }
 
+/* Regla 500: la tabla va con el más reciente arriba (fecha del registro; a igual fecha, el último
+   cargado) y, sin filtros, dibuja solo los 500 más recientes. KPI y gráficos usan todos. */
+function sinFiltrosTabla() {
+  return ['f-cliente','f-grupo','f-estilo','f-po','f-color','f-semana','f-mes','f-estado','f-clistatus','f-cli-desde','f-cli-hasta']
+    .every(id => { const e = document.getElementById(id); return !e || !e.value; })
+    && !document.getElementById('f-search').value.trim();
+}
 function renderTabla(filtrados) {
   document.getElementById('table-count').textContent = `${filtrados.length} registro(s)`;
-  document.getElementById('tbody').innerHTML = filtrados.map(r => `<tr>
+  const pos = new Map(DATOS.map((r, i) => [r, i]));
+  const ordenados = filtrados.slice().sort((a, b) => {
+    const fa = parseFechaLocal(a.fecha), fb = parseFechaLocal(b.fecha);
+    const ta = fa ? fa.getTime() : -Infinity, tb = fb ? fb.getTime() : -Infinity;
+    if (ta !== tb) return tb - ta;
+    return pos.get(b) - pos.get(a);
+  });
+  const dibujar = (sinFiltrosTabla() && ordenados.length > 500) ? ordenados.slice(0, 500) : ordenados;
+  let pie = document.getElementById('lsTope500');
+  if (!pie) {
+    const wrap = document.getElementById('tbody').closest('.table-wrap');
+    pie = document.createElement('div'); pie.id = 'lsTope500'; pie.className = 'lsTope500';
+    wrap.parentNode.insertBefore(pie, wrap.nextSibling);
+  }
+  if (dibujar.length < ordenados.length) {
+    pie.textContent = 'Se muestran los 500 registros más recientes de ' + Number(ordenados.length).toLocaleString('es-PE') + '. Usa los filtros para ver los demás.';
+    pie.style.display = '';
+  } else { pie.textContent = ''; pie.style.display = 'none'; }
+  document.getElementById('tbody').innerHTML = dibujar.map(r => `<tr>
       <td>${r.cliente}</td><td>${r.grupo}</td><td>${r.estilo}</td><td>${r.op || '—'}</td><td>${r.po}</td><td>${r.color}</td>
       <td>${r.cantidadPedido || '—'}</td><td>${r.cantidadLista || '—'}</td><td>${pctTxt(r.pctListo)}</td>
       <td>${badgeAuditoria(r)}</td><td>${r.numAuditorias}</td><td>${badgeCliente(r)}</td>
