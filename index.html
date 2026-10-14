@@ -2789,10 +2789,16 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
   /* ---------- encender / apagar ---------- */
   var LISTO=false;
   function activo(){return H.getAttribute('data-tema')==='oscuro';}
+  /* Otros bloques (franja: barra fija) copian el color de fondo de la página como estilo escrito; al cambiar de
+     tema ese color se queda pegado (barra oscura en modo claro o al revés). Se reemplaza por el fondo nuevo. */
+  function fondoBody(){try{return document.body?getComputedStyle(document.body).backgroundColor:'';}catch(e){return '';}}
+  function despegar(b0){var b1=fondoBody();if(!b0||!b1||b0===b1)return;
+    Array.prototype.forEach.call(document.querySelectorAll('[style*="background"]'),function(el){try{if(el.style.backgroundColor===b0)el.style.backgroundColor=b1;}catch(e){}});}
   function poner(on,temporal){
+    var b0=fondoBody();
     if(on){if(!LISTO){hojas();arbol(document.body);LISTO=true;}H.setAttribute('data-tema','oscuro');observar();CV=true;}
     else{H.removeAttribute('data-tema');soltar();CV=false;}
-    repintar();if(!temporal)boton();}
+    despegar(b0);repintar();if(!temporal)boton();}
   function eleccion(){try{return localStorage.getItem(KEY);}catch(e){return null;}}
   function sistema(){return !!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
   function deseado(){var v=eleccion();return v?v==='oscuro':sistema();}
