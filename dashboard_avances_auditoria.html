@@ -2023,6 +2023,15 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
   function sistema(){return !!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
   function deseado(){var v=eleccion();return v?v==='oscuro':sistema();}
   function cambiar(){var on=!activo();try{localStorage.setItem(KEY,on?'oscuro':'claro');}catch(e){}if(on)LISTO=false;poner(on);}
+  /* El botón del PORTAL de Sistemas (app.lives.com.pe) manda: el portal avisa el modo con postMessage
+     {tipo:'lives-tema',tema:'oscuro'|'claro'} al abrir la herramienta y cada vez que se cambia. Desde el primer
+     aviso, la herramienta sigue al portal y su propio botón 🌙/☀️ se quita (queda solo el del portal). Fuera del
+     portal (links directos) el botón propio sigue. */
+  var PORTAL='https://app.lives.com.pe',MANDA=false;
+  function enPortal(){try{if(window.top===window)return false;var a=location.ancestorOrigins;if(a&&a.length)return a[a.length-1]===PORTAL||a[0]===PORTAL;return /app\.lives\.com\.pe/.test(document.referrer||'');}catch(e){return false;}}
+  window.addEventListener('message',function(e){try{if(e.origin!==PORTAL)return;var d=e.data;if(!d||d.tipo!=='lives-tema'||(d.tema!=='oscuro'&&d.tema!=='claro'))return;
+    MANDA=true;var on=d.tema==='oscuro';try{localStorage.setItem(KEY,d.tema);}catch(x){}if(on!==activo()){if(on)LISTO=false;poner(on);}
+    if(BTN&&BTN.parentNode)BTN.remove();if(PIE&&PIE.parentNode)PIE.remove();}catch(x){}});
   /* ---------- botón 🌙/☀️ dentro de la barra de filtros ---------- */
   var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
   var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,#lsPo,.lsSinBarra,table,form';
@@ -2035,6 +2044,7 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
     c.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top;});
     return c[0]&&c[0].getBoundingClientRect().top<400?c[0]:null;}
   function boton(){
+    if(MANDA){if(BTN&&BTN.parentNode)BTN.remove();if(PIE&&PIE.parentNode)PIE.remove();return;}
     if(!BTN){BTN=document.createElement('button');BTN.type='button';BTN.className='lsTemaBtn';
       BTN.innerHTML='<svg class="lsTemaLuna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'+
         '<svg class="lsTemaSol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg><span class="lsTemaTxt"></span>';
@@ -2079,6 +2089,7 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
     Array.prototype.forEach.call(document.querySelectorAll('[data-lsd],[data-lsinv]'),function(n){n.removeAttribute('data-lsd');n.removeAttribute('data-lsinv');});
     H.removeAttribute('data-tema');
     if(deseado())poner(true);else boton();
+    if(enPortal()){try{window.parent.postMessage({tipo:'lives-tema-pedir'},PORTAL);}catch(e){}}
     H.classList.remove('lsTemaPrep');
     document.addEventListener('DOMContentLoaded',function(){if(activo())hojas();luegoBoton();});
     window.addEventListener('load',function(){if(activo()){hojas();repintar();}envolverPdf();luegoBoton();});
