@@ -25,11 +25,11 @@
      Lee la elección guardada en este equipo (o, si nunca eligió, la configuración del equipo) y, si es oscuro, pinta el
      fondo oscuro desde el primer instante para que no haya destello blanco. El resto lo hace lives-tema (final). ===== -->
 <style id="lsTemaPreCss">
-html[data-tema="oscuro"],html[data-tema="oscuro"].lsDecide{background:#0C1513!important;color-scheme:dark}
+html[data-tema="oscuro"],html[data-tema="oscuro"].lsDecide{background:#0A1C19!important;color-scheme:dark}
 html.lsTemaPrep body{visibility:hidden!important}
-html[data-tema="oscuro"] #lsCarga{background:#0C1513!important}
+html[data-tema="oscuro"] #lsCarga{background:#0A1C19!important}
 html[data-tema="oscuro"] #lsCarga b{color:#E3ECE9!important}
-html[data-tema="oscuro"] #lsCarga .lsGiro{border-color:#2A3D38!important;border-top-color:#34C08F!important}
+html[data-tema="oscuro"] #lsCarga .lsGiro{border-color:#28463F!important;border-top-color:#34C08F!important}
 html[data-tema="oscuro"] #lsCarga img{filter:invert(1)!important;opacity:.9!important}
 @media print{html.lsTemaPrep body{visibility:visible!important}}
 </style>
@@ -1804,16 +1804,18 @@ cargarDatos();
 <script id="lsSbJs">(function(){try{var h=document.querySelector(".header");if(!h)return;h.setAttribute("data-ls-sin-barra","");var m=[];["hstate"].forEach(function(i){var e=document.getElementById(i);if(e&&h.contains(e))m.push(e);});Array.prototype.forEach.call(h.querySelectorAll("a,button,select,input"),function(e){if(!m.some(function(x){return x===e||x.contains(e);}))m.push(e);});m=m.filter(function(e){return !m.some(function(x){return x!==e&&x.contains(e);});});if(!m.length)return;m.sort(function(a,b){return a.compareDocumentPosition(b)&4?-1:1;});var b=document.createElement("div");b.className="lsSinBarra";m.forEach(function(e){b.appendChild(e);});h.parentNode.insertBefore(b,h);}catch(e){}})();</script>
 <!-- ===== fin lives-sin-barra v1 ===== -->
 
-<!-- ===== lives-tema v1 (final) · 2026-10-14 · modo oscuro opcional para quien lo quiera. Va antes de </body>.
+<!-- ===== lives-tema v1 (final) · 2026-10-14 (paleta Petróleo v1.1) · modo oscuro opcional para quien lo quiera. Va antes de </body>.
      Cómo decide: si la persona eligió con el botón 🌙/☀️ (en la barra de filtros; en pantallas sin barra, al pie), manda su elección, guardada en ese equipo
      y válida para todas las herramientas; si nunca eligió, sigue la configuración de su celular o computadora.
      Cómo pinta: traduce los colores propios de cada pantalla a la paleta oscura LIVES (fondos, tarjetas, textos, bordes,
      sombras, etiquetas y gráficos), con los colores de marca y de semáforo ajustados a mano para que se lean bien.
      Imprimir, PDF, imágenes de gráficos y Excel salen siempre en claro. No cambia datos, cálculos ni guardados. ===== -->
 <style id="lsTemaCss">
-html[data-tema="oscuro"]{color-scheme:dark;background:#0C1513}
+html[data-tema="oscuro"]{color-scheme:dark;background:#0A1C19}
 html[data-tema="oscuro"] ::selection{background:#0F7A5A;color:#fff}
 html[data-tema="oscuro"] input::placeholder,html[data-tema="oscuro"] textarea::placeholder{color:#6F857E}
+/* KPI protagonista: resalta sobre las tarjetas (Petróleo luminoso, brillo suave arriba y contorno esmeralda) */
+html[data-tema="oscuro"] .kpi.hero,html[data-tema="oscuro"] .hero.kpi{background-image:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,0) 55%)!important;box-shadow:0 0 0 1px rgba(52,211,153,.35),0 10px 28px rgba(0,0,0,.5)!important}
 html[data-tema="oscuro"] img[data-lsinv]{filter:invert(1) hue-rotate(180deg)}
 html[data-tema="oscuro"] ::-webkit-scrollbar-thumb{background:#2A3D38;border-radius:8px}
 html[data-tema="oscuro"] ::-webkit-scrollbar-track{background:transparent}
@@ -1838,11 +1840,11 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
   if(window.__lsTema)return;window.__lsTema=true;
   var H=document.documentElement,KEY='lives_tema',PRE='html[data-tema="oscuro"]';
   /* ---------- Paleta oscura LIVES ---------- */
-  var P={page:'#0C1513',card:'#14211E',raise:'#1B2A26',line:'#2A3D38',soft:'#1F2F2B',grid:'#22332F',text:'#E3ECE9',text2:'#9BB1AA'};
+  var P={page:'#0A1C19',card:'#112A25',raise:'#18352F',line:'#28463F',soft:'#1C3832',grid:'#1D3A34',text:'#E3ECE9',text2:'#9BB1AA'};
   /* fondos: claros -> superficies oscuras; tintes de pastillas -> tinte oscuro del mismo color */
   var BG={'#ffffff':P.card,'#fff':P.card,'#fefefe':P.card,'#fcfdfd':P.card,'#fbfcfc':P.card,'#fafbfb':P.card,'#f8faf9':P.card,
-    '#f1f6f4':P.page,'#f4f8f6':P.page,'#f6f9f8':'#101B18','#eef4f2':'#101B18','#e6eeeb':P.soft,'#e9f0ed':P.soft,'#dce5e2':'#24352F',
-    '#0e3b36':'#12443E','#e7f4ef':'#12342A','#ecfdf5':'#0F3329','#d1fae5':'#0F3A2D','#e6f4ee':'#12342A','#e8f5ef':'#12342A',
+    '#f1f6f4':P.page,'#f4f8f6':P.page,'#f6f9f8':'#0E231F','#eef4f2':'#0E231F','#e6eeeb':P.soft,'#e9f0ed':P.soft,'#dce5e2':'#21403A',
+    '#0e3b36':'#1A5C50','#12463f':'#1F6658','#e7f4ef':'#12342A','#ecfdf5':'#0F3329','#d1fae5':'#0F3A2D','#e6f4ee':'#12342A','#e8f5ef':'#12342A',
     '#fcebeb':'#3A1B1D','#fbe9e9':'#3A1B1D','#fee2e2':'#3E1C1E','#fef2f2':'#33191B','#fff7f7':'#2B1819','#fdecec':'#3A1B1D',
     '#fef3e2':'#382A13','#fff7ed':'#33240F','#fef3c7':'#3A3013','#fffbeb':'#302812','#fdf6e3':'#33290F',
     '#eff6ff':'#14243A','#dbeafe':'#162A45','#f5f3ff':'#241D38','#ede9fe':'#271F3F','#f3f4f6':'#1C2723','#e5e7eb':'#25332F','#f9fafb':P.card};
