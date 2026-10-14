@@ -1876,7 +1876,7 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
   function deseado(){var v=eleccion();return v?v==='oscuro':sistema();}
   function cambiar(){var on=!activo();try{localStorage.setItem(KEY,on?'oscuro':'claro');}catch(e){}if(on)LISTO=false;poner(on);}
   /* ---------- botón 🌙/☀️ dentro de la barra de filtros ---------- */
-  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,.lsBarra,[class*="barra"]:not(.lsSinBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
+  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
   var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,#lsPo,.lsSinBarra,table,form';
   var BTN=null,PIE=null;
   function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
@@ -1893,17 +1893,32 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
       BTN.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();cambiar();});}
     var on=activo();BTN.title=on?'Cambiar a modo claro':'Cambiar a modo oscuro';BTN.setAttribute('aria-label',BTN.title);
     var tx=BTN.querySelector('.lsTemaTxt');if(tx)tx.textContent=on?'Modo claro':'Modo oscuro';
+    /* Estabilidad: si ya está en una barra visible, no se mueve (evita bucles con otros bloques que reacomodan la barra) */
+    if(BTN.parentNode&&BTN.parentNode!==PIE&&BTN.isConnected&&vis(BTN.parentNode)&&!BTN.parentNode.closest('.lsBarra'))return;
     var b=barra(),dest;
     if(b)dest=b.querySelector(':scope > .lsAcc')||b;
     else{/* pantalla sin barra de filtros (formularios): el botón va al pie de la página, en su sitio, no flotando */
-      if(!PIE){PIE=document.createElement('div');PIE.className='lsTemaPie';}
-      var ult=null;for(var n=document.body.lastElementChild;n;n=n.previousElementSibling){
-        if(n===PIE||/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|LINK)$/.test(n.tagName)||(n.id&&/^ls/.test(n.id)))continue;
-        var ps=getComputedStyle(n);if(ps.position==='fixed'||ps.display==='none')continue;ult=n;break;}
-      if(ult){if(ult.nextSibling!==PIE)document.body.insertBefore(PIE,ult.nextSibling);}else if(PIE.parentNode!==document.body)document.body.appendChild(PIE);
+      /* clase con "menu": la franja no lo toma como grupo de botones suelto (si lo movía, ambos se lo pasaban en bucle y la página "bailaba") */
+      if(!PIE){PIE=document.createElement('div');PIE.className='lsTemaPie lsTemaMenu';}
+      if(!PIE.isConnected){var ult=null;for(var n=document.body.lastElementChild;n;n=n.previousElementSibling){
+          if(/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|LINK)$/.test(n.tagName)||(n.id&&/^ls/.test(n.id)))continue;
+          var ps=getComputedStyle(n);if(ps.position==='fixed'||ps.display==='none')continue;ult=n;break;}
+        if(ult)document.body.insertBefore(PIE,ult.nextSibling);else document.body.appendChild(PIE);}
       dest=PIE;}
     if(PIE&&dest!==PIE&&PIE.parentNode)PIE.remove();
     if(BTN.parentNode!==dest)dest.appendChild(BTN);}
+  /* El botón toma el alto de los controles vecinos de su fila y se alinea con ellos (barras en grilla con
+     etiquetas arriba, barras en fila, celular). */
+  function cuadrar(pie){var st=BTN.style;st.top='';st.height='';st.width='';st.position='';
+    if(pie||!vis(BTN))return;
+    var r=BTN.getBoundingClientRect(),cand=[],bar=BTN.parentElement;while(bar&&bar!==document.body&&!bar.matches(BARRA))bar=bar.parentElement;bar=bar||BTN.parentElement;
+    Array.prototype.forEach.call(bar.querySelectorAll('select,input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]),button,a.btn'),function(c){
+      if(c===BTN||!vis(c))return;var q=c.getBoundingClientRect();if(q.height<24||q.height>64)return;
+      if(q.bottom<r.top-70||q.top>r.bottom+70)return;cand.push({q:q,d:Math.abs((q.top+q.bottom)/2-(r.top+r.bottom)/2)+(q.right<=r.left+2?0:400)});});
+    if(!cand.length)return;cand.sort(function(a,b){return a.d-b.d;});var q=cand[0].q;
+    var h=Math.round(Math.max(32,Math.min(52,q.height)));st.height=h+'px';st.width=h+'px';
+    var r2=BTN.getBoundingClientRect(),dy=Math.round(q.bottom-r2.bottom);
+    if(Math.abs(dy)>1&&Math.abs(dy)<90){st.position='relative';st.top=dy+'px';}}
   var tB=null;function luegoBoton(){if(tB)return;tB=setTimeout(function(){tB=null;try{boton();}catch(e){}},350);}
   /* ---------- arranque ---------- */
   function inicio(){
