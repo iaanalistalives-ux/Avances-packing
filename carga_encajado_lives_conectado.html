@@ -1894,30 +1894,34 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
     var on=activo();BTN.title=on?'Cambiar a modo claro':'Cambiar a modo oscuro';BTN.setAttribute('aria-label',BTN.title);
     var tx=BTN.querySelector('.lsTemaTxt');if(tx)tx.textContent=on?'Modo claro':'Modo oscuro';
     /* Estabilidad: si ya está en una barra visible, no se mueve (evita bucles con otros bloques que reacomodan la barra) */
-    if(BTN.parentNode&&BTN.parentNode!==PIE&&BTN.isConnected&&vis(BTN.parentNode)&&!BTN.parentNode.closest('.lsBarra'))return;
+    if(BTN.parentNode&&BTN.parentNode!==PIE&&BTN.isConnected&&vis(BTN.parentNode)&&!BTN.parentNode.closest('.lsBarra')){cuadrar(false);return;}
     var b=barra(),dest;
     if(b)dest=b.querySelector(':scope > .lsAcc')||b;
     else{/* pantalla sin barra de filtros (formularios): el botón va al pie de la página, en su sitio, no flotando */
       /* clase con "menu": la franja no lo toma como grupo de botones suelto (si lo movía, ambos se lo pasaban en bucle y la página "bailaba") */
-      if(!PIE){PIE=document.createElement('div');PIE.className='lsTemaPie lsTemaMenu';}
+      if(!PIE){PIE=document.createElement('div');PIE.className='lsTemaPie lstema-menu';}
       if(!PIE.isConnected){var ult=null;for(var n=document.body.lastElementChild;n;n=n.previousElementSibling){
           if(/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|LINK)$/.test(n.tagName)||(n.id&&/^ls/.test(n.id)))continue;
           var ps=getComputedStyle(n);if(ps.position==='fixed'||ps.display==='none')continue;ult=n;break;}
         if(ult)document.body.insertBefore(PIE,ult.nextSibling);else document.body.appendChild(PIE);}
       dest=PIE;}
     if(PIE&&dest!==PIE&&PIE.parentNode)PIE.remove();
-    if(BTN.parentNode!==dest)dest.appendChild(BTN);}
+    if(BTN.parentNode!==dest)dest.appendChild(BTN);
+    cuadrar(dest===PIE);}
   /* El botón toma el alto de los controles vecinos de su fila y se alinea con ellos (barras en grilla con
      etiquetas arriba, barras en fila, celular). */
-  function cuadrar(pie){var st=BTN.style;st.top='';st.height='';st.width='';st.position='';
+  function cuadrar(pie){var st=BTN.style,ant=[st.top,st.height,st.width,st.position].join('|');st.top='';st.height='';st.width='';st.position='';
+    try{cuadrar2(pie);}catch(e){}
+    if([st.top,st.height,st.width,st.position].join('|')===ant)return;}
+  function cuadrar2(pie){var st=BTN.style;
     if(pie||!vis(BTN))return;
     var r=BTN.getBoundingClientRect(),cand=[],bar=BTN.parentElement;while(bar&&bar!==document.body&&!bar.matches(BARRA))bar=bar.parentElement;bar=bar||BTN.parentElement;
     Array.prototype.forEach.call(bar.querySelectorAll('select,input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]),button,a.btn'),function(c){
       if(c===BTN||!vis(c))return;var q=c.getBoundingClientRect();if(q.height<24||q.height>64)return;
-      if(q.bottom<r.top-70||q.top>r.bottom+70)return;cand.push({q:q,d:Math.abs((q.top+q.bottom)/2-(r.top+r.bottom)/2)+(q.right<=r.left+2?0:400)});});
+      if(q.bottom<=r.top+2||q.top>=r.bottom-2)return;cand.push({el:c,q:q,d:Math.abs((q.top+q.bottom)/2-(r.top+r.bottom)/2)+(q.right<=r.left+2?0:400)});});
     if(!cand.length)return;cand.sort(function(a,b){return a.d-b.d;});var q=cand[0].q;
     var h=Math.round(Math.max(32,Math.min(52,q.height)));st.height=h+'px';st.width=h+'px';
-    var r2=BTN.getBoundingClientRect(),dy=Math.round(q.bottom-r2.bottom);
+    var r2=BTN.getBoundingClientRect();q=cand[0].el.getBoundingClientRect();var dy=Math.round(q.bottom-r2.bottom);
     if(Math.abs(dy)>1&&Math.abs(dy)<90){st.position='relative';st.top=dy+'px';}}
   var tB=null;function luegoBoton(){if(tB)return;tB=setTimeout(function(){tB=null;try{boton();}catch(e){}},350);}
   /* ---------- arranque ---------- */
