@@ -2133,11 +2133,23 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
   ['input','keydown','change'].forEach(function(ev){
     document.addEventListener(ev, function(e){ if (!e.target || !e.target.closest || !e.target.closest('#lsAct')) ultimaTecla = Date.now(); }, true);
   });
+  /* v3 (14/10/2026): la firma es el CONTENIDO de esta pantalla, no la fecha de publicación del repositorio.
+     GitHub vuelve a publicar todas las pantallas de un repositorio aunque solo cambie una, y sus servidores
+     pueden responder fechas distintas un rato: eso hacía salir el aviso sin que la pantalla cambiara.
+     Ahora: se mira la cabecera (barato) y solo si cambió se baja la pantalla y se compara su contenido. */
+  var _et = null, _h = null;
+  function huella(t){ var h = 2166136261; for (var i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16) + '-' + t.length; }
   function firma(){
     return fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function(r){
       if (!r.ok) return null;
-      return r.headers.get('etag') || r.headers.get('last-modified') || null;
-    }, function(){ return null; });
+      var et = r.headers.get('etag') || r.headers.get('last-modified') || '';
+      if (_h !== null && _et !== null && et === _et) return _h;
+      var primera = (_h === null);
+      return fetch(url, { cache: primera ? 'force-cache' : 'no-store' }).then(function(g){ return g.ok ? g.text() : null; }).then(function(t){
+        if (t === null) return _h;
+        _h = huella(t); _et = primera ? null : et; return _h;
+      });
+    }).catch(function(){ return null; });
   }
   function recargar(){
     /* Si la herramienta guarda borrador (p. ej. el formulario de auditoría), se guarda antes de recargar. */
