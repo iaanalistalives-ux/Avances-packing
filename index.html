@@ -4141,7 +4141,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
 }
 </style>
 <script id="lsBaJs">(function(){try{
-  /* v6.1 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+  /* v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
      Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
      entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
      las pestañas pasan a la barra de la vista que queda abierta.
@@ -4165,7 +4165,11 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
   function enBarra(e){var b=e.closest(BARRA);return b&&!b.closest('.lsSinBarra')?b:null;}
   function externa(b){var p=b.parentElement&&b.parentElement.closest(BARRA);while(p&&!p.closest('.lsSinBarra')&&vis(p)){b=p;p=b.parentElement&&b.parentElement.closest(BARRA);}return b;}
   function barraFiltros(){var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest(FUERA)&&!b.closest('.modal:not(.on):not(.show):not(.abierto)')&&Array.prototype.some.call(b.querySelectorAll(CTL),vis);}).map(externa);
-    c.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top;});return c[0]||null;}
+    c.sort(function(a,b){return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?-1:1;});return c[0]||null;}
+  /* v6.2 · "¿está arriba de la barra?" se decide por el orden en la página, no por la posición en pantalla: al bajar, la barra
+     queda pegada arriba y todo lo demás pasa a estar "más arriba" en pantalla (las pestañas se metían en la barra). */
+  function antesDe(e,f,lim){if(f)return !!(f.compareDocumentPosition(e)&Node.DOCUMENT_POSITION_PRECEDING);
+    var sy=window.scrollY||document.documentElement.scrollTop||0;return e.getBoundingClientRect().bottom+sy<=lim+2;}
   function contScroll(e){var p=e.parentElement;while(p&&p!==document.body){var o=getComputedStyle(p).overflowY;if(o==='auto'||o==='scroll')return p;p=p.parentElement;}return null;}
   /* ¿todo lo que se ve dentro de e son botones o enlaces? (sin campos, tablas, gráficos ni texto suelto) */
   function soloBotones(e){
@@ -4209,8 +4213,8 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
     var sueltos=Array.prototype.filter.call(document.querySelectorAll('button,a.btn,a[class*="btn"]'),function(b){
       if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra,.lsTop'))return false;if(f&&f.contains(b))return false;
       if(b.closest(FUERA))return false;
-      var r=b.getBoundingClientRect();if(f)return r.bottom<=tope+2;
-      return r.top<200&&!enBarra(b)&&!b.closest('.panel,.card,.kpi,form,table');});
+      var r=b.getBoundingClientRect();if(f)return antesDe(b,f);
+      return r.top+(window.scrollY||0)<200&&!enBarra(b)&&!b.closest('.panel,.card,.kpi,form,table');});
     if(sueltos.length){
       var dest=f,caja;
       if(!dest){var ref=sueltos[0];var fila=ref.parentElement;dest=document.createElement('div');dest.className='lsBarra';fila.parentNode.insertBefore(dest,fila);caja=dest;}
@@ -4225,7 +4229,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
         if(!vis(b)||!txt(b)||b.closest('.lsAcc,.lsBarra,.lsTop,aside,nav,[class*="side"],[class*="menu"],form,table,'+FUERA))return;
         if(f&&f.contains(b))return;if(enBarra(b))return;
         var s=getComputedStyle(b);if(s.position==='fixed'||s.position==='absolute')return;
-        var r=b.getBoundingClientRect();if(r.bottom>lim+2||r.top>320)return;
+        var r=b.getBoundingClientRect();if(!antesDe(b,f,lim)||r.top+(window.scrollY||0)>320)return;
         if(b.getBoundingClientRect().height>56)return;var g=grupoDe(b);if(!g||vistos.indexOf(g)>=0)return;if(grande(g))return;if(enCaja(g))return;
         if(g.closest('aside,nav,[class*="side"],[class*="menu"],'+FUERA))return;
         vistos.push(g);});
