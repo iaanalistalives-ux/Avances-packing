@@ -1820,8 +1820,9 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
     firma().then(function(f){
       if (!f) return;
       if (base === null){
-        /* v2.3: la base es la copia con la que se abrió esta pantalla (la guardada por el navegador), no la última publicada. */
-        fetch(location.href, { cache: 'force-cache' }).then(function(r){ return r.ok ? r.text() : null; }).then(function(t){ return t === null ? f : huella(t); }, function(){ return f; }).then(function(b){
+        /* v2.3: la base es la copia con la que se abrió esta pantalla (la guardada por el navegador), no la última publicada.
+           v2.4 (02/11/2026): solo si esa copia es reciente (<11 min, lo que dura la caché de GitHub). Una copia más vieja nunca fue la que se mostró (el portal de Sistemas abre la pantalla sin usar la caché) y hacía salir el aviso en cada apertura. */
+        fetch(location.href, { cache: 'force-cache' }).then(function(r){ var dt = Date.parse(r.headers.get('date') || ''); return (r.ok && dt && Date.now() - dt < 11 * 60000) ? r.text() : null; }).then(function(t){ return t === null ? f : huella(t); }, function(){ return f; }).then(function(b){
           base = b;
           if (b !== f){ _cand = f; setTimeout(function(){ _et = null; revisar(); }, 45000); }
         });
