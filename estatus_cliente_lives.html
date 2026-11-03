@@ -707,6 +707,7 @@ table.aud-table td{ padding:9px 12px; border-top:1px solid var(--warm-light); co
 .btn-s{ flex:1; min-width:90px; padding:16px 8px; border:2px solid transparent; border-radius:12px; font-family:inherit;
   font-size:15px; font-weight:700; cursor:pointer; transition:all 0.18s; text-transform:uppercase; -webkit-tap-highlight-color:transparent; }
 .btn-s:disabled{ opacity:0.4; cursor:not-allowed; }
+.btn-quitar, #btn-cli-quitar{ background:#F3F4F6; color:#374151; border-color:#9CA3AF66; }
 .btn-apr { background:#E7F4EF; color:var(--sage); border-color:#0F7A5A44; }
 .btn-rech{ background:#FCEBEB; color:var(--rose); border-color:#DC262644; }
 .btn-apr:hover:not(:disabled),.btn-apr.on  { background:var(--sage); color:#fff; border-color:var(--sage); }
@@ -820,6 +821,7 @@ padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--ston
       <div class="status-btns" id="status-btns-cliente">
         <button class="btn-s btn-apr"  id="btn-cli-apr"  onclick="guardarCliente('APROBADO_CLIENTE')">✓ Aprobado por Cliente</button>
         <button class="btn-s btn-rech" id="btn-cli-rech" onclick="guardarCliente('RECHAZADO_CLIENTE')">✗ Rechazado por Cliente</button>
+        <button class="btn-s" id="btn-cli-quitar" onclick="quitarCliente()">↺ Quitar estatus / Corregir</button>
       </div>
     </div>
   </div>
@@ -1307,6 +1309,8 @@ function renderClienteSection(d) {
   }
 
   btnApr.classList.remove('on'); btnRech.classList.remove('on');
+  const btnQ = document.getElementById('btn-cli-quitar');
+  if (btnQ) btnQ.disabled = !/_CLIENTE$/.test((d.statusCliente || '').toUpperCase());
 
   const sc = (d.statusCliente || '').toUpperCase();
   if (sc === 'APROBADO_CLIENTE') {
@@ -1348,6 +1352,33 @@ async function guardarCliente(statusClienteSel) {
     listo();
     showToast('No se pudo guardar (' + String(e && e.message || e).replace(/^Supabase \d+: /, '').slice(0, 120) +
               '). Revisa tu conexión e inténtalo de nuevo.', true);
+  }
+}
+
+async function quitarCliente() {
+  if (!registro) return;
+  if (!confirm('¿Quitar el estatus de este registro? Volverá a "Pendiente de auditoría del cliente".')) return;
+  const btnQ = document.getElementById('btn-cli-quitar');
+  const original = btnQ.innerHTML;
+  btnQ.disabled = true; btnQ.innerHTML = '<span class="spinner-btn"></span>Quitando...';
+  let ses = null;
+  try { ses = window.LIVES_SESION && window.LIVES_SESION.actual(); } catch (e) {}
+  try {
+    const r = await sbRpc('encajado_marcar_cliente', {
+      p_id: registro.rowIndex || null, p_grupo: st.grupo || '', p_estilo: st.estilo || '',
+      p_po: st.po || '', p_color: st.color || '', p_estatus: 'SIN_ESTATUS',
+      p_nombre: (ses && (ses.nombre || ses.usuario)) || '' });
+    btnQ.innerHTML = original;
+    if (r && r.ok) {
+      registro.statusCliente = ''; registro.fechaCliente = '';
+      const idx = DATOS.findIndex(x => x.grupo===st.grupo && x.estilo===st.estilo && x.po===st.po && x.color===st.color);
+      if (idx >= 0) { DATOS[idx].statusCliente = ''; DATOS[idx].fechaCliente = ''; }
+      renderClienteSection(registro);
+      showToast('✓ Estatus Cliente quitado');
+    } else { btnQ.disabled = false; showToast((r && r.error) || 'No se pudo quitar el estatus.', true); }
+  } catch (e) {
+    btnQ.innerHTML = original; btnQ.disabled = false;
+    showToast('No se pudo quitar (' + String(e && e.message || e).replace(/^Supabase \d+: /, '').slice(0, 120) + ').', true);
   }
 }
 
