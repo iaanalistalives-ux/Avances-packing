@@ -23,7 +23,6 @@ insert into caja_parametros(clave,valor,descripcion) values
  ('REGISTRO_LIBRE','SI','SI = cualquiera puede registrar durante las pruebas'),
  ('TOLERANCIA_FRACCION','0.5','Tolerancia de peso = esta fracción del peso de la prenda más liviana de la caja'),
  ('MARGEN_G','0','Gramos que se suman a la tolerancia (variación de bolsas y cinta)'),
- ('PESO_DIGITADO','SI','SI = se permite escribir el peso a mano (queda marcado y pide motivo)'),
  ('MUESTRA_PRENDAS','5','Prendas que se pesan juntas para aprender el peso de un código nuevo')
 on conflict (clave) do nothing;
 
@@ -104,7 +103,7 @@ create table if not exists caja_cajas(
   peso_esperado_g numeric(10,1),
   tolerancia_g numeric(10,1),
   peso_resultado text check (peso_resultado in ('OK','FUERA','REFERENCIA','APROBADO_CON_MOTIVO')),
-  peso_origen text check (peso_origen in ('BALANZA','DIGITADO')),
+  peso_origen text check (peso_origen in ('BALANZA','DIGITADO')),   -- hoy siempre DIGITADO (la balanza no tiene salida de datos)
   peso_motivo text,
   escaneada_en timestamptz,
   cerrada_en timestamptz,
@@ -488,10 +487,6 @@ begin
         else 'La caja aún no está completa: termina de escanearla' end); end if;
     v_peso := nullif(p->>'peso_g','')::numeric;
     if coalesce(v_peso,0) <= 0 then return jsonb_build_object('ok',false,'error','Peso no válido'); end if;
-    if coalesce(p->>'origen','BALANZA') = 'DIGITADO' then
-      if upper(coalesce(caja_par('PESO_DIGITADO'),'NO')) <> 'SI' then return jsonb_build_object('ok',false,'error','No se permite digitar el peso: conecta la balanza'); end if;
-      if length(btrim(coalesce(p->>'motivo',''))) < 5 then return jsonb_build_object('ok',false,'error','Escribe por qué se digita el peso'); end if;
-    end if;
     v_tipo := coalesce(nullif(p->>'tipo_cod',''), v_caja.tipo_cod);
     select tara_g into v_tara from caja_tipos where codigo = v_tipo;
     if v_tipo is null then return jsonb_build_object('ok',false,'error','Elige el tipo de caja'); end if;
@@ -510,7 +505,7 @@ begin
         insert into caja_pesos(barcode,cantidad,peso_g,origen,caja_id,usuario) values (v_bc, v_n, v_peso - v_tara, 'CAJA', v_caja.id, v_usuario);
         perform caja_recalc_peso(v_bc);
         update caja_cajas set tipo_cod=v_tipo, peso_bruto_g=v_peso, peso_esperado_g=null, tolerancia_g=null, peso_resultado='REFERENCIA',
-          peso_origen=coalesce(p->>'origen','BALANZA'), peso_motivo=nullif(btrim(p->>'motivo'),''),
+          peso_origen=coalesce(p->>'origen','DIGITADO'), peso_motivo=nullif(btrim(p->>'motivo'),''),
           estado='CERRADA', cerrada_en=now(), cerrada_por=v_usuario, actualizado=now() where id=v_caja.id;
         insert into caja_eventos(packing_id,caja_id,accion,detalle,usuario) values (v_caja.packing_id,v_caja.id,'PESO',
           jsonb_build_object('peso_g',v_peso,'tara_g',v_tara,'resultado','REFERENCIA','origen',p->>'origen'),v_usuario);
@@ -526,8 +521,14 @@ begin
     v_tol := round(coalesce(caja_par('TOLERANCIA_FRACCION')::numeric,0.5) * v_min + coalesce(caja_par('MARGEN_G')::numeric,0), 1);
     v_dif := v_peso - v_esp;
     v_res := case when abs(v_dif) <= v_tol then 'OK' else 'FUERA' end;
+    -- peso escrito a mano: si no cuadra, se pide volver a pesar y escribirlo otra vez antes de observar la caja
+    if v_res = 'FUERA' and coalesce((p->>'confirmado')::boolean, false) = false then
+      insert into caja_eventos(packing_id,caja_id,accion,detalle,usuario) values (v_caja.packing_id,v_caja.id,'PESO_PRIMERA_LECTURA',
+        jsonb_build_object('peso_g',v_peso,'esperado_g',v_esp,'tolerancia_g',v_tol,'diferencia_g',v_dif),v_usuario);
+      return jsonb_build_object('ok',false,'reconfirmar',true,'error','El peso no cuadra. Vuelve a poner la caja en la balanza y escribe el peso otra vez.');
+    end if;
     update caja_cajas set tipo_cod=v_tipo, peso_bruto_g=v_peso, peso_esperado_g=v_esp, tolerancia_g=v_tol, peso_resultado=v_res,
-      peso_origen=coalesce(p->>'origen','BALANZA'), peso_motivo=nullif(btrim(p->>'motivo'),''),
+      peso_origen=coalesce(p->>'origen','DIGITADO'), peso_motivo=nullif(btrim(p->>'motivo'),''),
       estado = case when v_res='OK' then 'CERRADA' else 'OBSERVADA' end,
       cerrada_en = case when v_res='OK' then now() end, cerrada_por = case when v_res='OK' then v_usuario end,
       actualizado=now() where id=v_caja.id;
@@ -581,11 +582,10 @@ begin
     return jsonb_build_object('ok',true,'codigo',v_tipo);
 
   elsif p_accion = 'guardar_parametro' then
-    if p->>'clave' not in ('TOLERANCIA_FRACCION','MARGEN_G','PESO_DIGITADO','MUESTRA_PRENDAS') then
+    if p->>'clave' not in ('TOLERANCIA_FRACCION','MARGEN_G','MUESTRA_PRENDAS') then
       return jsonb_build_object('ok',false,'error','Parámetro no editable'); end if;
     if p->>'clave' in ('TOLERANCIA_FRACCION','MARGEN_G','MUESTRA_PRENDAS') and (p->>'valor') !~ '^[0-9]+(\.[0-9]+)?$' then
       return jsonb_build_object('ok',false,'error','Escribe un número'); end if;
-    if p->>'clave'='PESO_DIGITADO' and upper(p->>'valor') not in ('SI','NO') then return jsonb_build_object('ok',false,'error','SI o NO'); end if;
     update caja_parametros set valor = upper(btrim(p->>'valor')) where clave = p->>'clave';
     insert into caja_eventos(accion,detalle,usuario) values ('PARAMETRO', jsonb_build_object('clave',p->>'clave','valor',p->>'valor'), v_usuario);
     return jsonb_build_object('ok',true);
