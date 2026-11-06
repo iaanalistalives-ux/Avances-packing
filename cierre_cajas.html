@@ -975,7 +975,7 @@ $('muestras').addEventListener('click',async e=>{
   const cant=parseInt(f.querySelector('[data-cant]').value,10), v=parseFloat(String(f.querySelector('[data-kg]').value).replace(',','.'));
   if(!(cant>0)||!(v>0)){ f.querySelector('[data-kg]').focus(); return; }
   const conf=f.dataset.conf==='1'; b.disabled=true;
-  try{ const r=await api('muestra_peso',{barcode:f.dataset.mu,cantidad:cant,peso_g:Math.round(v*1000),confirmado:conf,motivo:f.querySelector('[data-motxt]').value});
+  try{ const r=await api('muestra_peso',{caja_id:CAJA.caja.id,barcode:f.dataset.mu,cantidad:cant,peso_g:Math.round(v*1000),confirmado:conf,motivo:f.querySelector('[data-motxt]').value});
     if(r.fuera_rango){ f.dataset.conf='1'; f.querySelector('[data-mot]').style.display=''; f.querySelector('[data-msg]').textContent=r.error; f.querySelector('[data-kg]').value=''; f.querySelector('[data-kg]').focus(); b.disabled=false; return; }
     if(!r.ok) throw new Error(r.error);
     f.remove(); if(!$('muestras').children.length){ $('pMuestra').style.display='none'; modo('peso'); await pesar(PESO_PEND); }

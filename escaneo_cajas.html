@@ -735,6 +735,13 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .video .hud span{font-size:16px}
 .video button{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:none;border-radius:12px;padding:14px 22px;font-weight:700;font-size:16px}
 .pie{display:flex;justify-content:center;margin-top:18px}
+.talla{cursor:pointer;transition:box-shadow .15s,transform .15s}
+.talla.sel{box-shadow:0 0 0 3px var(--tan);transform:scale(1.03)}
+.talla.sel::before{content:"ESCANEANDO";position:absolute;top:3px;left:0;right:0;font-size:9px;font-weight:800;letter-spacing:.8px;color:var(--taupe)}
+.selinfo{font-size:13px;color:var(--stone);background:var(--card);border-radius:12px;padding:10px 12px;margin:8px 0 6px;box-shadow:var(--sh);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.selinfo.on{background:#FEF3E2;color:var(--taupe);border:1px solid var(--tan)}
+.selinfo.listo{background:#E7F4EF;color:var(--sage-dark)}
+.selinfo .btn{min-height:32px;padding:4px 10px;font-size:12.5px;margin-left:auto}
 </style>
 <style id="lsLimp3Css">/* lives-limpieza v3 (30/10/2026) · fuera del portal tampoco hay títulos de panel ni notas explicativas */.panel>.pt,.panel>.ph{display:none!important}</style>
 </head>
@@ -760,6 +767,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
       <div class="acciones"><button class="btn pri" type="button" id="nGuardar">Grabar código</button><button class="btn" type="button" id="nCancelar">Cancelar</button></div>
     </div>
     <div class="centro" id="anillo"></div>
+    <div class="selinfo" id="selInfo">Toca la talla que vas a escanear: los códigos nuevos se graban solos con esa talla y color.</div>
     <div class="tallas" id="tallas"></div>
     <div class="titulo">ÚLTIMOS ESCANEOS</div>
     <div id="ult"></div>
@@ -854,7 +862,7 @@ const ICO={
   cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>'
 };
 
-let INI=null, CAJA=null, OCUPADO=false, PUEDE=false, PKSEL=null;
+let INI=null, CAJA=null, OCUPADO=false, PUEDE=false, PKSEL=null, SELL=null;
 async function iniciar(){
   try{ INI=await api('inicio'); }catch(e){ err(e.message); }
   const ok=prepararQuien($('btnQuien'));
@@ -884,7 +892,7 @@ $('pkl').addEventListener('click',async e=>{
   }catch(e2){ err(e2.message); }
 });
 $('cjs').addEventListener('click',e=>{ const t=e.target.closest('.cj'); if(t&&!t.disabled) abrirCaja(t.dataset.cj); });
-$('btnCambiar').addEventListener('click',()=>{ CAJA=null; try{ sessionStorage.removeItem('lives_caja_sel'); }catch(e){} $('elCaja').style.display='none'; cargarPackings(); });
+$('btnCambiar').addEventListener('click',()=>{ CAJA=null; SELL=null; try{ sessionStorage.removeItem('lives_caja_sel'); }catch(e){} $('elCaja').style.display='none'; cargarPackings(); });
 async function abrirCaja(id){
   try{ const d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); pintar(d); }
   catch(e){ err('No se pudo abrir la caja: '+e.message); try{ sessionStorage.removeItem('lives_caja_sel'); }catch(_){} return cargarPackings(); }
@@ -900,7 +908,9 @@ function pintar(d){
   if($('hudN')) $('hudN').textContent='Caja '+c.numero+' · '+van+' / '+req;
   $('anillo').innerHTML=anillo(req?van/req:0,200,16,van>=req?'#10B981':'#0F7A5A',van+'<span style="font-size:22px;color:var(--stone)"> /'+req+'</span>','prendas correctas',46);
   const varios=new Set(d.lineas.map(l=>l.estilo+'|'+l.color_cod)).size>1;
-  $('tallas').innerHTML=d.lineas.map(l=>'<div class="talla'+(l.escaneadas>=l.cantidad?' ok':'')+'"><div class="f" style="height:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%"></div><b>'+esc(l.talla)+'</b><span>'+l.escaneadas+' / '+l.cantidad+'</span>'+(varios?'<em>'+esc(l.color_nombre||l.color_cod)+'</em>':'')+'</div>').join('');
+  if(SELL){ const ls=d.lineas.find(l=>l.id===SELL); if(!ls||ls.escaneadas>=ls.cantidad){ if(ls) avisoSel('✓ Talla '+ls.talla+' completa: toca la siguiente talla'); SELL=null; } }
+  pintarSel();
+  $('tallas').innerHTML=d.lineas.map(l=>'<div class="talla'+(l.escaneadas>=l.cantidad?' ok':'')+(l.id===SELL?' sel':'')+'" data-l="'+l.id+'"><div class="f" style="height:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%"></div><b>'+esc(l.talla)+'</b><span>'+l.escaneadas+' / '+l.cantidad+'</span>'+(varios?'<em>'+esc(l.color_nombre||l.color_cod)+'</em>':'')+'</div>').join('');
   const R=d.escaneos||[];
   $('ult').innerHTML=R.length?R.slice(0,12).map(s=>'<div class="it"><i style="background:'+(s.resultado==='OK'&&!s.anulado?'var(--sage)':s.anulado?'var(--st-pe)':'var(--rose)')+'"></i><span>'+
       ({OK:'',SOBRA:'Sobra · ',NO_CORRESPONDE:'No corresponde · '}[s.resultado]||'')+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · ')||s.barcode)+(s.anulado?' <small>(quitada)</small>':'')+'</span><small>'+new Date(s.fecha).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false})+'</small>'+
@@ -919,7 +929,8 @@ async function escanear(v){
   const bc=String(v||'').trim(); if(!bc||!CAJA||OCUPADO) return;
   OCUPADO=true;
   try{
-    const r=await api('escanear',{caja_id:CAJA.caja.id,barcode:bc,token:token()});
+    const ls=SELL&&CAJA.lineas.find(l=>l.id===SELL);
+    const r=await api('escanear',{caja_id:CAJA.caja.id,barcode:bc,token:token(),auto:ls?{estilo:ls.estilo,color_cod:ls.color_cod,color_nombre:ls.color_nombre,talla:ls.talla}:null});
     if(!r.ok){ pitido(false); flash('mal','✖','No se registró',r.error||'',0,'Entendido'); return 'ERR'; }
     if(r.resultado==='NUEVO'){ pitido(false); nuevoCodigo(bc,r.bloqueado); return 'NUEVO'; }
     pintar(r);
@@ -927,6 +938,7 @@ async function escanear(v){
     if(r.resultado==='OK'){ pitido(true);
       $('hudT').textContent='✓ '+t;
       if(r.caja.estado==='ESCANEADA'){ flash('lista','✓','Caja completa','Ciérrala y llévala a la mesa de pesado.',0,'Entendido'); return 'LISTA'; }
+      else if(r.auto_grabado) flash('nuevo','✓','Código nuevo grabado','Talla '+cod.talla+' · '+(cod.color_nombre||cod.color_cod)+' · '+cod.estilo+'. Ya se contó.',STREAM?900:1100);
       else flash('ok','✓','Correcta',t,STREAM?450:650); return 'OK'; }
     else if(r.resultado==='SOBRA'){ pitido(false); $('hudT').textContent='✖ Sobra: '+t; flash('mal','✖','SOBRA','Retira esta prenda: la caja ya tiene todas las '+t,0,'Ya la retiré'); }
     else if(r.resultado==='NO_CORRESPONDE'){ pitido(false); $('hudT').textContent='✖ No corresponde: '+t; flash('mal','✖','NO CORRESPONDE',t+' no va en esta caja. Retírala.',0,'Ya la retiré'); }
@@ -940,6 +952,13 @@ $('ult').addEventListener('click',async e=>{
   try{ const r=await api('quitar',{escaneo_id:+b.dataset.quitar}); if(!r.ok) throw new Error(r.error); pintar(r); }catch(err2){ alert('No se quitó: '+err2.message); }
   $('inScan').focus();
 });
+/* talla preseleccionada: los códigos nuevos se graban solos con esa talla, color y estilo */
+function pintarSel(){ const ls=SELL&&CAJA&&CAJA.lineas.find(l=>l.id===SELL), i=$('selInfo');
+  if(ls){ i.className='selinfo on'; i.innerHTML='<span style="flex:1;min-width:0">Escaneando <b>talla '+esc(ls.talla)+' · '+esc(ls.color_nombre||ls.color_cod)+'</b> · '+esc(ls.estilo)+'<br><small>Los códigos nuevos se graban con esta talla y color.</small></span><button type="button" class="btn" id="selQuitar">Quitar</button>'; $('selQuitar').onclick=()=>{ SELL=null; pintar(CAJA); $('inScan').focus(); }; }
+  else { i.className='selinfo'; i.textContent='Toca la talla que vas a escanear: los códigos nuevos se graban solos con esa talla y color.'; } }
+function avisoSel(t){ const i=$('selInfo'); setTimeout(()=>{ if(!SELL){ i.className='selinfo listo'; i.textContent=t; } },60); }
+$('tallas').addEventListener('click',e=>{ const t=e.target.closest('.talla'); if(!t||!PUEDE) return; const id=+t.dataset.l, l=CAJA.lineas.find(x=>x.id===id);
+  if(!l) return; if(l.escaneadas>=l.cantidad){ avisoSel('Esa talla ya está completa.'); return; } SELL=(SELL===id?null:id); pintar(CAJA); $('inScan').focus(); });
 /* código nuevo */
 function opciones(sel,vals){ $(sel).innerHTML='<option value="">— Elige —</option>'+vals.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('')+'<option value="__otro">Otro (escribir)</option>'; }
 function nuevoCodigo(bc,bloq){

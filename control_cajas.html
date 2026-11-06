@@ -985,7 +985,7 @@ async function anularPacking(p){
 /* ---------------- vista Códigos ---------------- */
 function pintarCodigos(q){
   const L=q?VCOD:VCOD.slice(0,500);
-  $('cods').innerHTML=L.map(c=>'<div class="cod" data-cod="'+esc(c.barcode)+'"><div class="tl">'+esc(c.talla)+'</div><div style="min-width:0;flex:1"><h3>'+esc(c.barcode)+'</h3><div class="sub">'+esc(c.estilo+' · '+(c.color_nombre||c.color_cod))+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+
+  $('cods').innerHTML=L.map(c=>'<div class="cod" data-cod="'+esc(c.barcode)+'"><div class="tl">'+esc(c.talla)+'</div><div style="min-width:0;flex:1"><h3>'+esc(c.barcode)+'</h3><div class="sub">'+esc([c.estilo+(c.estilo_lives?' ('+c.estilo_lives+')':''),c.color_nombre||c.color_cod].join(' · '))+'</div><div class="sub">'+esc([c.cliente_cod,c.grupo,c.po?'PO '+c.po:'',c.op?'OP '+c.op:''].filter(Boolean).join(' · '))+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+
     '<span class="chip">'+(c.peso_unit_g!=null?num(c.peso_unit_g,0)+' g por prenda':'sin peso todavía')+'</span>'+(c.activo?'':'<span class="chip" style="color:var(--rose)">bloqueado</span>')+
     (c.verificado?'<span class="chip" style="color:var(--sage)">✓ revisado</span>':'<span class="chip" style="color:var(--taupe)">por revisar</span>')+'</div></div></div>').join('');
   const v=$('vCod'); v.style.display=VCOD.length?'none':'block'; v.textContent=q?'Ningún código coincide con la búsqueda.':'Aún no hay códigos de prenda: se graban solos la primera vez que se escanean.';
@@ -995,7 +995,7 @@ $('cods').addEventListener('click',e=>{ const t=e.target.closest('.cod'); if(t) 
 function verCodigo(bc){
   const c=(T.codigos||[]).find(x=>x.barcode===bc); if(!c) return;
   abrirDlg('Código '+bc,
-    '<div class="fila" style="font-size:13.5px"><div><b>Registrado por</b><br>'+esc(c.creado_nombre||c.creado_por||'')+' · '+fFecha(c.creado)+'</div><div><b>Peso por prenda</b><br>'+(c.peso_unit_g!=null?num(c.peso_unit_g,1)+' g ('+num(c.peso_prendas)+' prendas pesadas)':'sin peso')+'</div></div>'+
+    '<div class="fila" style="font-size:13.5px"><div><b>Registrado por</b><br>'+esc(c.creado_nombre||c.creado_por||'')+' · '+fFecha(c.creado)+'</div><div><b>Dónde se grabó</b><br>'+esc([c.cliente_cod,c.grupo,c.po?'PO '+c.po:'',c.op?'OP '+c.op:'',c.lote?'lote '+c.lote:''].filter(Boolean).join(' · ')||'—')+'</div><div><b>Peso por prenda</b><br>'+(c.peso_unit_g!=null?num(c.peso_unit_g,1)+' g ('+num(c.peso_prendas)+' prendas pesadas)':'sin peso')+'</div></div>'+
     (PUEDE()?'<div class="fila"><label class="campo">Estilo<input id="cEst" value="'+esc(c.estilo)+'"></label><label class="campo">Código de color<input id="cCol" value="'+esc(c.color_cod)+'"></label><label class="campo">Talla (la del hang tag)<input id="cTal" value="'+esc(c.talla)+'"></label></div>'+
       '<label class="campo">Motivo de la corrección<textarea id="cMot"></textarea></label>'+
       '<div class="acciones"><button class="btn pri" type="button" id="cGuardar">Guardar corrección</button>'+(c.verificado?'':'<button class="btn" type="button" id="cVerif">Marcar revisado</button>')+
