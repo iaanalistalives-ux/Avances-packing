@@ -1032,19 +1032,20 @@ $('tbRev').addEventListener('click',async e=>{ const b=e.target.closest('[data-r
 function dlgTara(cod,nueva){
   const t=(T.tipos||[]).find(x=>x.codigo===cod)||{}, ref=t.tara_g||t.tara_hoja_g||t.tara_sistema_g, g=v=>num(v/1000,2)+' kg';
   abrirDlg(nueva?'Agregar caja':'Pesar caja vacía '+cod,
-    (nueva?'<label class="campo">Código de la caja (catálogo de Sistemas)<input id="nCod" list="dlTipos" autocomplete="off" placeholder="Escribe o elige: PK1, THE, EF8…" style="font-size:18px;min-height:50px"></label>'+
+    (nueva?'<label class="campo">Código de la caja (catálogo de Sistemas)<input id="nCod" list="dlTipos" autocomplete="off" placeholder="Escribe o elige: PK1, THE, EF8…" style="font-size:18px;min-height:50px"></label><div style="margin:6px 0 4px"><button class="btn" type="button" id="nSinCod" style="min-height:36px;font-size:13px">La caja no tiene código</button></div>'+
       '<datalist id="dlTipos">'+(T.tipos||[]).map(x=>'<option value="'+esc(x.codigo)+'">'+esc(x.descripcion)+'</option>').join('')+'</datalist>'+
       '<div id="nInfo"></div>'+
-      '<div id="nManual" style="display:none"><div class="fila"><label class="campo">Descripción<input id="nDes" autocomplete="off"></label></div>'+
+      '<div id="nManual" style="display:none"><div class="fila"><label class="campo">Descripción de la caja<input id="nDes" autocomplete="off" placeholder="Ej.: caja Vince grande, cartón doble"></label></div>'+
       '<div class="fila"><label class="campo">Largo cm<input id="nL" type="number" step="0.1"></label><label class="campo">Ancho cm<input id="nA" type="number" step="0.1"></label><label class="campo">Alto cm<input id="nH" type="number" step="0.1"></label></div></div>':
       '<div style="font-size:13.5px;margin-bottom:6px">'+esc(t.descripcion||'')+(ref?' · referencia <b>'+g(ref)+'</b>':'')+'</div>')+
     '<div id="tPeso"'+(nueva?' style="display:none"':'')+'><label class="campo">Peso de la caja vacía (lo que marca la balanza)<input id="tKg" type="number" step="0.01" min="0.01" inputmode="decimal" style="font-size:24px;min-height:56px"></label></div>'+
     '<div id="tMot" style="display:none"><label class="campo">Motivo<textarea id="tMotTxt" placeholder="Ej.: caja de otro proveedor, cartón más grueso"></textarea></label></div>'+
     '<div id="tRes"></div><div class="acciones"><button class="btn pri" type="button" id="tGuardar"'+(nueva?' disabled':'')+'>Guardar</button></div>');
-  let conf=false, encontrada=null, manual=false;
+  let conf=false, encontrada=null, manual=false, sinCod=false;
   if(nueva){
-    const ver=()=>{
-      const c=$('nCod').value.toUpperCase().replace(/\s+/g,''); manual=false; $('nManual').style.display='none';
+    let ult=null;
+    const ver=(forzar)=>{
+      const c=$('nCod').value.toUpperCase().replace(/\s+/g,''); if(!forzar&&c===ult) return; ult=c; manual=false; sinCod=false; $('nCod').disabled=false; $('nManual').style.display='none';
       encontrada=(T.tipos||[]).find(x=>x.codigo===c)||null;
       if(encontrada){ const e=encontrada, m=[e.largo_cm,e.ancho_cm,e.alto_cm].map(x=>x==null?'?':num(x,1)).join(' × ');
         $('nInfo').innerHTML='<div class="okBox"><b>✓ '+esc(e.codigo)+'</b> · '+esc(e.descripcion)+'<br>Medidas: '+m+' cm'+
@@ -1052,18 +1053,24 @@ function dlgTara(cod,nueva){
           (e.tara_g!=null?'<br>Ya está pesada: '+g(e.tara_g)+'. Si la pesas otra vez, se suma a sus pesadas.':'')+'</div>';
         $('tPeso').style.display=''; $('tGuardar').disabled=false; }
       else if(c){ $('nInfo').innerHTML='<div class="aviso">El código <b>'+esc(c)+'</b> no está en el catálogo de Sistemas. Revisa que esté bien escrito.</div>'+
-          '<button class="btn" type="button" id="nPorConf">Es una caja nueva de verdad: registrarla «por confirmar»</button>';
+          '<button class="btn" type="button" id="nPorConf">Registrar con este código (por confirmar con Sistemas)</button>';
         $('tPeso').style.display='none'; $('tGuardar').disabled=true;
         $('nPorConf').onclick=()=>{ manual=true; $('nManual').style.display=''; $('tPeso').style.display=''; $('tGuardar').disabled=false;
           $('nInfo').innerHTML='<div class="aviso">Quedará «por confirmar» hasta que Sistemas le dé su código oficial.</div>'; $('nDes').focus(); }; }
       else { $('nInfo').innerHTML=''; $('tPeso').style.display='none'; $('tGuardar').disabled=true; }
     };
-    $('nCod').addEventListener('input',ver); $('nCod').addEventListener('change',()=>{ ver(); if(encontrada) $('tKg').focus(); });
+    $('nSinCod').onclick=()=>{ const txt=$('nCod').value.trim(); manual=true; sinCod=true; encontrada=null; $('nCod').value=''; $('nCod').disabled=true;
+      $('nManual').style.display=''; $('tPeso').style.display=''; $('tGuardar').disabled=false; if(txt&&!$('nDes').value) $('nDes').value=txt;
+      $('nInfo').innerHTML='<div class="aviso">Caja sin código: se le pondrá un código provisional y quedará «por confirmar» hasta que Sistemas le asigne el oficial. <button class="btn" type="button" id="nVolver" style="min-height:32px;font-size:12.5px;margin-left:6px">Tiene código</button></div>';
+      $('nVolver').onclick=()=>{ $('nCod').disabled=false; $('nCod').focus(); ver(true); }; $('nDes').focus(); };
+    $('nCod').addEventListener('input',()=>ver()); $('nCod').addEventListener('change',()=>{ ver(); if(encontrada&&!manual) $('tKg').focus(); });
     $('nCod').focus();
   } else $('tKg').focus();
   $('tGuardar').onclick=async()=>{
     const v=parseFloat(String($('tKg').value).replace(',','.')); if(!(v>0)){ $('tKg').focus(); return; }
-    const p={codigo:nueva?$('nCod').value:cod,tara_g:Math.round(v*1000),confirmado:conf,motivo:$('tMotTxt').value};
+    if(nueva&&sinCod&&!$('nGenCod')){ const d=new Date(), z=n=>String(n).padStart(2,'0'); const x=document.createElement('input'); x.type='hidden'; x.id='nGenCod';
+      x.value='PC-'+String(d.getFullYear()).slice(2)+z(d.getMonth()+1)+z(d.getDate())+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()); $('dCuerpo').appendChild(x); }
+    const p={codigo:nueva?(sinCod?$('nGenCod').value:$('nCod').value):cod,tara_g:Math.round(v*1000),confirmado:conf,motivo:$('tMotTxt').value};
     if(nueva&&manual){ if(!$('nDes').value.trim()){ $('nDes').focus(); return; } Object.assign(p,{descripcion:$('nDes').value,largo_cm:$('nL').value,ancho_cm:$('nA').value,alto_cm:$('nH').value}); }
     try{ const r=await api('guardar_tipo',p);
       if(r.fuera_rango){ conf=true; $('tMot').style.display=''; $('tKg').value=''; $('tKg').focus(); $('tRes').innerHTML='<div class="aviso">'+esc(r.error)+'</div>'; return; }
