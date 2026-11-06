@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<!-- ===== lives-tema v1 (inicio) · 2026-10-14 · modo oscuro opcional. Va al inicio del <head>, antes de lives-cargando.
+     Lee la elección guardada en este equipo (o, si nunca eligió, la configuración del equipo) y, si es oscuro, pinta el
+     fondo oscuro desde el primer instante para que no haya destello blanco. El resto lo hace lives-tema (final). ===== -->
+<style id="lsTemaPreCss">
+html[data-tema="oscuro"],html[data-tema="oscuro"].lsDecide{background:#0A1C19!important;color-scheme:dark}
+html.lsTemaPrep body{visibility:hidden!important}
+html[data-tema="oscuro"] #lsCarga{background:#0A1C19!important}
+html[data-tema="oscuro"] #lsCarga b{color:#E3ECE9!important}
+html[data-tema="oscuro"] #lsCarga .lsGiro{border-color:#28463F!important;border-top-color:#34C08F!important}
+html[data-tema="oscuro"] #lsCarga img{filter:invert(1)!important;opacity:.9!important}
+@media print{html.lsTemaPrep body{visibility:visible!important}}
+</style>
+<script id="lsTemaPreJs">(function(){try{
+  var v=null;try{v=localStorage.getItem('lives_tema');}catch(e){}
+  var osc=v?v==='oscuro':!!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  if(!osc)return;
+  var h=document.documentElement;h.setAttribute('data-tema','oscuro');h.classList.add('lsTemaPrep');
+  setTimeout(function(){h.classList.remove('lsTemaPrep');},2500);
+}catch(e){}})();</script>
+<!-- ===== fin lives-tema v1 (inicio) ===== -->
+<!-- ===== lives-cargando v1.2 · 2026-10-12 · aviso "Cargando datos…" cuando la pantalla abre VACÍA esperando datos.
+     Va al inicio del <head>. Al terminar de leer la página (antes de que se vea) mira si hay contenido: si está vacía
+     (menos de 120 letras visibles) muestra de inmediato el logo, el círculo y "Cargando datos…", sin dejar ver la
+     pantalla a medio armar; se quita en cuanto aparece el contenido, cuando terminan las consultas a la base, si en
+     1.5 s no hubo ninguna consulta, o a los 15 s. Si la pantalla ya tiene contenido (formularios, pantallas con su
+     propio aviso de carga) no aparece nunca. ===== -->
+<style id="lsCargaCss">
+#lsCarga{position:fixed;inset:0;z-index:2147482000;background:#F1F6F4;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;font-family:Calibri,Arial,sans-serif;text-align:center;padding:24px;
+  transition:opacity .25s ease}
+#lsCarga.lsFuera{opacity:0;pointer-events:none}
+#lsCarga img{height:34px;opacity:.82}
+#lsCarga .lsGiro{width:38px;height:38px;border-radius:50%;border:3.5px solid #DCE5E2;border-top-color:#0F7A5A;
+  animation:lsGiro .9s linear infinite}
+#lsCarga b{font-size:16px;color:#0E3B36}
+@keyframes lsGiro{to{transform:rotate(360deg)}}
+html.lsDecide body{visibility:hidden}
+html.lsDecide{background:#F1F6F4}
+@media print{#lsCarga{display:none!important}}
+</style>
+<script id="lsCargaJs">(function(){
+  'use strict';
+  if (window.__lsCarga) return; window.__lsCarga = true;
+  /* Mientras se lee la página no se dibuja nada a medio armar; se decide al terminar de leerla (máx. 2.5 s). */
+  var raiz = document.documentElement; raiz.classList.add('lsDecide');
+  var soltar = function(){ raiz.classList.remove('lsDecide'); };
+  setTimeout(soltar, 2500);
+  var pend = 0, visto = false, listo = false, el = null, tCalma = null;
+  var esBase = function(u){ return /supabase\.co|\/rest\/v1\/|\/functions\/v1\/|\/auth\/v1\//.test(String(u || '')); };
+  /* ¿La pantalla sigue vacía? Cuenta solo letras visibles de verdad (sin menús desplegables ni avisos comunes). */
+  function letrasVisibles(){
+    if (!document.body) return 0;
+    var n = 0, w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), t;
+    while ((t = w.nextNode())){
+      var p = t.parentElement; if (!p) continue;
+      if (p.closest('script,style,select,option,noscript,#lsCarga,#lsAct,#lsMud')) continue;
+      var x = t.nodeValue.replace(/\s+/g, ''); if (!x) continue;
+      if (!p.offsetParent && getComputedStyle(p).position !== 'fixed') continue;
+      n += x.length; if (n >= 120) return n;
+    }
+    return n;
+  }
+  function vacia(){ return letrasVisibles() < 120; }
+  function crear(){
+    if (el || listo) return;
+    if (!document.body){ setTimeout(crear, 30); return; }
+    el = document.createElement('div'); el.id = 'lsCarga'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.innerHTML = '<img alt="LIVES" src="data:image/png;base64,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">' +
+                   '<div class="lsGiro" aria-hidden="true"></div><b>Cargando datos…</b>';
+    document.body.appendChild(el);
+  }
+  function terminar(){
+    if (listo) return; listo = true; soltar();
+    clearTimeout(tCalma);
+    if (el){ el.classList.add('lsFuera'); var e = el; setTimeout(function(){ if (e.parentNode) e.parentNode.removeChild(e); }, 300); }
+  }
+  /* Decide al terminar de leer la página (antes de que se vea): si la pantalla está vacía, el aviso sale
+     de inmediato, sin mostrar antes la pantalla a medio armar; si ya tiene contenido, no sale nunca. */
+  var vig = null;
+  function decidir(){
+    if (listo){ soltar(); return; }
+    if (!vacia()){ soltar(); terminar(); return; }
+    crear(); soltar();
+    vig = setInterval(function(){
+      if (listo){ clearInterval(vig); return; }
+      if (!vacia()) terminar();                          /* ya hay contenido: se quita en el acto */
+      else if (!visto && Date.now() - t0 > 1500) terminar(); /* no consulta la base (p. ej. espera un Excel) */
+    }, 80);
+  }
+  var t0 = Date.now();
+  function inicio(){
+    if (listo) return;
+    pend++; visto = true;
+    clearTimeout(tCalma);
+  }
+  function fin(){
+    if (listo) return;
+    pend = Math.max(0, pend - 1);
+    if (pend === 0){ clearTimeout(tCalma); tCalma = setTimeout(function(){ if (pend === 0) terminar(); }, 600); }
+  }
+  if (window.fetch){
+    var f0 = window.fetch;
+    window.fetch = function(entrada){
+      var u = (entrada && entrada.url) ? entrada.url : entrada;
+      var mio = !listo && esBase(u);
+      if (mio) inicio();
+      var p = f0.apply(this, arguments);
+      if (mio) p.then(function(r){ fin(); return r; }, function(){ fin(); });
+      return p;
+    };
+  }
+  if (window.XMLHttpRequest){
+    var o0 = XMLHttpRequest.prototype.open, s0 = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(m, u){ this.__lsBase = esBase(u); return o0.apply(this, arguments); };
+    XMLHttpRequest.prototype.send = function(){
+      if (this.__lsBase && !listo){ inicio(); this.addEventListener('loadend', fin); }
+      return s0.apply(this, arguments);
+    };
+  }
+  /* Se decide al terminar de leer la página (antes del primer dibujo completo). Tope: 15 s. */
+  var decidirYa = function(){ setTimeout(decidir, 0); }; /* después de los arranques propios de la página */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decidirYa); else decidirYa();
+  setTimeout(terminar, 15000);
+})();</script>
+<!-- ===== fin lives-cargando v1.2 ===== -->
+<!-- ============================================================================
+     LIVES · SESIÓN DEL PORTAL EN LAS HERRAMIENTAS            lives-sesion v5.2 · 2026-10-06
+     Bloque común: es idéntico en todas las herramientas. Si se corrige, se corrige en
+     todas. No depende de nada de la página.
+     · Toma la sesión del portal LIVES (misma dirección github.io, se comparte sola).
+     · v4 · SIN BLOQUEO: la herramienta abre SIEMPRE. Ya no aparece "Abre esto desde el
+       portal". Si hay sesión del portal, todo funciona como antes (nombre, llave,
+       permisos, supervisión). Si no hay sesión (por ejemplo, abierta desde el portal de
+       Sistemas), abre igual y lee con la clave pública.
+     · Toda lectura a Supabase sale con la llave de la persona (si la hay) y la renueva
+       antes de que venza (1 hora) sin chocar con el portal ni con otras pestañas.
+     · El nombre de quien trabaja sale de la sesión: ?usuario= se reescribe con el real.
+       Sin sesión, ?usuario= queda como venga en la dirección.
+     · MODO SUPERVISIÓN (desde v3): Rodrigo (rcamogliano) ve y usa todo, nada se guarda.
+       Christian (ctalepcio) tiene acceso completo. Solo aplica con sesión del portal.
+     · v5 · PUENTE CON EL PORTAL DE SISTEMAS (temporal, riesgo aceptado por Christian el
+       06/10/2026): si no hay sesión del portal LIVES y el link trae ?usuario=Nombre+Apellido,
+       se pide a Supabase (función sesion-sistemas) la sesión de esa persona y la herramienta
+       se recarga una vez ya con su nombre y sus permisos. El nombre no se verifica hasta que
+       Sistemas firme el link. Esa sesión vive solo en la pestaña (no pasa al portal LIVES) y
+       se descarta si el link trae otro nombre. Cuentas excluidas: las define Supabase.
+     · v5.1 · NOMBRE AL DÍA: al abrir, se pregunta a Supabase el nombre vigente de quien
+       tiene la sesión (mi_nombre). Si cambió (p. ej. por los nombres de Sistemas) se corrige
+       la sesión guardada y la pantalla se recarga una sola vez con el nombre nuevo.
+     · v5.2 · PORTAL NUEVO: el puente avisa si la herramienta está abierta dentro de
+       app.lives.com.pe. Solo así Supabase acepta por el puente a Christian y a Rodrigo
+       (Rodrigo siempre en supervisión). Con un link suelto, ellos no entran por el puente.
+     ============================================================================ -->
+<style id="lsCss">
+#lsSup{position:fixed;right:12px;bottom:12px;z-index:2147482000;background:#0E3B36;color:#fff;
+  font-family:Calibri,Arial,sans-serif;font-size:12.5px;font-weight:700;border-radius:999px;padding:7px 14px;
+  box-shadow:0 4px 14px rgba(14,59,54,.25);border:2px solid #10B981;pointer-events:none;opacity:.92;}
+#lsToast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);z-index:2147482001;background:#B45309;
+  color:#fff;font-family:Calibri,Arial,sans-serif;font-size:14px;font-weight:700;border-radius:10px;
+  padding:11px 18px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;max-width:90vw;text-align:center;}
+</style>
+<script id="lsJs">
+(function(){
+  'use strict';
+  if (window.LIVES_SESION) return;                       /* por si el bloque quedara dos veces */
+
+  var SB_URL  = 'https://xxfufpddgoyhbotjmaiy.supabase.co';
+  var SB_KEY  = 'sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+  var CLAVE   = 'lives_portal_sesion';                   /* misma llave que usa el portal */
+  var CANDADO = 'lives_sb_renovando';
+  var MOVIL   = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  var GRACIA  = (MOVIL ? 720 : 60) * 60000;              /* igual que el portal */
+  var fetchBase = window.fetch.bind(window);
+  var yo = Math.random().toString(36).slice(2);
+
+  /* ---------- guardar y leer la sesión (mismo formato que el portal) ---------- */
+  function leerJ(area, k){ try{ return JSON.parse(area.getItem(k) || 'null'); }catch(e){ return null; } }
+  function valida(d){
+    return !!(d && d.token && d.permisos && d.sb && d.sb.access && d.sb.refresh);
+  }
+
+  /* La sesión vigente. Si hay dos copias (la de esta pestaña y el respaldo común) y son
+     de la misma persona, se queda con la llave más nueva: otra pestaña o el portal pudo
+     renovarla, y usar una llave ya renovada cierra la sesión en Supabase. */
+  function sesion(){
+    var s = null, r = null;
+    try{ s = leerJ(sessionStorage, CLAVE); }catch(e){}
+    try{
+      var x = leerJ(localStorage, CLAVE + '_resp');
+      if (x && valida(x.d) && (Date.now() - x.ts) < GRACIA) r = x.d;
+    }catch(e){}
+    if (!valida(s)) s = null;
+    if (!s && r){ s = r; try{ sessionStorage.setItem(CLAVE, JSON.stringify(s)); }catch(e){} }
+    if (s && r && r.usuario === s.usuario && r.sb && (!s.sb || r.sb.exp > s.sb.exp)){
+      s.sb = r.sb;
+      try{ sessionStorage.setItem(CLAVE, JSON.stringify(s)); }catch(e){}
+    }
+    return s;
+  }
+  function guardar(d){
+    try{ sessionStorage.setItem(CLAVE, JSON.stringify(d)); }catch(e){}
+    if (d && d.origen === 'sistemas') return;            /* sesión del puente: solo en esta pestaña */
+    try{ localStorage.setItem(CLAVE + '_resp', JSON.stringify({ d: d, ts: Date.now() })); }catch(e){}
+  }
+  function borrar(){
+    try{ sessionStorage.removeItem(CLAVE); }catch(e){}
+    try{ localStorage.removeItem(CLAVE + '_resp'); }catch(e){}
+  }
+  /* Mientras se usa la herramienta, el respaldo cuenta desde la última actividad. */
+  function refrescarMarca(){
+    var s = sesion(); if (!s || s.origen === 'sistemas') return;
+    try{ localStorage.setItem(CLAVE + '_resp', JSON.stringify({ d: s, ts: Date.now() })); }catch(e){}
+  }
+  setInterval(refrescarMarca, 60000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) refrescarMarca(); });
+
+  function equipo(){
+    var n = navigator.userAgent || '';
+    var so = /Android/i.test(n) ? 'Android' : /iPhone|iPad/i.test(n) ? 'iPhone/iPad'
+           : /Windows/i.test(n) ? 'Windows' : /Mac/i.test(n) ? 'Mac' : 'Otro';
+    return so + (window.top === window ? ' · suelta' : '');
+  }
+
+  function pedir(ruta, cuerpo, token, ms){
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var reloj = setTimeout(function(){ if (ctl) ctl.abort(); }, ms || 15000);
+    var cab = { 'Content-Type': 'application/json', apikey: SB_KEY };
+    if (token) cab.Authorization = 'Bearer ' + token;
+    return fetchBase(SB_URL + ruta, { method: 'POST', headers: cab, body: JSON.stringify(cuerpo || {}),
+                                      cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function(r){
+        clearTimeout(reloj);
+        return r.text().then(function(t){
+          var j = null; try{ j = t ? JSON.parse(t) : null; }catch(e){}
+          return { status: r.status, ok: r.ok, json: j };
+        });
+      }, function(e){ clearTimeout(reloj); throw e; });
+  }
+  function esperar(ms){ return new Promise(function(ok){ setTimeout(ok, ms); }); }
+
+  /* ---------- llave vigente, renovada sin chocar con otras pestañas ---------- */
+  var renovando = null;
+  function llave(forzar){
+    var s = sesion();
+    if (!s || !s.sb || !s.sb.refresh) return Promise.resolve(null);
+    if (!forzar && s.sb.exp - Date.now() > 60000) return Promise.resolve(s.sb.access);
+    if (renovando) return renovando;
+    var usada = s.sb.refresh;
+    renovando = (function intento(n){
+      var c = leerJ(localStorage, CANDADO);
+      if (c && c.hasta > Date.now() && c.quien !== yo && n < 4){
+        /* Otra pestaña o el portal está renovando: se espera y se usa lo que deje. */
+        return esperar(1500).then(function(){
+          var s2 = sesion();
+          if (s2 && s2.sb && s2.sb.refresh !== usada && s2.sb.exp - Date.now() > 60000) return s2.sb.access;
+          return intento(n + 1);
+        });
+      }
+      try{ localStorage.setItem(CANDADO, JSON.stringify({ quien: yo, hasta: Date.now() + 10000 })); }catch(e){}
+      return pedir('/auth/v1/token?grant_type=refresh_token', { refresh_token: usada })
+        .then(function(r){
+          if (r.ok && r.json && r.json.access_token){
+            var s3 = sesion() || s;
+            s3.sb = { access: r.json.access_token, refresh: r.json.refresh_token,
+                      exp: Date.now() + (Number(r.json.expires_in) || 3600) * 1000 };
+            guardar(s3);
+            return s3.sb.access;
+          }
+          /* Rechazada: puede que otra pestaña la haya renovado un instante antes. */
+          var s4 = sesion();
+          if (s4 && s4.sb && s4.sb.refresh !== usada && s4.sb.exp - Date.now() > 60000) return s4.sb.access;
+          /* v5: si la sesión del puente ya no se puede renovar, se descarta para que la
+             próxima vez que se abra una herramienta el puente la vuelva a pedir. */
+          if (r.status >= 400 && r.status < 500 && s.origen === 'sistemas'){
+            borrar(); try{ sessionStorage.removeItem('lives_puente_recargado'); }catch(e){}
+          }
+          return null;
+        }, function(){ return null; })                                             /* sin señal */
+        .then(function(tk){
+          try{ var c2 = leerJ(localStorage, CANDADO); if (c2 && c2.quien === yo) localStorage.removeItem(CANDADO); }catch(e){}
+          return tk;
+        });
+    })(0).then(function(tk){ renovando = null; return tk; }, function(){ renovando = null; return null; });
+    return renovando;
+  }
+
+  /* ---------- toda lectura a Supabase sale con la llave de la persona ---------- */
+  function conLlave(init, tk){
+    var o = {}, k;
+    init = init || {};
+    for (k in init) o[k] = init[k];
+    var h = {};
+    if (init.headers && typeof init.headers.forEach === 'function' && !(init.headers instanceof Array)){
+      init.headers.forEach(function(v, n){ h[n] = v; });
+    } else if (init.headers){
+      for (k in init.headers) h[k] = init.headers[k];
+    }
+    var tiene = false;
+    for (k in h) if (k.toLowerCase() === 'authorization') tiene = true;
+    if (!tiene && tk) h.Authorization = 'Bearer ' + tk;
+    var tieneKey = false;
+    for (k in h) if (k.toLowerCase() === 'apikey') tieneKey = true;
+    if (!tieneKey) h.apikey = SB_KEY;
+    o.headers = h;
+    return o;
+  }
+
+  /* ---------- MODO SUPERVISIÓN (desde v3) ---------- */
+  /* Solo Rodrigo supervisa. Christian (ctalepcio) tiene acceso completo y guarda en
+     todas las herramientas (lo da Supabase con es_superusuario()). */
+  var SUPERVISORES = ['rcamogliano'];
+  function supervisando(){
+    var s = sesion(); if (!s) return false;
+    return SUPERVISORES.indexOf(String(s.usuario || '').trim().toLowerCase()) !== -1;
+  }
+  /* El bloqueo de verdad lo hace Supabase: para los supervisores, todo pedido que intenta
+     guardar corre en modo "solo lectura" y la base lo rechaza (y los archivos tampoco se
+     suben). Aquí solo se deja la pantalla activa y se avisa con claridad. */
+  var RPC_PUEDE = /(puede|permiso|es_editor|editor_de)/i;
+  function rutaSB(url){ return url.indexOf(SB_URL) === 0 ? url.slice(SB_URL.length).split('?')[0] : ''; }
+  function esRechazoSup(txt){ return /read-only transaction|solo lectura|SUPERVISION/i.test(txt || ''); }
+  var _toastT = null;
+  function avisoSup(txt){
+    function poner(){
+      var t = document.getElementById('lsToast');
+      if (!t){ t = document.createElement('div'); t.id = 'lsToast'; document.body.appendChild(t); }
+      t.textContent = txt; t.style.display = 'block';
+      clearTimeout(_toastT); _toastT = setTimeout(function(){ t.style.display = 'none'; }, 4500);
+    }
+    if (document.body) poner(); else document.addEventListener('DOMContentLoaded', poner);
+  }
+  function marcaSup(){
+    if (!supervisando() || document.getElementById('lsSup')) return;
+    var b = document.createElement('div'); b.id = 'lsSup';
+    b.textContent = '👁️ Modo supervisión · puedes usar todo, nada se guarda';
+    document.body.appendChild(b);
+  }
+  if (document.body) marcaSup(); else document.addEventListener('DOMContentLoaded', marcaSup);
+  function respuesta(cuerpo, estado){
+    return new Response(JSON.stringify(cuerpo), { status: estado,
+      headers: { 'Content-Type': 'application/json' } });
+  }
+
+  /* Para supervisores: "¿puede editar?" pasa a sí, y los rechazos por solo lectura se
+     convierten en un aviso claro. Todo lo demás pasa igual que siempre. */
+  function ajustarSup(r, url, metodo){
+    if (!supervisando()) return r;
+    var ruta = rutaSB(url);
+    if (!ruta) return r;
+    var esRpc = ruta.indexOf('/rest/v1/rpc/') === 0;
+    var fn = esRpc ? ruta.slice('/rest/v1/rpc/'.length) : '';
+    if (!r.ok){
+      return r.clone().text().then(function(t){
+        var sube = ruta.indexOf('/storage/v1/object') === 0 && !/\/object\/(list|sign|info)\//.test(ruta) &&
+                   String(metodo).toUpperCase() !== 'GET';
+        if (esRechazoSup(t) || sube){
+          avisoSup('👁️ Modo supervisión: no se guardó. Estás revisando, los datos no cambian.');
+          return respuesta({ message: 'Modo supervisión: no se guardó (estás revisando).',
+                             error: 'MODO_SUPERVISION', code: 'SUPERVISION' }, r.status);
+        }
+        return r;
+      }, function(){ return r; });
+    }
+    if (!esRpc) return r;
+    return r.clone().text().then(function(t){
+      var x = t.trim();
+      if (RPC_PUEDE.test(fn) && (x === 'false' || x === '')) return respuesta(true, 200);
+      if (x.charAt(0) === '{' && /"(puede|es_editor|editor)[a-z_]*"\s*:\s*false/i.test(x)){
+        try{
+          var o = JSON.parse(x), k, cambio = false;
+          for (k in o) if (/^(puede|es_editor|editor)/i.test(k) && o[k] === false){ o[k] = true; cambio = true; }
+          if (cambio) return respuesta(o, r.status);
+        }catch(e){}
+      }
+      return r;
+    }, function(){ return r; });
+  }
+
+  /* ---------- sin sesión: solo se anota en la consola, nunca se bloquea ---------- */
+  var anotado = false;
+  function sinSesion(){
+    if (anotado) return;
+    anotado = true;
+    try{ console.info('[lives-sesion v5.2] Sin sesión del portal LIVES: se usa la clave pública.'); }catch(e){}
+  }
+
+  window.fetch = function(entrada, init){
+    var url = (typeof entrada === 'string') ? entrada
+            : (entrada && entrada.url) ? entrada.url : String(entrada || '');
+    var metodo = (init && init.method) || (entrada && entrada.method) || 'GET';
+    if (supervisando() && url.indexOf(SB_URL) === 0 && url.indexOf(SB_URL + '/rest/v1/') !== 0){
+      return fetchBase(entrada, init).then(function(r){ return ajustarSup(r, url, metodo); });
+    }
+    if (typeof entrada !== 'string' || url.indexOf(SB_URL + '/rest/v1/') !== 0) return fetchBase(entrada, init);
+    return esperaPuente().then(function(){ return llave(false); }).then(function(tk){
+      if (!tk) sinSesion();
+      return fetchBase(url, conLlave(init, tk)).then(function(r){
+        if (r.status !== 401 || !tk) return ajustarSup(r, url, metodo);
+        /* 401 con llave: venció o la cerraron. Se renueva una vez y se reintenta. */
+        return llave(true).then(function(tk2){
+          if (!tk2){ sinSesion(); return r; }
+          return fetchBase(url, conLlave(init, tk2)).then(function(r2){
+            return ajustarSup(r2, url, metodo);
+          });
+        });
+      });
+    });
+  };
+
+  /* ---------- el nombre sale de la sesión, no de la dirección ---------- */
+  function fijarNombre(s){
+    if (!s || !s.nombre) return;
+    try{
+      var u = new URL(location.href);
+      if (u.searchParams.get('usuario') !== s.nombre){
+        u.searchParams.set('usuario', s.nombre);
+        u.searchParams.delete('nombre');
+        history.replaceState(history.state, '', u.toString());
+      }
+    }catch(e){}
+  }
+
+  /* ---------- v5 · puente con el portal de Sistemas ---------- */
+  var PUENTE_OK = 'lives_puente_recargado';
+  function norm(x){
+    return String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[+._-]/g, ' ')
+             .replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function nombreLink(){
+    try{ var u = new URL(location.href); return (u.searchParams.get('usuario') || u.searchParams.get('nombre') || '').trim(); }
+    catch(e){ return ''; }
+  }
+  var pedido = nombreLink();
+  var sx = sesion();
+  /* Sesión del puente de otra persona (computadora compartida): se descarta. */
+  if (sx && sx.origen === 'sistemas' && pedido && norm(pedido) !== norm(sx.nombre)){ borrar(); sx = null; }
+  var puente = null;
+  function enPortalNuevo(){
+    if (window.top === window) return false;
+    var anc = '';
+    try{ var ao = location.ancestorOrigins; if (ao && ao.length) anc = ao[ao.length - 1]; }catch(e){}
+    var ref = ''; try{ ref = document.referrer || ''; }catch(e){}
+    return /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(anc) || /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(ref);
+  }
+  function esperaPuente(){ return puente || Promise.resolve(); }
+  if (!sx && pedido && norm(pedido).length >= 5){
+    var yaRecargo = null; try{ yaRecargo = sessionStorage.getItem(PUENTE_OK); }catch(e){}
+    if (yaRecargo !== norm(pedido)){
+      var raiz = document.documentElement, oculto = false;
+      try{ raiz.style.visibility = 'hidden'; oculto = true; }catch(e){}
+      var mostrar = function(){ if (oculto){ try{ raiz.style.visibility = ''; }catch(e){} oculto = false; } };
+      var tope = setTimeout(mostrar, 6000);                 /* nunca deja la pantalla en blanco */
+      puente = (function(){
+        var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var reloj = setTimeout(function(){ if (ctl) ctl.abort(); }, 8000);
+        return fetchBase(SB_URL + '/functions/v1/sesion-sistemas', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY },
+          body: JSON.stringify({ nombre: pedido, equipo: equipo(), desde: location.pathname, portal_nuevo: enPortalNuevo() }),
+          cache: 'no-store', signal: ctl ? ctl.signal : undefined
+        }).then(function(r){ clearTimeout(reloj); return r.json(); })
+          .then(function(j){
+            if (!j || !j.ok || !j.sesion || !j.sesion.sb){ sinSesion(); mostrar(); clearTimeout(tope); return; }
+            var d = j.sesion;
+            d.sb = { access: d.sb.access, refresh: d.sb.refresh, exp: Date.now() + (Number(d.sb.expira_en) || 3600) * 1000 };
+            d.vsesion = null;
+            guardar(d);
+            try{ sessionStorage.setItem(PUENTE_OK, norm(pedido)); }catch(e){}
+            location.reload();                               /* se vuelve a abrir ya con su sesión */
+          }, function(){ clearTimeout(reloj); sinSesion(); mostrar(); clearTimeout(tope); });
+      })();
+    }
+  }
+
+  /* ---------- al abrir ---------- */
+  var s0 = sesion();
+  if (!s0){
+    sinSesion();
+  } else {
+    fijarNombre(s0);
+    /* Si alguien ejecutó cerrar_todas_las_sesiones(), esta sesión ya no vale: se descarta
+       y la herramienta sigue abierta sin sesión. Sin señal no se hace nada. */
+    pedir('/rest/v1/rpc/version_sesion', {}, null, 8000).then(function(v){
+      if (!v.ok || typeof v.json !== 'number') return;
+      var s = sesion(); if (!s) return;
+      if (s.vsesion === undefined || (s.vsesion !== null && s.vsesion !== v.json)){ borrar(); sinSesion(); return; }
+      if (s.vsesion === null){ s.vsesion = v.json; guardar(s); }
+    }).catch(function(){});
+    /* v5.1: el nombre de la sesión se pone al día con el de la base (una recarga, una vez). */
+    llave(false).then(function(tk){
+      if (!tk) return;
+      return pedir('/rest/v1/rpc/mi_nombre', {}, tk, 8000).then(function(v){
+        if (!v.ok || typeof v.json !== 'string' || !v.json) return;
+        var s = sesion(); if (!s || v.json === s.nombre) return;
+        s.nombre = v.json; guardar(s); fijarNombre(s);
+        var ya = null; try{ ya = sessionStorage.getItem('lives_nombre_al_dia'); }catch(e){}
+        if (ya !== v.json){
+          try{ sessionStorage.setItem('lives_nombre_al_dia', v.json); }catch(e){}
+          location.reload();
+        }
+      });
+    }).catch(function(){});
+    /* Abierta fuera del portal: se anota igual que cuando se abre desde el portal. */
+    if (window.top === window && s0.sb){
+      document.addEventListener('DOMContentLoaded', function(){
+        llave(false).then(function(tk){
+          if (!tk) return;
+          return pedir('/rest/v1/rpc/registrar_apertura',
+            { p_herramienta: (document.title || location.pathname) + ' (suelta)',
+              p_url: location.origin + location.pathname, p_equipo: equipo() }, tk, 10000);
+        }).catch(function(){});
+      });
+    }
+  }
+
+  window.LIVES_SESION = {
+    version: 'lives-sesion v5.2 · 2026-10-06 (sin bloqueo · nombre al día · supervisión · puente Sistemas · portal nuevo)',
+    supervision: function(){ return supervisando(); },
+    actual: function(){ var s = sesion(); return s ? { usuario: s.usuario, nombre: s.nombre, conSupabase: !!s.sb } : null; },
+    llave: function(){ return llave(false); },
+    pedir: function(){ sinSesion(); }       /* se mantiene por compatibilidad: ya no bloquea */
+  };
+})();
+</script>
+<!-- ===== fin lives-sesion v5.2 ===== -->
+<!-- ===== lives-portal-obligatorio v2 · 2026-10-21 · SIN AVISO: la herramienta abre también fuera del portal (v1 la abría solo entrando por el portal LIVES
+     (app.lives.com.pe) con el usuario de cada persona. Si se abre por un link suelto, sin usuario, se muestra
+     un aviso con el botón al portal. Va justo después del bloque lives-sesion. No va en Check List de Orden y
+     Limpieza, Solicitud de Movilidad ni Entregas del chofer (se usan por link directo). ===== -->
+<style id="lsPoCss">
+#lsPo{position:fixed;inset:0;z-index:2147483000;background:#F1F6F4;display:flex;align-items:center;justify-content:center;
+  padding:20px;font-family:Calibri,Arial,sans-serif;}
+#lsPo .lsPoCaja{background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(14,59,54,.14);max-width:420px;width:100%;
+  padding:28px 24px;text-align:center;border-top:5px solid #0F7A5A;}
+#lsPo img{height:34px;margin-bottom:14px}
+#lsPo h2{margin:0 0 8px;font-size:20px;color:#0E3B36}
+#lsPo p{margin:0 0 20px;font-size:15px;color:#4E6B78;line-height:1.45}
+#lsPo a{display:inline-block;background:#0F7A5A;color:#fff;text-decoration:none;font-weight:700;font-size:16px;
+  padding:13px 26px;border-radius:10px;min-height:44px}
+#lsPo a:hover{background:#0B815E}
+html.lsPoOn body>*:not(#lsPo){visibility:hidden!important}
+@media print{#lsPo{display:none!important}}
+</style>
+<script id="lsPoJs">(function(){
+  'use strict';
+  if (window.__lsPo) return; window.__lsPo = true;
+  var PORTAL = 'https://app.lives.com.pe';
+  function norm(x){ return String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[+._-]/g, ' ')
+                      .replace(/\s+/g, ' ').trim().toLowerCase(); }
+  function conSesion(){ try{ return !!(window.LIVES_SESION && window.LIVES_SESION.actual()); }catch(e){ return false; } }
+  function enPortal(){
+    if (window.top === window) return false;
+    var anc = '', ref = '';
+    try{ var ao = location.ancestorOrigins; if (ao && ao.length) anc = ao[ao.length - 1]; }catch(e){}
+    try{ ref = document.referrer || ''; }catch(e){}
+    return /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(anc) || /^https:\/\/app\.lives\.com\.pe(\/|$)/.test(ref);
+  }
+  /* Pantallas sin bloque de sesión (trabajan con archivos o sin cuenta): basta estar dentro del portal
+     o haber sido abierta desde otra herramienta LIVES. */
+  function desdeHerramienta(){ try{ return !!(window.opener && window.opener.location.host === location.host); }catch(e){ return false; } }
+  function permitido(){ return conSesion() || (!window.LIVES_SESION && (enPortal() || desdeHerramienta())); }
+  function puenteEnCamino(){
+    try{
+      var u = new URL(location.href), p = norm(u.searchParams.get('usuario') || u.searchParams.get('nombre') || '');
+      if (p.length < 5) return false;
+      return sessionStorage.getItem('lives_puente_recargado') !== p;   /* el puente pedirá la sesión y recargará */
+    }catch(e){ return false; }
+  }
+  function avisar(){
+    if (permitido() || document.getElementById('lsPo')) return;
+    var dentro = enPortal();
+    var d = document.createElement('div'); d.id = 'lsPo'; d.setAttribute('role', 'alertdialog');
+    d.innerHTML = '<div class="lsPoCaja"><img alt="LIVES" src="data:image/png;base64,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">' +
+      (dentro
+        ? '<h2>No llegó tu usuario</h2><p>Cierra esta opción y vuelve a abrirla desde el menú del portal. Si sigue igual, avisa a Sistemas.</p>'
+        : '<h2>Abre esta herramienta desde el portal LIVES</h2><p>Entra al portal con tu usuario y elige la herramienta en el menú.</p>') +
+      '<a href="' + PORTAL + '" target="_top" rel="noopener">Ir al portal LIVES</a></div>';
+    document.body.appendChild(d);
+    document.documentElement.classList.add('lsPoOn');
+  }
+  function revisar(){
+    if (permitido()) return;
+    if (puenteEnCamino()) { setTimeout(avisar, 10000); return; }
+    avisar();
+  }
+  /* Herramienta que abre otra herramienta en una pestaña nueva: el enlace lleva el usuario para que
+     la pestaña nueva tome su sesión por el puente (la sesión del portal no pasa sola a otra pestaña). */
+  function conUsuario(href){
+    try{
+      var a = window.LIVES_SESION && window.LIVES_SESION.actual(); if (!a || !a.nombre) return href;
+      var u = new URL(href, location.href);
+      if (u.host !== location.host || !/\.html?$|\/$/.test(u.pathname)) return href;
+      u.searchParams.set('usuario', a.nombre); return u.toString();
+    }catch(e){ return href; }
+  }
+  document.addEventListener('click', function(ev){
+    var a = ev.target && ev.target.closest ? ev.target.closest('a[target="_blank"][href]') : null;
+    if (a) a.href = conUsuario(a.getAttribute('href'));
+  }, true);
+  var abrir0 = window.open;
+  window.open = function(url){ var x = Array.prototype.slice.call(arguments); if (url) x[0] = conUsuario(url); return abrir0.apply(window, x); };
+  /* v2 · 21/10/2026: ya no se muestra el aviso; solo se conserva el paso del usuario a pestañas nuevas */
+})();</script>
+<!-- ===== fin lives-portal-obligatorio v2 ===== -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escaneo de cajas · LIVES</title>
+<style>
+:root{
+  --petrol:#0E3B36; --petrol-2:#12463F; --emer:#10B981; --sage:#0F7A5A; --sage-dark:#0B815E; --slate:#4E6B78;
+  --taupe:#B45309; --rose:#DC2626; --tan:#F59E0B; --warm:#DCE5E2; --warm-light:#F1F6F4; --stone:#5F726C;
+  --card:#fff; --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04); --sh-h:0 4px 12px rgba(14,59,54,.10); --r:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+.wrap{width:100%;max-width:none;margin:0 auto;padding:14px clamp(16px,2.2vw,52px) 44px}
+.bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:14px;position:sticky;top:0;z-index:15}
+.bar label,.campo{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:2px}
+select,input,textarea{font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);border:1px solid var(--warm);border-radius:8px;padding:7px 10px;background:#fff;min-height:38px}
+textarea{font-weight:400;color:#333;min-height:70px;resize:vertical}
+input[type=search]{min-width:200px;color:#333;font-weight:400}
+.btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;min-height:38px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage)}
+.btn:hover{border-color:var(--sage)}
+.btn.primary{background:var(--sage);color:#fff;border-color:var(--sage)}
+.btn.primary:hover{background:var(--sage-dark)}
+.btn.peligro{color:var(--rose)}
+.btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed}
+.spacer{margin-left:auto}
+.lsAcc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:14px}
+.panel .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--warm)}
+.panel .tira.resultado{background:var(--sage)}.panel .tira.riesgo{background:var(--rose)}.panel .tira.volumen{background:var(--slate)}
+.panel .pt{font-size:15px;font-weight:700}
+.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:12px;max-width:130ch}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;white-space:nowrap}
+td{padding:8px 6px;border-bottom:1px solid var(--warm-light);vertical-align:top}
+tbody tr.clic{cursor:pointer}
+tbody tr.clic:hover td{background:var(--warm-light)}
+td.n,th.n{text-align:right;white-space:nowrap}
+.st{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.st.pe{background:var(--warm-light);color:var(--stone)}.st.pr{background:#EAF1F4;color:var(--slate)}
+.st.es{background:#FEF3E2;color:var(--taupe)}.st.ob{background:#FCEBEB;color:var(--rose)}
+.st.ce{background:#E7F4EF;color:var(--sage-dark)}.st.an{background:#E5E9E8;color:#8A9893}
+.st.ok{background:#E7F4EF;color:var(--sage-dark)}.st.mal{background:#FCEBEB;color:var(--rose)}
+.lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
+.vacio{padding:22px 10px;text-align:center;color:var(--stone);font-size:14px}
+.errBox{background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;padding:12px 16px;color:var(--rose);font-size:13px;margin-bottom:14px;display:none}
+.okBox{background:#E7F4EF;border:1px solid var(--sage);border-radius:8px;padding:12px 16px;color:var(--sage-dark);font-size:13px;margin-bottom:14px}
+.aviso{background:#FEF3E2;border:1px solid var(--tan);border-radius:8px;padding:10px 14px;color:var(--taupe);font-size:13px;margin:8px 0}
+.prog{height:8px;background:var(--warm-light);border-radius:4px;overflow:hidden;margin-top:4px}
+.prog>i{display:block;height:100%;background:var(--sage);border-radius:4px}
+.modal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(14,59,54,.5);align-items:center;justify-content:center;padding:2vh 2vw}
+.modal.show{display:flex}
+.mcaja{background:var(--warm-light);width:100%;height:100%;max-width:1300px;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.mcaja.chica{height:auto;max-height:96vh;max-width:900px}
+.mbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--warm)}
+.mbar b{flex:1;font-size:15px;color:#0E3B36}
+.mbar button{font-family:inherit;font-weight:700;font-size:14px;border:1px solid var(--warm);background:#fff;color:var(--rose);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer}
+.mcaja iframe{flex:1;border:0;width:100%;background:var(--warm-light)}
+.dcuerpo{padding:14px 16px 18px;overflow:auto}
+body.modalAbierta{overflow:hidden}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
+.fila>*{flex:1 1 160px}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:600px){
+  .wrap{padding:12px 16px 36px}
+  .bar{position:static;padding:8px 10px;gap:8px}
+  .bar>label{flex:1 1 calc(50% - 8px);min-width:0}
+  .bar>label select,.bar>label input{width:100%;min-width:0}
+  .bar>label:has(input[type=search]){flex-basis:100%}
+  .bar>.lsAcc{flex:1 1 100%}
+  .bar>.lsAcc .btn{flex:1 1 auto}
+  .btn,select,input{min-height:44px;font-size:14px}
+  .spacer{display:none}
+  .panel{padding:18px 12px 12px}
+  .modal{padding:0}
+  .mcaja,.mcaja.chica{border-radius:0;max-width:none;height:100%;max-height:none}
+}
+.wrap{max-width:820px}
+.fijo{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:12px;position:sticky;top:0;z-index:15}
+.fijo .fila{margin:0}
+.linea{display:flex;align-items:center;gap:10px}
+.linea b{flex:1;font-size:15px;color:#0E3B36}
+.scan input{width:100%;font-size:22px;min-height:58px;text-align:center;letter-spacing:1px;color:#333}
+.res{border-radius:12px;padding:16px;margin:10px 0;text-align:center;font-weight:700;font-size:20px;line-height:1.25;display:none}
+.res small{display:block;font-size:14px;font-weight:400;margin-top:4px}
+.res.ok{display:block;background:#E7F4EF;color:var(--sage-dark);border:2px solid var(--sage)}
+.res.mal{display:block;background:#FCEBEB;color:var(--rose);border:2px solid var(--rose)}
+.res.nuevo{display:block;background:#FEF3E2;color:var(--taupe);border:2px solid var(--tan)}
+.res.lista{display:block;background:var(--petrol);color:#fff;border:2px solid var(--emer)}
+.tot{display:flex;align-items:baseline;gap:10px}
+.tot .v{font-size:40px;font-weight:700;color:var(--sage);line-height:1}
+.tot .s{color:var(--stone);font-size:13px}
+.lin td{font-size:14px}
+.lin td.falta{color:var(--rose);font-weight:700}
+.lin td.lleno{color:var(--sage);font-weight:700}
+.rec .btn{padding:4px 10px;min-height:34px;font-size:12px}
+.pie{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+@media(max-width:600px){ .fijo{position:static} }
+</style>
+<style id="lsLimp3Css">/* lives-limpieza v3 (30/10/2026) · fuera del portal tampoco hay títulos de panel ni notas explicativas */.panel>.pt,.panel>.ph{display:none!important}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="fijo" data-ls-fijo>
+    <div class="fila" id="selPk">
+      <label class="campo">Packing<select id="sPk"><option value="">Cargando…</option></select></label>
+      <label class="campo">Caja<select id="sCj" disabled><option value="">Elige primero el packing</option></select></label>
+    </div>
+    <div class="linea" id="linea" style="display:none"><b id="lTxt"></b><button class="btn" type="button" id="btnCambiar">Cambiar</button></div>
+  </div>
+  <div class="errBox" id="errBox"></div>
+  <div id="zona" style="display:none">
+    <div class="scan" data-ls-fijo><input id="inScan" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="Escanea el hang tag de la prenda"></div>
+    <div class="res" id="res"></div>
+    <div class="panel" id="nuevo" style="display:none"><span class="tira riesgo"></span>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">Código nuevo: <span id="nCod"></span></div>
+      <div class="aviso">Lee la talla, el color y el estilo <b>del hang tag de la prenda que tienes en la mano</b>, no de lo que pide la caja. Se registra una sola vez y queda grabado.</div>
+      <div class="fila">
+        <label class="campo">Estilo<select id="nEst"></select></label>
+        <label class="campo">Color<select id="nCol"></select></label>
+        <label class="campo">Talla<select id="nTal"></select></label>
+      </div>
+      <div class="fila" id="nOtro" style="display:none">
+        <label class="campo">Estilo (otro)<input id="nEstO" autocomplete="off"></label>
+        <label class="campo">Código de color (otro)<input id="nColO" autocomplete="off"></label>
+        <label class="campo">Talla (otra)<input id="nTalO" autocomplete="off"></label>
+      </div>
+      <div class="acciones"><button class="btn primary" type="button" id="nGuardar">Guardar código</button><button class="btn" type="button" id="nCancelar">Cancelar</button></div>
+    </div>
+    <div class="panel"><span class="tira resultado"></span>
+      <div class="tot"><span class="v" id="tV">0</span><span class="s" id="tS"></span></div>
+      <div class="prog"><i id="tBar" style="width:0"></i></div>
+      <div class="tscroll" style="margin-top:10px"><table class="lin"><thead><tr><th>Estilo</th><th>Color</th><th>Talla</th><th class="n">Van</th><th class="n">Debe llevar</th></tr></thead><tbody id="tbLin"></tbody></table></div>
+    </div>
+    <div class="panel"><span class="tira"></span>
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">Últimos escaneos de esta caja</div>
+      <div class="tscroll"><table class="rec"><tbody id="tbRec"></tbody></table></div>
+      <div class="vacio" id="vRec">Aún no hay prendas escaneadas en esta caja.</div>
+    </div>
+  </div>
+  <div class="pie"><button class="btn" id="btnQuien" type="button" style="display:none"></button></div>
+</div>
+
+<script>
+const SB='https://xxfufpddgoyhbotjmaiy.supabase.co';
+const KEY='sb_publishable_1g-n6UT70EUlNAo8Lyc04w_jKR4LpXZ';
+const $=id=>document.getElementById(id);
+const QS=new URLSearchParams(location.search);
+const QUIEN_KEY='lives_caja_quien';
+const NOMBRE_PORTAL=(function(){
+  let n=(QS.get('usuario')||QS.get('nombre')||'').trim();
+  try{ if(n){ if(QS.get('modal')!=='1') sessionStorage.setItem('lives_nombre_portal',n); } else n=(sessionStorage.getItem('lives_nombre_portal')||'').trim(); }catch(e){}
+  return n;
+})();
+const USUARIO=NOMBRE_PORTAL||(function(){ try{ return (localStorage.getItem(QUIEN_KEY)||'').trim(); }catch(e){ return ''; } })();
+const EST={PENDIENTE:['pe','Sin empezar'],EN_PROCESO:['pr','Escaneando'],ESCANEADA:['es','Por pesar'],OBSERVADA:['ob','Observada'],CERRADA:['ce','Cerrada'],ANULADA:['an','Anulada']};
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function num(v,d){ if(v===null||v===undefined||v==='') return ''; const n=Number(v); return isFinite(n)?n.toLocaleString('es-PE',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}):String(v); }
+function kg(g){ return (g===null||g===undefined||g==='')?'':num(Number(g)/1000,2); }
+function fFecha(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return ''; return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}); }
+function norm(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase(); }
+function estPill(e){ const x=EST[e]||['pe',e||'']; return '<span class="st '+x[0]+'">'+esc(x[1])+'</span>'; }
+function token(){ try{ return crypto.randomUUID(); }catch(e){ return Date.now().toString(36)+Math.random().toString(36).slice(2); } }
+async function api(accion,p){
+  let r;
+  try{ r=await fetch(SB+'/rest/v1/rpc/caja_api',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p_accion:accion,p:Object.assign({usuario:USUARIO},p||{})})}); }
+  catch(e){ throw new Error('Sin conexión con la base de datos. Revisa la red y vuelve a intentar.'); }
+  const t=await r.text(); let d=null; try{ d=JSON.parse(t); }catch(e){}
+  if(!r.ok) throw new Error((d&&(d.message||d.error))||('La base de datos no respondió ('+r.status+').'));
+  return d;
+}
+/* identificarse (solo fuera del portal) */
+function abrirQuien(){
+  if($('ovQuien')) return;
+  const ov=document.createElement('div'); ov.id='ovQuien';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147482500;background:rgba(14,59,54,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+  const bt='flex:1;min-height:44px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;';
+  ov.innerHTML='<div role="dialog" aria-label="¿Quién eres?" style="background:#fff;color:#0E3B36;border-radius:14px;max-width:420px;width:100%;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.3)">'+
+    '<div style="font-weight:700;font-size:18px;margin-bottom:4px">¿Quién eres?</div>'+
+    '<div style="font-size:13px;color:#5F726C;margin-bottom:12px">Escribe tu usuario. Se queda en este equipo y firma lo que registres.</div>'+
+    '<input id="qOtro" autocomplete="off" placeholder="Tu usuario (ej. ctalepcio)" value="'+esc(USUARIO)+'" style="width:100%;min-height:44px;font-size:15px;margin-bottom:8px;padding:0 10px;box-sizing:border-box">'+
+    '<div id="qErr" style="color:#DC2626;font-size:13px;min-height:18px;margin-bottom:6px"></div>'+
+    '<div style="display:flex;gap:8px"><button type="button" id="qOk" style="'+bt+'border:none;background:#0F7A5A;color:#fff">Entrar</button>'+
+    '<button type="button" id="qNo" style="'+bt+'border:1px solid #DCE5E2;background:#fff;color:#0E3B36">Cancelar</button></div></div>';
+  document.body.appendChild(ov);
+  $('qOtro').focus();
+  $('qNo').addEventListener('click',()=>ov.remove());
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  $('qOk').addEventListener('click',()=>{
+    const val=$('qOtro').value.trim();
+    if(!val){ $('qErr').textContent='Escribe tu usuario.'; return; }
+    try{ localStorage.setItem(QUIEN_KEY,val); }catch(e){ $('qErr').textContent='Este navegador no deja guardar el nombre.'; return; }
+    location.reload();
+  });
+}
+function prepararQuien(btn,puede){
+  if(NOMBRE_PORTAL||!btn) return true;
+  btn.style.display=''; btn.textContent=USUARIO?'Cambiar de persona':'Identificarme';
+  btn.title=USUARIO?('Registrando como '+USUARIO.toUpperCase()):'Elige quién eres para poder registrar';
+  btn.onclick=abrirQuien;
+  return !!USUARIO;
+}
+/* sonido y vibración para el escaneo */
+let AUD=null;
+function pitido(ok){
+  try{ AUD=AUD||new (window.AudioContext||window.webkitAudioContext)(); const o=AUD.createOscillator(), g=AUD.createGain();
+    o.type='square'; o.frequency.value=ok?1320:220; g.gain.value=.08; o.connect(g); g.connect(AUD.destination);
+    o.start(); o.stop(AUD.currentTime+(ok?.09:.45)); }catch(e){}
+  try{ if(!ok&&navigator.vibrate) navigator.vibrate([180,80,180]); }catch(e){}
+}
+
+let INI=null, PK=null, CJS=[], CAJA=null, OCUPADO=false, PUEDE=false;
+async function iniciar(){
+  try{ INI=await api('inicio'); }catch(e){ mostrarError(e.message); }
+  const ok=prepararQuien($('btnQuien'));
+  PUEDE=!!(INI&&INI.puede&&ok);
+  if(INI&&!INI.puede) mostrarError(INI.supervision?'Modo supervisión: puedes ver todo, pero no se guarda nada.':'Solo para quien registra en Control de Cajas.');
+  else if(!ok) mostrarError('Toca «Identificarme» abajo para poder escanear.');
+  await cargarPackings();
+  const g=(()=>{ try{ return JSON.parse(sessionStorage.getItem('lives_caja_sel')||'null'); }catch(e){ return null; } })();
+  const pre=QS.get('caja')||(g&&g.caja);
+  if(pre) abrirCaja(pre);
+}
+function mostrarError(t){ const b=$('errBox'); b.textContent=t; b.style.display=t?'block':'none'; }
+async function cargarPackings(){
+  try{ const d=await api('packings_abiertos'); const L=d.packings||[];
+    $('sPk').innerHTML='<option value="">— Elige el packing —</option>'+L.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.packing+' · '+(p.cliente||'')+' · '+(p.grupo||p.po||'')+' · '+p.cerradas+'/'+p.cajas+' cajas cerradas')+'</option>').join('');
+    if(!L.length) $('sPk').innerHTML='<option value="">No hay packings abiertos</option>';
+  }catch(e){ mostrarError('No se pudo cargar la lista de packings: '+e.message); }
+}
+$('sPk').addEventListener('change',async()=>{
+  const id=$('sPk').value; $('sCj').disabled=true; if(!id){ $('sCj').innerHTML='<option value="">Elige primero el packing</option>'; return; }
+  try{ const d=await api('cajas_packing',{packing_id:id}); CJS=d.cajas||[];
+    $('sCj').innerHTML='<option value="">— Elige la caja —</option>'+CJS.map(c=>'<option value="'+esc(c.id)+'"'+(c.estado==='CERRADA'?' disabled':'')+'>Caja '+c.numero+' · '+c.escaneadas+'/'+c.requeridas+' · '+(EST[c.estado]||['',c.estado])[1]+'</option>').join('');
+    $('sCj').disabled=false; $('sCj').focus();
+  }catch(e){ mostrarError(e.message); }
+});
+$('sCj').addEventListener('change',()=>{ if($('sCj').value) abrirCaja($('sCj').value); });
+$('btnCambiar').addEventListener('click',()=>{ $('linea').style.display='none'; $('selPk').style.display=''; $('zona').style.display='none'; CAJA=null; try{ sessionStorage.removeItem('lives_caja_sel'); }catch(e){} cargarPackings(); });
+async function abrirCaja(id){
+  try{ const d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); pintar(d); }
+  catch(e){ mostrarError('No se pudo abrir la caja: '+e.message); return; }
+  try{ sessionStorage.setItem('lives_caja_sel',JSON.stringify({caja:id})); }catch(e){}
+  $('selPk').style.display='none'; $('linea').style.display=''; $('zona').style.display='';
+  $('res').className='res'; $('nuevo').style.display='none';
+  const i=$('inScan'); i.disabled=!PUEDE; i.value=''; if(PUEDE) i.focus();
+}
+function pintar(d){
+  CAJA=d; const c=d.caja;
+  $('lTxt').textContent='Packing '+c.packing+' · Caja '+c.numero+' de '+c.total_cajas+(c.cliente?' · '+c.cliente:'');
+  const req=d.lineas.reduce((a,l)=>a+l.cantidad,0), van=d.lineas.reduce((a,l)=>a+l.escaneadas,0);
+  $('tV').textContent=van+' / '+req; $('tS').textContent='prendas correctas en la caja';
+  $('tBar').style.width=(req?Math.min(100,van/req*100):0)+'%';
+  $('tbLin').innerHTML=d.lineas.map(l=>'<tr><td>'+esc(l.estilo)+'</td><td>'+esc(l.color_nombre||l.color_cod)+'</td><td><b>'+esc(l.talla)+'</b></td><td class="n '+(l.escaneadas>=l.cantidad?'lleno':'falta')+'">'+l.escaneadas+'</td><td class="n">'+l.cantidad+'</td></tr>').join('');
+  const R=d.escaneos||[];
+  $('vRec').style.display=R.length?'none':'block';
+  $('tbRec').innerHTML=R.slice(0,15).map(s=>'<tr><td>'+new Date(s.fecha).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false})+'</td><td>'+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · ')||s.barcode)+'</td><td>'+
+    ({OK:'<span class="st ok">Correcta</span>',SOBRA:'<span class="st mal">Sobra</span>',NO_CORRESPONDE:'<span class="st mal">No corresponde</span>'}[s.resultado]||esc(s.resultado))+(s.anulado?' <span class="st an">Quitada</span>':'')+'</td>'+
+    '<td>'+(PUEDE&&s.resultado==='OK'&&!s.anulado&&c.estado!=='CERRADA'?'<button class="btn" type="button" data-quitar="'+s.id+'">Quitar</button>':'')+'</td></tr>').join('');
+  if(c.estado==='ESCANEADA'||c.estado==='OBSERVADA'){ aviso('lista','Caja completa','Ciérrala y llévala a la mesa de pesado.'); }
+  if(c.estado==='CERRADA'){ aviso('lista','Esta caja ya está cerrada',''); $('inScan').disabled=true; }
+}
+function aviso(cls,t,s){ const r=$('res'); r.className='res '+cls; r.innerHTML=esc(t)+(s?'<small>'+esc(s)+'</small>':''); }
+$('inScan').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); escanear(); } });
+async function escanear(){
+  const i=$('inScan'), bc=i.value.trim(); i.value=''; if(!bc||!CAJA||OCUPADO) return;
+  OCUPADO=true;
+  try{
+    const r=await api('escanear',{caja_id:CAJA.caja.id,barcode:bc,token:token()});
+    if(!r.ok){ pitido(false); aviso('mal',r.error||'No se registró',''); return; }
+    if(r.resultado==='NUEVO'){ pitido(false); nuevoCodigo(bc,r.bloqueado); return; }
+    pintar(r);
+    const cod=r.codigo||{}, t=[cod.estilo,cod.color_nombre||cod.color_cod,cod.talla].filter(Boolean).join(' · ');
+    if(r.resultado==='OK'){ pitido(true);
+      if(r.caja.estado==='ESCANEADA') aviso('lista','✔ Caja completa','Ciérrala y llévala a la mesa de pesado.'); else aviso('ok','✔ Correcta',t); }
+    else if(r.resultado==='SOBRA'){ pitido(false); aviso('mal','✖ SOBRA: retira esta prenda','Esta caja ya tiene todas las '+t); }
+    else if(r.resultado==='NO_CORRESPONDE'){ pitido(false); aviso('mal','✖ NO CORRESPONDE: retira esta prenda',t+' no va en esta caja'); }
+  }catch(e){ pitido(false); aviso('mal','No se registró','Vuelve a escanear la prenda. ('+e.message+')'); }
+  finally{ OCUPADO=false; if(!$('nuevo').offsetParent) i.focus(); }
+}
+$('tbRec').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-quitar]'); if(!b) return;
+  if(!confirm('¿Quitar esta prenda de la cuenta? Sácala de la caja.')) return;
+  try{ const r=await api('quitar',{escaneo_id:+b.dataset.quitar}); if(!r.ok) throw new Error(r.error); pintar(r); aviso('ok','Prenda quitada',''); }catch(err){ aviso('mal','No se quitó',err.message); }
+  $('inScan').focus();
+});
+/* código nuevo: se registra una vez leyendo el hang tag */
+function opciones(sel,vals){ $(sel).innerHTML='<option value="">— Elige —</option>'+vals.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('')+'<option value="__otro">Otro (escribir)</option>'; }
+function nuevoCodigo(bc,bloq){
+  if(bloq){ aviso('mal','Código bloqueado','Este código fue bloqueado en Control de Cajas › Códigos. Retira la prenda y avisa a tu supervisor.'); return; }
+  aviso('nuevo','Código nuevo','Regístralo una sola vez leyendo el hang tag.');
+  const L=CAJA.lineas, u=(f)=>[...new Map(L.map(l=>f(l))).entries()];
+  opciones('nEst',u(l=>[l.estilo,l.estilo]));
+  opciones('nCol',u(l=>[l.color_cod,(l.color_nombre&&l.color_nombre!==l.color_cod?l.color_cod+' · '+l.color_nombre:l.color_cod)]));
+  opciones('nTal',[...new Set(L.map(l=>l.talla))].map(t=>[t,t]));
+  ['nEstO','nColO','nTalO'].forEach(x=>$(x).value=''); $('nOtro').style.display='none';
+  $('nCod').textContent=bc; $('nuevo').dataset.bc=bc; $('nuevo').style.display=''; $('inScan').disabled=true;
+  if(L.length&&new Set(L.map(l=>l.estilo)).size===1) $('nEst').value=L[0].estilo;
+  if(L.length&&new Set(L.map(l=>l.color_cod)).size===1) $('nCol').value=L[0].color_cod;
+  $('nTal').focus();
+}
+['nEst','nCol','nTal'].forEach(id=>$(id).addEventListener('change',()=>{ $('nOtro').style.display=['nEst','nCol','nTal'].some(x=>$(x).value==='__otro')?'':'none'; }));
+$('nCancelar').addEventListener('click',()=>{ $('nuevo').style.display='none'; $('inScan').disabled=!PUEDE; aviso('mal','Código sin registrar','Retira la prenda o regístrala para poder contarla.'); $('inScan').focus(); });
+$('nGuardar').addEventListener('click',async()=>{
+  const v=(s,o)=>$(s).value==='__otro'?$(o).value.trim():$(s).value;
+  const est=v('nEst','nEstO'), col=v('nCol','nColO'), tal=v('nTal','nTalO');
+  if(!est||!col||!tal){ alert('Elige estilo, color y talla (los del hang tag).'); return; }
+  const lc=CAJA.lineas.find(l=>l.color_cod===col);
+  if(!confirm('¿Grabar el código '+$('nuevo').dataset.bc+' como '+est+' · '+col+' · talla '+tal+'?\nRevisa que sea lo que dice el hang tag.')) return;
+  try{ const r=await api('registrar_codigo',{barcode:$('nuevo').dataset.bc,estilo:est,color_cod:col,color_nombre:lc?lc.color_nombre:'',talla:tal,caja_id:CAJA.caja.id});
+    if(!r.ok) throw new Error(r.error);
+    $('nuevo').style.display='none'; $('inScan').disabled=!PUEDE; pitido(true);
+    aviso('ok','Código grabado','Ahora vuelve a escanear la prenda para contarla.'); $('inScan').focus();
+  }catch(e){ alert('No se grabó: '+e.message); }
+});
+iniciar();
+</script>
+<!-- ===== lives-franja v6.2 (2026-10-27: pestañas ya no se meten en la barra al bajar y subir) · v6.1 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
+     1) La tira de estado de arriba ("Datos al…", "En vivo…", nombre del usuario, fechas) y el aviso "Datos en vivo" NO se ven:
+        el contenido empieza arriba del todo. Si la tira trae botones o enlaces (Volver, Atrás, Cambiar, navegación),
+        solo quedan esos, en una línea delgada.
+     2) Al terminar de cargar sale un aviso flotante "Actualizado · hh:mm" que desaparece solo (no ocupa espacio).
+        Si la carga falla, sale un aviso rojo flotante con el motivo. Si el usuario solo puede consultar y la pantalla
+        no lo dice en otro lado, sale un aviso flotante de solo consulta.
+     3) En lo que se ve en pantalla no aparece el nombre del proveedor de la base: "· Supabase" y "fuente: Supabase" se quitan,
+        y en los textos de ayuda "Supabase" se lee "la base de datos". El código, los guardados y los datos no cambian.
+     4) v4 · Si la herramienta se abre dentro del portal LIVES antiguo y ese portal todavía es la versión vieja (sin el aviso
+        de mudanza, bloque lsMudJs), se recarga el portal completo para que la persona vea el aviso de mudanza.
+        Solo pasa al abrir la herramienta (todavía sin nada escrito), como máximo una vez cada 10 minutos;
+        en el portal nuevo de Sistemas no hace nada.
+     5) v5 · Botones de exportar, imprimir, actualizar, Excel o HTML que flotaban encima de la barra de filtros pasan a esa
+        barra (si no hay barra, se crea una). La barra con filtros queda fija al bajar y, mientras está fija, los botones de
+        acción se esconden; al subir vuelven. Las barras que solo tienen botones suben con la página.
+        El dato "N registros · datos al …" ya no se muestra. Acabados no se toca.
+     6) v6 · Los demás grupos de botones que flotaban arriba (pestañas como "Mejoras / Reporte", menús de vista,
+        "Volver") también entran a la barra de filtros; si no hay barra, se les crea una. Al cambiar de pestaña, las
+        pestañas pasan a la barra de la vista abierta. Lo que ya está dentro de una tarjeta no se mueve. Una barra de
+        filtros muy alta (más de 180 px) no se queda fija, para no tapar media pantalla. ===== -->
+<style id="lsFrCss">
+@media screen{
+.lsSinBarra{padding:2px 12px 0!important;gap:2px 8px!important;font-size:12px!important;line-height:1.25!important;min-height:0!important}
+.lsSinBarra.lsFrVacia,.lsSinBarra .lsFrOc,.lsSinBarra .lsFrTx{display:none!important}
+.lsSinBarra a,.lsSinBarra button,.lsSinBarra>* a,.lsSinBarra>* button{padding:1px 8px!important;font-size:12px!important;line-height:1.25!important;border-width:1px!important;border-radius:6px!important;min-height:0!important;height:auto!important;margin:0!important}
+.lsSinBarra select,.lsSinBarra input{padding:0 6px!important;font-size:12px!important;height:20px!important;min-height:0!important}
+.avisoVivo:not(.error){display:none!important}
+.avisoVivo.error{padding:3px 10px!important;font-size:12px!important;line-height:1.3!important;margin-bottom:6px!important;border-radius:6px!important}
+.avisoVivo button{padding:1px 8px!important;font-size:12px!important;min-height:0!important}
+.hstate-emb{display:none!important}
+#lsFrToast{position:fixed;top:6px;right:12px;z-index:2147483000;max-width:min(460px,calc(100vw - 24px));font-family:Calibri,Arial,sans-serif;
+  font-size:12.5px;line-height:1.35;padding:5px 12px;border-radius:9px;box-shadow:0 4px 14px rgba(14,59,54,.18);color:#fff;background:#0F7A5A;
+  opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .25s;pointer-events:none}
+#lsFrToast.ver{opacity:1;transform:none}
+#lsFrToast.err{background:#B42318;pointer-events:auto;padding-right:28px}
+#lsFrToast.cons{background:#B45309}
+#lsFrToast b{font-weight:700}
+#lsFrToast .x{position:absolute;right:8px;top:3px;cursor:pointer;font-weight:700}
+}
+@media print{#lsFrToast{display:none!important}}
+</style>
+<script id="lsFrJs">(function(){try{
+  var ERR=/error|no se pudo|sin conexi|desconectad|fall[oó]|no carg|sin acceso/i;
+  var PERM=/solo consulta|sin permiso|no tien[ea]s? permiso|solo para consultar|modo consulta|solo lectura/i;
+  var CARGA=/cargando|conectando|leyendo|actualizando|enviando/i;
+  function strip(){return document.querySelector('.lsSinBarra');}
+  function oculto(e){if(e.style&&e.style.display==='none')return true;try{return getComputedStyle(e).display==='none';}catch(x){return false;}}
+  function esCtl(e){return /^(A|BUTTON|SELECT|INPUT)$/.test(e.tagName)||!!e.querySelector('a,button,select,input');}
+  /* 1) La tira solo conserva botones y enlaces; si no queda ninguno visible, desaparece. */
+  function esCtlPropio(e){return /^(A|BUTTON|SELECT|INPUT)$/.test(e.tagName);}
+  /* Dentro de un bloque con botón (ej. nombre + Cambiar), el texto se oculta y queda solo el botón. */
+  function limpiaCont(c){Array.prototype.slice.call(c.childNodes).forEach(function(n){
+      if(n.nodeType===3){if(n.nodeValue.trim()){var sp=document.createElement('span');sp.className='lsFrTx';c.insertBefore(sp,n);sp.appendChild(n);}}
+      else if(n.nodeType===1&&!esCtlPropio(n)&&!n.classList.contains('lsFrTx')){if(esCtl(n))limpiaCont(n);else if(!n.classList.contains('lsFrOc'))n.classList.add('lsFrOc');}});}
+  function ordenar(){var s=strip();if(!s)return;var vis=0;
+    Array.prototype.forEach.call(s.children,function(e){
+      if(esCtl(e)){if(e.classList.contains('lsFrOc'))e.classList.remove('lsFrOc');if(!esCtlPropio(e))limpiaCont(e);if(!oculto(e))vis++;}
+      else if(!e.classList.contains('lsFrOc'))e.classList.add('lsFrOc');});
+    if(s.classList.contains('lsFrVacia')!==(vis===0))s.classList.toggle('lsFrVacia',vis===0);}
+  /* 2) Avisos flotantes. */
+  var T=null,tm=null,listo=false,consDicho=false,t0=Date.now();
+  function toast(html,cls,ms){if(!document.body)return;if(!T){T=document.createElement('div');T.id='lsFrToast';T.setAttribute('role','status');document.body.appendChild(T);}
+    clearTimeout(tm);T.className=cls||'';T.innerHTML=html;void T.offsetWidth;T.classList.add('ver');
+    if(cls==='err'){var x=document.createElement('span');x.className='x';x.textContent='✕';x.onclick=function(){T.classList.remove('ver');};T.appendChild(x);}
+    if(ms)tm=setTimeout(function(){T.classList.remove('ver');},ms);}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function textoEstado(){var s=strip(),t='';
+    if(s)Array.prototype.forEach.call(s.querySelectorAll('.lsFrOc,.lsFrTx'),function(e){if(!oculto(e))t+=' '+(e.textContent||'');});
+    return t.replace(/\s+/g,' ').trim();}
+  var errMostrado='';
+  function revisar(){
+    var t=textoEstado(),av=document.querySelector('#avisoVivo,.avisoVivo');
+    if(t&&ERR.test(t)){if(errMostrado!==t){errMostrado=t;toast('<b>Atención:</b> '+esc(t.slice(0,200)),'err');}return;}
+    if(errMostrado){errMostrado='';if(T)T.classList.remove('ver');}
+    if(!consDicho&&t&&PERM.test(t)){var cuerpo=document.body.innerText||'';
+      if(!PERM.test(cuerpo)){consDicho=true;toast('<b>Solo consulta:</b> tu usuario puede ver esta pantalla, pero no registrar ni modificar.','cons',6000);return;}
+      consDicho=true;}
+    if(!listo){var cargando=(t&&CARGA.test(t))||(av&&!/\b(ok|error)\b/.test(av.className));
+      if(document.readyState==='complete'&&(!cargando||Date.now()-t0>25000)){listo=true;
+        if(av&&/\berror\b/.test(av.className))return;
+        var d=new Date(),h=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+        setTimeout(function(){if(!errMostrado)toast('Actualizado · '+h,'',2500);},consDicho&&T&&T.classList.contains('ver')?6200:300);}}}
+  /* 3) Sin "Supabase" en lo visible. */
+  var R=[[/\s*[·|,-]\s*fuente\s*:\s*Supabase\b/gi,''],[/\bfuente\s*:\s*Supabase\b\s*/gi,'Fuente: base de datos LIVES '],
+         [/\s*[·|]\s*Supabase\b/g,''],[/\bSupabase\s*[·|]\s*/g,''],[/\s*\(\s*Supabase\s*\)/gi,''],
+         [/\b(en|a|de|desde|con)\s+Supabase\b/gi,'$1 la base de datos'],[/\bSupabase\b/gi,'la base de datos']];
+  function limpia(t){var x=t;R.forEach(function(r){x=x.replace(r[0],r[1]);});return x.replace(/de la la base/gi,'de la base').replace(/en la la base/gi,'en la base');}
+  var SKIP=/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|CODE|PRE)$/;
+  function nodo(n){if(n.nodeValue&&/upabase/i.test(n.nodeValue)){var p=n.parentNode;if(p&&!SKIP.test(p.nodeName)){var v=limpia(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;}}}
+  function arbol(r){if(!r)return;if(r.nodeType===3){nodo(r);return;}if(r.nodeType!==1||SKIP.test(r.nodeName))return;
+    if(!/upabase/i.test(r.textContent||'')&&!/upabase/i.test(r.title||''))return;
+    if(/upabase/i.test(r.title||''))r.title=limpia(r.title);
+    var w=document.createTreeWalker(r,4,null),t;while((t=w.nextNode()))nodo(t);
+    Array.prototype.forEach.call(r.querySelectorAll('[title*="upabase"]'),function(e){e.title=limpia(e.title);});}
+  if(/upabase/i.test(document.title))document.title=limpia(document.title);
+  var pend=[],prog=false;
+  function correr(){prog=false;var l=pend;pend=[];l.forEach(arbol);ordenar();revisar();}
+  function inicio(){arbol(document.body);ordenar();revisar();
+    new MutationObserver(function(ms){var mio=true;ms.forEach(function(m){var n=m.target;if(!(T&&(n===T||T.contains(n))))mio=false;
+        if(m.type==='characterData')pend.push(m.target);else for(var i=0;i<m.addedNodes.length;i++)pend.push(m.addedNodes[i]);});
+      if(mio)return;if(!prog){prog=true;Promise.resolve().then(correr);}}).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});
+    window.addEventListener('load',function(){setTimeout(revisar,50);});
+    var k=0,iv=setInterval(function(){revisar();if(listo||++k>60)clearInterval(iv);},500);}
+  /* 4) Portal antiguo con versión vieja abierta: se recarga entero para que aparezca el aviso de mudanza. */
+  try{
+    if (window.top !== window){
+      var tp = window.top.location;   /* si el portal es de otro dominio (app.lives.com.pe) esto falla y no se hace nada */
+      if (tp.hostname === location.hostname && /^\/lives-portal\//.test(tp.pathname) &&
+          !window.top.document.getElementById('lsMudJs')){
+        /* Una sola vez cada 10 minutos: si el portal aún no tiene la versión nueva publicada, no se recarga en bucle. */
+        var ss = window.top.sessionStorage, ult = +(ss.getItem('lsMudRecarga') || 0);
+        if (Date.now() - ult > 600000){ ss.setItem('lsMudRecarga', String(Date.now())); window.top.location.reload(); }
+      }
+    }
+  }catch(e){}
+  if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
+}catch(e){}})();</script>
+<style id="lsBaCss">
+@media screen{
+.lsBaOc{display:none!important}
+.lsAcc{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.lsBarra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-start;background:#fff;border:1px solid #DCE5E2;border-radius:12px;padding:8px 12px;margin:0 0 12px;box-shadow:0 1px 3px rgba(14,59,54,.06)}
+.lsBarra>.lsAcc:only-child{margin-left:auto}
+.lsTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid #E6EEEB;width:100%;flex-basis:100%}
+.lsTop>*{margin:0!important}
+.lsBarra>*{margin-top:0!important;margin-bottom:0!important}
+.lsBaFijo{position:sticky!important;top:0;z-index:30}
+.lsBaSuelta{position:static!important}
+.lsPegada .lsAccBtn{display:none!important}
+button.lsBtn,a.lsBtn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #DCE5E2;background:#fff;color:#0F7A5A;min-height:36px;line-height:1.2;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:none}
+button.lsBtn:hover,a.lsBtn:hover{border-color:#0F7A5A;background:#fff}
+button.lsBtn.pri,button.lsBtn.primary{background:#0F7A5A;color:#fff;border-color:#0F7A5A}
+button.lsBtn.pri:hover,button.lsBtn.primary:hover{background:#0B815E;color:#fff}
+button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
+}
+</style>
+<script id="lsBaJs">(function(){try{
+  /* v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+     Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
+     entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
+     las pestañas pasan a la barra de la vista que queda abierta.
+     La barra con filtros queda fija al bajar (si no es muy alta); los botones de acción se esconden mientras
+     está fija y vuelven al subir. El dato de "N registros · datos al …" no se muestra.
+     No cambia cálculos, datos ni guardados: solo ubica botones que ya existen. Acabados (Lady) no se toca. */
+  if(/\/formulario-acabados\//.test(location.pathname))return;
+  var SIN_GRUPOS=/\/Tienda-lives\/(index\.html)?$/i.test(location.pathname);
+  var ACC=/^(exportar|descargar|imprimir|actualizar|recargar|compartir|copiar enlace)\b|\b(excel|pdf|html|csv)\b/i;
+  var EST=/(datos al \d|le[ií]d[oa]s? a las|datos de las \d|actualizad[oa] a las|[uú]ltima (lectura|actualizaci)|datos en vivo|en vivo ·)/i;
+  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
+  var CTL='select,input:not([type=hidden]):not([type=file]):not([type=button]):not([type=submit])';
+  var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,.lsSinBarra';
+  var ALTO_FIJO=180;
+  function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
+  function txt(e){return (e.textContent||'').replace(/\s+/g,' ').trim();}
+  function limpio(t){return t.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]+/,'');}
+  function esAcc(b){if(b.closest('#lsFrToast,#lsAct,#lsMud,.lsSinBarra .lsFrOc'))return false;var t=limpio(txt(b));return t.length>0&&t.length<40&&ACC.test(t);}
+  function poner(e,c){if(!e.classList.contains(c))e.classList.add(c);}
+  function hayCtl(e){return Array.prototype.some.call(e.querySelectorAll('a,button,'+CTL+',textarea,canvas,img,table,svg'),vis);}
+  function enBarra(e){var b=e.closest(BARRA);return b&&!b.closest('.lsSinBarra')?b:null;}
+  function externa(b){var p=b.parentElement&&b.parentElement.closest(BARRA);while(p&&!p.closest('.lsSinBarra')&&vis(p)){b=p;p=b.parentElement&&b.parentElement.closest(BARRA);}return b;}
+  function barraFiltros(){var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest(FUERA)&&!b.closest('.modal:not(.on):not(.show):not(.abierto)')&&Array.prototype.some.call(b.querySelectorAll(CTL),vis);}).map(externa);
+    c.sort(function(a,b){return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?-1:1;});return c[0]||null;}
+  /* v6.2 · "¿está arriba de la barra?" se decide por el orden en la página, no por la posición en pantalla: al bajar, la barra
+     queda pegada arriba y todo lo demás pasa a estar "más arriba" en pantalla (las pestañas se metían en la barra). */
+  function antesDe(e,f,lim){if(f)return !!(f.compareDocumentPosition(e)&Node.DOCUMENT_POSITION_PRECEDING);
+    var sy=window.scrollY||document.documentElement.scrollTop||0;return e.getBoundingClientRect().bottom+sy<=lim+2;}
+  function contScroll(e){var p=e.parentElement;while(p&&p!==document.body){var o=getComputedStyle(p).overflowY;if(o==='auto'||o==='scroll')return p;p=p.parentElement;}return null;}
+  /* ¿todo lo que se ve dentro de e son botones o enlaces? (sin campos, tablas, gráficos ni texto suelto) */
+  function soloBotones(e){
+    if(e.querySelector(CTL+',textarea,table,canvas,iframe,video'))return false;
+    var w=document.createTreeWalker(e,NodeFilter.SHOW_TEXT,null,false),n;
+    while((n=w.nextNode())){if(!n.nodeValue.trim())continue;var p=n.parentElement;if(!p||!vis(p))continue;if(!p.closest('button,a,[role=tab]'))return false;}
+    return Array.prototype.some.call(e.querySelectorAll('button,a,[role=tab]'),vis);}
+  function estilo(b){try{var s=getComputedStyle(b);return [s.backgroundColor,s.color,s.borderTopColor,s.borderTopWidth].join('|');}catch(e){return '';}}
+  function grande(e){return Array.prototype.some.call(e.matches&&e.matches('button,a,[role=tab]')?[e]:e.querySelectorAll('button,a,[role=tab]'),function(x){return vis(x)&&x.getBoundingClientRect().height>56;});}
+  function grupoDe(b){
+    var g=b,p=b.parentElement;
+    while(p&&p!==document.body&&!p.matches(BARRA)&&!p.matches('main,header,section,article,form,.wrap,.container,.contenedor')&&soloBotones(p)&&p.getBoundingClientRect().height<90){g=p;p=p.parentElement;}
+    if(g===b){var q=b.parentElement;if(!q||!soloBotones(q))return null;}
+    return g;}
+  /* ¿e ya está dentro de una tarjeta o caja con fondo o borde? entonces no está "en el aire" */
+  function enCaja(e){var fondo=getComputedStyle(document.body).backgroundColor,p=e.parentElement;
+    while(p&&p!==document.body&&p!==document.documentElement){var s=getComputedStyle(p);
+      var bg=s.backgroundColor;if(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent'&&bg!==fondo)return true;
+      if(parseFloat(s.borderTopWidth)>0&&s.borderTopStyle!=='none'&&parseFloat(s.borderLeftWidth)>0)return true;
+      if(s.boxShadow&&s.boxShadow!=='none')return true;p=p.parentElement;}
+    return false;}
+  var F=null,FIX=null,MOV=[];
+  function cajaTop(f){var c=f.querySelector(':scope > .lsTop');if(!c){c=document.createElement('div');c.className='lsTop';f.insertBefore(c,f.firstChild);}return c;}
+  function aCasa(m){if(!m.bar){m.bar=document.createElement('div');m.bar.className='lsBarra';m.casa.parentNode.insertBefore(m.bar,m.casa.nextSibling);}
+    if(m.g.parentNode!==m.bar)m.bar.appendChild(m.g);m.bar.style.display='';}
+  function ubicar(m,f){
+    if(f&&!f.contains(m.g)){cajaTop(f).appendChild(m.g);if(m.bar)m.bar.style.display='none';}
+    else if(!f)aCasa(m);}
+  function arreglar(){
+    var f=barraFiltros(),tope=f?f.getBoundingClientRect().top:260;
+    /* 1) dato de estado arriba */
+    Array.prototype.forEach.call(document.querySelectorAll('div,span,p,small'),function(e){
+      if(e.classList.contains('lsBaOc')||e.children.length>3||!vis(e))return;var t=txt(e);
+      if(t.length>160||!EST.test(t)||hayCtl(e))return;if(e.getBoundingClientRect().top>tope+4)return;
+      if(e.closest('.lsAcc,.lsBarra,.lsTop,'+BARRA))return;poner(e,'lsBaOc');});
+    /* 0) grupos ya movidos que quedaron escondidos (cambio de pestaña): pasan a la barra visible o vuelven a su sitio */
+    MOV.forEach(function(m){var casaVis=m.casa.parentNode&&vis(m.casa.parentNode);
+      if(!casaVis){if(m.g.previousSibling!==m.casa)m.casa.parentNode.insertBefore(m.g,m.casa.nextSibling);if(m.bar)m.bar.style.display='none';return;}
+      if(!vis(m.g)||m.g.previousSibling===m.casa||(f&&m.bar&&m.g.parentNode===m.bar))ubicar(m,f);});
+    /* 2) botones de exportar/imprimir/actualizar flotando encima de la barra */
+    var sueltos=Array.prototype.filter.call(document.querySelectorAll('button,a.btn,a[class*="btn"]'),function(b){
+      if(!vis(b)||!esAcc(b)||b.closest('.lsAcc,.lsBarra,.lsTop'))return false;if(f&&f.contains(b))return false;
+      if(b.closest(FUERA))return false;
+      var r=b.getBoundingClientRect();if(f)return antesDe(b,f);
+      return r.top+(window.scrollY||0)<200&&!enBarra(b)&&!b.closest('.panel,.card,.kpi,form,table');});
+    if(sueltos.length){
+      var dest=f,caja;
+      if(!dest){var ref=sueltos[0];var fila=ref.parentElement;dest=document.createElement('div');dest.className='lsBarra';fila.parentNode.insertBefore(dest,fila);caja=dest;}
+      else{caja=dest.querySelector(':scope > .lsAcc');if(!caja){caja=document.createElement('span');caja.className='lsAcc';dest.appendChild(caja);}}
+      sueltos.forEach(function(b){var antes=b.parentElement,e0=estilo(b);caja.appendChild(b);if(estilo(b)!==e0)poner(b,'lsBtn');
+        var p=antes,n=0;while(p&&p!==document.body&&n<4){if(p.contains(dest))break;if(!hayCtl(p)&&p.getBoundingClientRect().height<140){poner(p,'lsBaOc');p=p.parentElement;n++;}else break;}});
+    }
+    /* 2b) otros grupos de botones sueltos arriba (pestañas, Volver, vistas): a la barra; si no hay barra, se les crea una */
+    if(!SIN_GRUPOS){
+      var lim=f?f.getBoundingClientRect().top:220,vistos=[];
+      Array.prototype.forEach.call(document.querySelectorAll('button,a,[role=tab]'),function(b){
+        if(!vis(b)||!txt(b)||b.closest('.lsAcc,.lsBarra,.lsTop,aside,nav,[class*="side"],[class*="menu"],form,table,'+FUERA))return;
+        if(f&&f.contains(b))return;if(enBarra(b))return;
+        var s=getComputedStyle(b);if(s.position==='fixed'||s.position==='absolute')return;
+        var r=b.getBoundingClientRect();if(!antesDe(b,f,lim)||r.top+(window.scrollY||0)>320)return;
+        if(b.getBoundingClientRect().height>56)return;var g=grupoDe(b);if(!g||vistos.indexOf(g)>=0)return;if(grande(g))return;if(enCaja(g))return;
+        if(g.closest('aside,nav,[class*="side"],[class*="menu"],'+FUERA))return;
+        vistos.push(g);});
+      vistos.forEach(function(g){if(MOV.some(function(m){return m.g===g;}))return;
+        var casa=document.createElement('span');casa.className='lsCasa';casa.style.display='none';g.parentNode.insertBefore(casa,g);
+        var m={g:g,casa:casa,bar:null};MOV.push(m);ubicar(m,f);});
+    }
+    /* 3) barra con filtros fija (si no es muy alta); botones de acción marcados para esconderse mientras está fija */
+    if(f){
+      Array.prototype.forEach.call(f.querySelectorAll('button,a'),function(b){if(esAcc(b))poner(b,'lsAccBtn');});
+      var alta=f.getBoundingClientRect().height>ALTO_FIJO;
+      if(alta){f.classList.remove('lsBaFijo');f.classList.remove('lsPegada');F=null;}
+      else{
+        if(getComputedStyle(f).position==='static'){poner(f,'lsBaFijo');var bg=getComputedStyle(f).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')f.style.backgroundColor=getComputedStyle(document.body).backgroundColor||'#F1F6F4';}
+        F=f;FIX=contScroll(f);}
+    }
+    /* barras pegajosas que solo tienen botones (sin filtros): que suban con la página */
+    Array.prototype.forEach.call(document.querySelectorAll(BARRA),function(b){if(b===f||!vis(b))return;var s=getComputedStyle(b).position;
+      if((s==='sticky'||s==='fixed')&&!Array.prototype.some.call(b.querySelectorAll(CTL),vis)&&Array.prototype.some.call(b.querySelectorAll('button,a'),esAcc))poner(b,'lsBaSuelta');});
+    pegada();
+  }
+  function pegada(){if(!F||!F.isConnected)return;var top=parseFloat(getComputedStyle(F).top)||0,base=FIX?FIX.getBoundingClientRect().top:0,desp=FIX?FIX.scrollTop:(window.scrollY||document.documentElement.scrollTop);
+    var en=desp>4&&(F.getBoundingClientRect().top-base)<=top+1.5;if(en!==F.classList.contains('lsPegada'))F.classList.toggle('lsPegada',en);}
+  document.addEventListener('scroll',function(){pegada();},true);window.addEventListener('resize',function(){pegada();luego();});
+  document.addEventListener('click',function(){setTimeout(function(){try{arreglar();}catch(e){}},30);},true);
+  var t=null;function luego(){if(t)return;t=setTimeout(function(){t=null;try{arreglar();}catch(e){}},250);}
+  function inicio(){luego();new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){if(ms[i].addedNodes.length||ms[i].removedNodes.length){luego();return;}}}).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('load',luego);var k=0,iv=setInterval(function(){luego();if(++k>20)clearInterval(iv);},700);}
+  if(document.body)inicio();else document.addEventListener('DOMContentLoaded',inicio);
+  window.__lsBa={arreglar:arreglar,MOV:MOV,F:function(){return F;},bf:barraFiltros};
+}catch(e){}})();</script>
+<!-- ===== fin lives-franja v6.2 ===== -->
+<!-- ===== lives-tema v1 (final) · 2026-10-14 (paleta Petróleo v1.1) · modo oscuro opcional para quien lo quiera. Va antes de </body>.
+     Cómo decide: si la persona eligió con el botón 🌙/☀️ (en la barra de filtros; en pantallas sin barra, al pie), manda su elección, guardada en ese equipo
+     y válida para todas las herramientas; si nunca eligió, sigue la configuración de su celular o computadora.
+     Cómo pinta: traduce los colores propios de cada pantalla a la paleta oscura LIVES (fondos, tarjetas, textos, bordes,
+     sombras, etiquetas y gráficos), con los colores de marca y de semáforo ajustados a mano para que se lean bien.
+     Imprimir, PDF, imágenes de gráficos y Excel salen siempre en claro. No cambia datos, cálculos ni guardados. ===== -->
+<style id="lsTemaCss">
+html[data-tema="oscuro"]{color-scheme:dark;background:#0A1C19}
+html[data-tema="oscuro"] ::selection{background:#0F7A5A;color:#fff}
+html[data-tema="oscuro"] input::placeholder,html[data-tema="oscuro"] textarea::placeholder{color:#6F857E}
+/* KPI protagonista: resalta sobre las tarjetas (Petróleo luminoso, brillo suave arriba y contorno esmeralda) */
+html[data-tema="oscuro"] .kpi.hero,html[data-tema="oscuro"] .hero.kpi{background-image:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,0) 55%)!important;box-shadow:0 0 0 1px rgba(52,211,153,.35),0 10px 28px rgba(0,0,0,.5)!important}
+html[data-tema="oscuro"] img[data-lsinv]{filter:invert(1) hue-rotate(180deg)}
+html[data-tema="oscuro"] ::-webkit-scrollbar-thumb{background:#2A3D38;border-radius:8px}
+html[data-tema="oscuro"] ::-webkit-scrollbar-track{background:transparent}
+button.lsTemaBtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:36px;height:36px;padding:0;
+  border:1px solid #DCE5E2;border-radius:8px;background:#fff;color:#0F7A5A;cursor:pointer;flex:none;font-family:inherit;
+  transition:background .15s,border-color .15s,color .15s;margin:0}
+button.lsTemaBtn:hover{border-color:#0F7A5A}
+button.lsTemaBtn svg{width:18px;height:18px;display:block}
+button.lsTemaBtn .lsTemaSol{display:none}
+html[data-tema="oscuro"] button.lsTemaBtn{background:#1B2A26!important;border-color:#2A3D38!important;color:#F7B035!important}
+html[data-tema="oscuro"] button.lsTemaBtn:hover{border-color:#F7B035!important}
+html[data-tema="oscuro"] button.lsTemaBtn .lsTemaLuna{display:none}
+html[data-tema="oscuro"] button.lsTemaBtn .lsTemaSol{display:block}
+button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
+.lsTemaPie{display:flex;justify-content:center;padding:18px 16px 26px}
+.lsTemaPie button.lsTemaBtn{width:auto;padding:0 14px}
+.lsTemaPie button.lsTemaBtn .lsTemaTxt{display:inline}
+@media(max-width:600px){button.lsTemaBtn{width:44px;height:44px}.lsTemaPie button.lsTemaBtn{width:auto}}
+@media print{button.lsTemaBtn,.lsTemaPie{display:none!important}}
+</style>
+<script id="lsTemaJs">(function(){'use strict';try{
+  if(window.__lsTema)return;window.__lsTema=true;
+  var H=document.documentElement,KEY='lives_tema',PRE='html[data-tema="oscuro"]';
+  /* ---------- Paleta oscura LIVES ---------- */
+  var P={page:'#0A1C19',card:'#112A25',raise:'#18352F',line:'#28463F',soft:'#1C3832',grid:'#1D3A34',text:'#E3ECE9',text2:'#9BB1AA'};
+  /* fondos: claros -> superficies oscuras; tintes de pastillas -> tinte oscuro del mismo color */
+  var BG={'#ffffff':P.card,'#fff':P.card,'#fefefe':P.card,'#fcfdfd':P.card,'#fbfcfc':P.card,'#fafbfb':P.card,'#f8faf9':P.card,
+    '#f1f6f4':P.page,'#f4f8f6':P.page,'#f6f9f8':'#0E231F','#eef4f2':'#0E231F','#e6eeeb':P.soft,'#e9f0ed':P.soft,'#dce5e2':'#21403A',
+    '#0e3b36':'#1A5C50','#12463f':'#1F6658','#e7f4ef':'#12342A','#ecfdf5':'#0F3329','#d1fae5':'#0F3A2D','#e6f4ee':'#12342A','#e8f5ef':'#12342A',
+    '#fcebeb':'#3A1B1D','#fbe9e9':'#3A1B1D','#fee2e2':'#3E1C1E','#fef2f2':'#33191B','#fff7f7':'#2B1819','#fdecec':'#3A1B1D',
+    '#fef3e2':'#382A13','#fff7ed':'#33240F','#fef3c7':'#3A3013','#fffbeb':'#302812','#fdf6e3':'#33290F',
+    '#eff6ff':'#14243A','#dbeafe':'#162A45','#f5f3ff':'#241D38','#ede9fe':'#271F3F','#f3f4f6':'#1C2723','#e5e7eb':'#25332F','#f9fafb':P.card};
+  /* textos: oscuros -> claros; colores de marca y semáforo -> versión luminosa del mismo color */
+  var TX={'#333333':P.text,'#333':P.text,'#222222':P.text,'#222':P.text,'#111111':P.text,'#111':P.text,'#000000':P.text,'#000':P.text,
+    '#1f2937':P.text,'#111827':P.text,'#374151':'#D3DEDA','#444444':'#D3DEDA','#444':'#D3DEDA','#555555':'#BFCDC8','#555':'#BFCDC8',
+    '#5f726c':P.text2,'#6b7f79':P.text2,'#666666':P.text2,'#666':P.text2,'#777777':'#8FA39D','#777':'#8FA39D','#888888':'#7F938D','#888':'#7F938D',
+    '#0f7a5a':'#3CC495','#0b815e':'#4FD1A3','#0c8f63':'#3CC495','#0e3b36':'#8FD3C3','#12463f':'#8FD3C3','#4e6b78':'#9DBBC8',
+    '#b45309':'#F0A35E','#dc2626':'#F47C7C','#b91c1c':'#F47C7C','#991b1b':'#F08A8A','#f59e0b':'#F7B035','#d97706':'#F5A93A',
+    '#10b981':'#34D399','#059669':'#34D399','#047857':'#3CC495','#2f6fb5':'#74A9E8','#1d4ed8':'#7FAAF2','#2563eb':'#7FAAF2',
+    '#8e44ad':'#C08AE0','#6b7280':'#A8AFBB','#4b5563':'#B4BCC6','#e07b00':'#F5A04A','#92400e':'#E9A367','#065f46':'#5ED3A6'};
+  var BD={'#dce5e2':P.line,'#e6eeeb':P.soft,'#f1f6f4':P.soft,'#ffffff':P.soft,'#fff':P.soft,'#e5e7eb':P.line,'#d1d5db':'#344843',
+    '#ccd8d4':'#344843','#cfdcd8':P.line};
+  /* ---------- color: leer, convertir, escribir ---------- */
+  var NOM={white:'#ffffff',black:'#000000',red:'#ff0000',green:'#008000',blue:'#0000ff',gray:'#808080',grey:'#808080',silver:'#c0c0c0',
+    whitesmoke:'#f5f5f5',gainsboro:'#dcdcdc',lightgray:'#d3d3d3',lightgrey:'#d3d3d3',ghostwhite:'#f8f8ff',snow:'#fffafa',ivory:'#fffff0',
+    beige:'#f5f5dc',aliceblue:'#f0f8ff',azure:'#f0ffff',honeydew:'#f0fff0',mintcream:'#f5fffa',linen:'#faf0e6',seashell:'#fff5ee',
+    floralwhite:'#fffaf0',oldlace:'#fdf5e6',lavender:'#e6e6fa',darkgray:'#a9a9a9',darkgrey:'#a9a9a9',dimgray:'#696969',orange:'#ffa500',navy:'#000080'};
+  function h2(n){n=Math.round(Math.max(0,Math.min(255,n))).toString(16);return n.length<2?'0'+n:n;}
+  function parse(s){s=String(s).trim().toLowerCase();var m;
+    if(NOM[s])s=NOM[s];
+    if(s[0]==='#'){var x=s.slice(1);if(x.length===3||x.length===4)x=x.split('').map(function(c){return c+c;}).join('');
+      if(!/^[0-9a-f]{6}([0-9a-f]{2})?$/.test(x))return null;
+      return{r:parseInt(x.substr(0,2),16),g:parseInt(x.substr(2,2),16),b:parseInt(x.substr(4,2),16),a:x.length===8?parseInt(x.substr(6,2),16)/255:1};}
+    if((m=s.match(/^rgba?\(([^)]*)\)$/))){var p=m[1].replace(/\//g,' ').split(/[\s,]+/).filter(Boolean);if(p.length<3)return null;
+      var f=function(v,mx){return /%$/.test(v)?parseFloat(v)*mx/100:parseFloat(v);};
+      var c={r:f(p[0],255),g:f(p[1],255),b:f(p[2],255),a:p[3]!=null?f(p[3],1):1};return isNaN(c.r+c.g+c.b+c.a)?null:c;}
+    if((m=s.match(/^hsla?\(([^)]*)\)$/))){var q=m[1].replace(/\//g,' ').split(/[\s,]+/).filter(Boolean);if(q.length<3)return null;
+      var rr=hsl2rgb(parseFloat(q[0])/360,parseFloat(q[1])/100,parseFloat(q[2])/100);rr.a=q[3]!=null?(/%$/.test(q[3])?parseFloat(q[3])/100:parseFloat(q[3])):1;return rr;}
+    return null;}
+  function hex(c){return '#'+h2(c.r)+h2(c.g)+h2(c.b);}
+  function fmt(c){return c.a>=0.999?hex(c):'rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+','+(+c.a.toFixed(3))+')';}
+  function rgb2hsl(c){var r=c.r/255,g=c.g/255,b=c.b/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2;
+    if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6;}return{h:h,s:s,l:l};}
+  function hsl2rgb(h,s,l){function f(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;}
+    var r,g,b;if(s===0){r=g=b=l;}else{var q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;r=f(p,q,h+1/3);g=f(p,q,h);b=f(p,q,h-1/3);}return{r:r*255,g:g*255,b:b*255,a:1};}
+  function conA(s,a){var c=parse(s);c.a=a;return c;}
+  function mk(h,s,l,a){var c=hsl2rgb(h,Math.max(0,Math.min(1,s)),Math.max(0,Math.min(1,l)));c.a=a;return c;}
+  function cl(x,a,b){return Math.max(a,Math.min(b,x));}
+  /* rol FONDO */
+  function fBg(c){if(c.a===0)return c;var k=hex(c);if(BG[k])return conA(BG[k],c.a);var h=rgb2hsl(c);
+    if(h.l<0.6)return c;
+    if(h.s<0.22||h.l>=0.985){var L=h.l>=0.97?0.105+(1-h.l)*0.2:h.l>=0.955?0.065+(h.l-0.955)/0.015*0.04:cl(0.065+(0.955-h.l)*1.3,0.065,0.3);
+      return mk(h.h,Math.min(h.s,0.3),L,c.a);}
+    return mk(h.h,Math.min(h.s,0.5),cl(0.13+(1-h.l)*0.45,0.13,0.3),c.a);}
+  /* rol TEXTO */
+  function fTx(c){if(c.a===0)return c;var k=hex(c);if(TX[k])return conA(TX[k],c.a);var h=rgb2hsl(c);
+    if(h.l>=0.62)return c;
+    if(h.s<0.2)return mk(h.h,h.s*0.6,Math.max(0.62,0.93-h.l*h.l*1.5),c.a);
+    return mk(h.h,Math.min(h.s,0.72),0.64+h.l*0.12,c.a);}
+  /* rol BORDE */
+  function fBd(c){if(c.a===0)return c;var k=hex(c);if(BD[k])return conA(BD[k],c.a);var h=rgb2hsl(c);
+    if(h.l>=0.7)return h.s<0.25?mk(h.h,Math.min(h.s,0.3),0.17+(1-h.l)*0.3,c.a):mk(h.h,Math.min(h.s,0.45),0.22+(1-h.l)*0.2,c.a);
+    if(h.s<0.2&&h.l<0.45)return mk(h.h,h.s,0.36,c.a);
+    if(h.l<0.5){if(TX[k])return conA(TX[k],c.a);return mk(h.h,Math.min(h.s,0.72),0.5+h.l*0.2,c.a);}
+    return c;}
+  /* rol SOMBRA: sombras suaves de marca -> sombra negra más marcada */
+  function fSh(c){var h=rgb2hsl(c);if(h.l<0.5&&c.a<=0.6)return{r:0,g:0,b:0,a:Math.min(0.55,c.a*3.5+0.08)};if(h.l>0.85)return{r:0,g:0,b:0,a:Math.min(0.5,c.a*0.6)};return c;}
+  /* lienzo de gráficos */
+  function fCanF(c){if(c.a===0)return c;var h=rgb2hsl(c);if(h.l>=0.93&&h.s<0.35)return conA(P.raise,c.a);if(h.l>=0.85)return fBg(c);
+    if(h.l<0.3&&h.s<0.25&&c.a<0.35)return{r:255,g:255,b:255,a:c.a*0.9};return c;}
+  function fCanS(c){if(c.a===0)return c;var h=rgb2hsl(c);if(h.l>=0.98)return conA(P.card,c.a);if(h.l>=0.8)return h.s<0.35?conA(P.grid,c.a):fBd(c);
+    if(h.l<0.3&&h.s<0.25&&c.a<0.35)return{r:255,g:255,b:255,a:c.a*0.8};if(h.s>0.3&&h.l<0.32)return mk(h.h,h.s,h.l+0.1,c.a);return c;}
+  var ROL={bg:fBg,tx:fTx,bd:fBd,sh:fSh,cf:fCanF,cs:fCanS};
+  var TOK=/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)|\b(?:white|black|red|green|blue|gray|grey|silver|whitesmoke|gainsboro|lightgr[ae]y|ghostwhite|snow|ivory|beige|aliceblue|azure|honeydew|mintcream|linen|seashell|floralwhite|oldlace|lavender|darkgr[ae]y|dimgray|orange|navy)\b/gi;
+  var CACHE={};
+  function mapColor(s,rol){var k=rol+'|'+s,v=CACHE[k];if(v!==undefined)return v;var c=parse(s);v=c?fmt(ROL[rol](c)):s;CACHE[k]=v;return v;}
+  var RAIZ=null;function raiz(){return RAIZ||(RAIZ=getComputedStyle(H));}
+  function resolverVars(v){var n=0;while(/var\(/.test(v)&&n++<6){v=v.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*((?:[^()]|\([^()]*\))*))?\)/g,function(m,nom,fb){var r=raiz().getPropertyValue(nom).trim();return r||(fb!=null?fb.trim():m);});}return v;}
+  function mapValor(v,rol){if(!v)return v;if(/var\(/.test(v))v=resolverVars(v);if(/var\(/.test(v))return null;
+    var partes=v.split(/(url\([^)]*\))/i);
+    var out=partes.map(function(p,i){return i%2?p:p.replace(TOK,function(t){return mapColor(t,rol);});}).join('');
+    if(rol==='sh'&&!/inset/i.test(v)&&/rgba?\(/.test(out)&&!/none/i.test(v)&&out!==v)out+=',0 0 0 1px rgba(255,255,255,.045)';
+    return out;}
+  function rolDe(p){p=p.toLowerCase();
+    if(p==='color'||p==='caret-color'||p==='-webkit-text-fill-color'||p==='text-decoration-color'||p==='fill'||p==='stroke'||p==='column-rule-color')return 'tx';
+    if(p==='background'||p==='background-color'||p==='background-image')return 'bg';
+    if(/^border|^outline/.test(p))return 'bd';
+    if(p==='box-shadow')return 'sh';
+    if(p==='text-shadow')return 'ts';
+    return null;}
+  /* separa "a:b; c:d" respetando paréntesis y comillas */
+  function decls(txt){var out=[],dep=0,q=null,ini=0;for(var i=0;i<=txt.length;i++){var ch=txt[i];
+      if(q){if(ch===q&&txt[i-1]!=='\\')q=null;continue;}
+      if(ch==='"'||ch==="'"){q=ch;continue;}if(ch==='(')dep++;else if(ch===')')dep--;
+      else if((ch===';'||i===txt.length)&&dep<=0){var d=txt.slice(ini,i).trim();if(d)out.push(d);ini=i+1;}}
+    return out.map(function(d){var k=d.indexOf(':');if(k<0)return null;var v=d.slice(k+1).trim(),imp=/!important\s*$/i.test(v);
+      if(imp)v=v.replace(/!important\s*$/i,'').trim();return{p:d.slice(0,k).trim(),v:v,imp:imp};}).filter(Boolean);}
+  function fondoMedio(ds){for(var i=0;i<ds.length;i++){var r=rolDe(ds[i].p);if(r!=='bg')continue;var v=resolverVars(ds[i].v),m=v.match(TOK);if(!m)continue;
+      for(var j=0;j<m.length;j++){var c=parse(m[j]);if(!c||c.a<0.5)continue;var h=rgb2hsl(c);if(h.l>=0.35&&h.l<0.6&&h.s>=0.3)return true;}}return false;}
+  function traducir(txt,forzarImp){var ds=decls(txt),medio=fondoMedio(ds),out=[];
+    ds.forEach(function(d){var r=rolDe(d.p);if(!r)return;if(r==='tx'&&medio&&!/^(fill|stroke)$/i.test(d.p))return;
+      var nv;if(r==='ts')nv=mapValor(d.v,'sh');else nv=mapValor(d.v,r);
+      if(nv==null||nv===d.v)return;out.push(d.p+':'+nv+((d.imp||forzarImp)?' !important':''));});
+    return out.join(';');}
+  function selPre(sel){var parts=[],dep=0,ini=0;for(var i=0;i<=sel.length;i++){var ch=sel[i];if(ch==='('||ch==='[')dep++;else if(ch===')'||ch===']')dep--;
+      else if((ch===','||i===sel.length)&&dep<=0){parts.push(sel.slice(ini,i).trim());ini=i+1;}}
+    return parts.filter(Boolean).map(function(s){if(/^:root\b/.test(s))return PRE+s.slice(5);if(/^html\b/i.test(s))return PRE+s.slice(4);return PRE+' '+s;}).join(',');}
+  /* ---------- hojas de estilo de la pantalla ---------- */
+  var GEN=null,INL=null;
+  function propia(n){return n&&(n.id==='lsTemaGen'||n.id==='lsTemaInl'||n.id==='lsTemaCss'||n.id==='lsTemaPreCss');}
+  function recorrer(rules,out){for(var i=0;i<rules.length;i++){var r=rules[i];
+      if(r.type===1){var t=traducir(r.style.cssText,false);if(t)out.push(selPre(r.selectorText)+'{'+t+'}');}
+      else if(r.type===4){if(/^\s*print\s*$/i.test(r.media.mediaText))continue;var a=[];recorrer(r.cssRules,a);if(a.length)out.push('@media '+r.media.mediaText+'{'+a.join('\n')+'}');}
+      else if(r.type===12){var b=[];recorrer(r.cssRules,b);if(b.length)out.push('@supports '+r.conditionText+'{'+b.join('\n')+'}');}}}
+  function hojas(){RAIZ=null;var out=[];
+    for(var i=0;i<document.styleSheets.length;i++){var sh=document.styleSheets[i];if(propia(sh.ownerNode))continue;var rs;try{rs=sh.cssRules;}catch(e){continue;}if(rs)recorrer(rs,out);}
+    if(!GEN){GEN=document.createElement('style');GEN.id='lsTemaGen';}
+    var txt=out.join('\n');if(GEN.textContent!==txt)GEN.textContent=txt;
+    if(!GEN.parentNode)document.head.appendChild(GEN);
+    if(!INL){INL=document.createElement('style');INL.id='lsTemaInl';document.head.appendChild(INL);}}
+  /* ---------- estilos escritos en cada elemento (style="…", fill, stroke) ---------- */
+  var IK={},NK=0;
+  function regla(k,t){try{INL.sheet.insertRule(PRE+' [data-lsd="'+k+'"]{'+t+'}',INL.sheet.cssRules.length);}catch(e){}}
+  function elem(el){if(el.nodeType!==1||el.id==='lsTemaGen')return;var st=el.getAttribute('style')||'',fl=el.getAttribute('fill'),sk=el.getAttribute('stroke'),txt=st;
+    if(fl&&el instanceof SVGElement)txt+=';fill:'+fl;if(sk&&el instanceof SVGElement)txt+=';stroke:'+sk;
+    var k='';if(txt&&/#|rgb|hsl|var\(|white|black|gr[ae]y/i.test(txt)){k=IK[txt];if(k===undefined){var t=traducir(txt,true);k=t?'i'+(++NK):'';if(k)regla(k,t);IK[txt]=k;}}
+    if(k){if(el.getAttribute('data-lsd')!==k)el.setAttribute('data-lsd',k);}else if(el.hasAttribute('data-lsd'))el.removeAttribute('data-lsd');
+    if(el.tagName==='IMG')logo(el);}
+  function arbol(n){if(n.nodeType!==1)return;elem(n);var l=n.querySelectorAll('[style],[fill],[stroke],[data-lsd],img');for(var i=0;i<l.length;i++)elem(l[i]);}
+  /* logos negros sobre fondo transparente -> blancos en oscuro (fotos y documentos no se tocan) */
+  function logo(img){if(img.__lsL)return;var go=function(){if(img.__lsL)return;img.__lsL=1;try{
+      var w=img.naturalWidth,h=img.naturalHeight;if(!w||!h||h>400||w>2000)return;
+      var cv=document.createElement('canvas'),W=Math.min(120,w),Hh=Math.max(1,Math.round(h*W/w));cv.width=W;cv.height=Hh;
+      var x=cv.getContext('2d');x.drawImage(img,0,0,W,Hh);var d=x.getImageData(0,0,W,Hh).data,tr=0,op=0,lum=0;
+      for(var i=0;i<d.length;i+=4){if(d[i+3]<20)tr++;else if(d[i+3]>200){op++;lum+=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2])/255;}}
+      var n=d.length/4;if(tr/n>0.25&&op>0&&lum/op<0.3)img.setAttribute('data-lsinv','');}catch(e){}};
+    if(img.complete&&img.naturalWidth)go();else img.addEventListener('load',go,{once:true});}
+  var OBS=null,tH=null;
+  function luegoHojas(){if(tH)return;tH=setTimeout(function(){tH=null;try{hojas();}catch(e){}},60);}
+  function observar(){if(OBS)return;OBS=new MutationObserver(function(ms){for(var i=0;i<ms.length;i++){var m=ms[i];
+        if(m.type==='attributes'){if(m.target.nodeType===1&&m.attributeName!=='data-lsd')elem(m.target);continue;}
+        var t=m.target;if(t&&(t.nodeName==='STYLE'||t.nodeName==='HEAD'))luegoHojas();
+        for(var j=0;j<m.addedNodes.length;j++){var a=m.addedNodes[j];if(a.nodeName==='STYLE'||a.nodeName==='LINK'){if(!propia(a))luegoHojas();continue;}arbol(a);}}});
+    OBS.observe(H,{childList:true,subtree:true,attributes:true,attributeFilter:['style','fill','stroke','src']});}
+  function soltar(){if(OBS){OBS.disconnect();OBS=null;}}
+  /* ---------- gráficos (Chart.js): se repintan con la paleta oscura; al exportar imagen, en claro ---------- */
+  var CV=false;
+  function chartDe(c){try{return c&&window.Chart&&Chart.getChart?Chart.getChart(c):null;}catch(e){return null;}}
+  (function(){var C2=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;if(!C2)return;
+    var dF=Object.getOwnPropertyDescriptor(C2,'fillStyle'),dS=Object.getOwnPropertyDescriptor(C2,'strokeStyle');if(!dF||!dS||!dF.set)return;
+    var es=function(ctx){return CV&&ctx.canvas&&!!chartDe(ctx.canvas);};
+    Object.defineProperty(C2,'fillStyle',{configurable:true,enumerable:true,get:function(){return dF.get.call(this);},
+      set:function(v){this.__lsF=v;if(typeof v==='string'&&es(this))v=mapColor(v,'cf');dF.set.call(this,v);}});
+    Object.defineProperty(C2,'strokeStyle',{configurable:true,enumerable:true,get:function(){return dS.get.call(this);},
+      set:function(v){if(typeof v==='string'&&es(this))v=mapColor(v,'cs');dS.set.call(this,v);}});
+    var oT=C2.fillText,oSv=C2.save,oRs=C2.restore;
+    C2.fillText=function(){if(typeof this.__lsF==='string'&&es(this)){var cur=dF.get.call(this);dF.set.call(this,mapColor(this.__lsF,'tx'));
+        try{return oT.apply(this,arguments);}finally{dF.set.call(this,cur);}}return oT.apply(this,arguments);};
+    C2.save=function(){(this.__lsSt||(this.__lsSt=[])).push(this.__lsF);return oSv.apply(this,arguments);};
+    C2.restore=function(){if(this.__lsSt&&this.__lsSt.length)this.__lsF=this.__lsSt.pop();return oRs.apply(this,arguments);};
+    var HC=HTMLCanvasElement.prototype;
+    ['toDataURL','toBlob'].forEach(function(fn){var o=HC[fn];if(!o)return;HC[fn]=function(){var ch=CV&&chartDe(this);if(!ch)return o.apply(this,arguments);
+      CV=false;try{ch.draw();}catch(e){}try{return o.apply(this,arguments);}finally{CV=true;try{ch.draw();}catch(e){}}};});
+  })();
+  function repintar(){try{if(!window.Chart||!Chart.instances)return;var l=Chart.instances;Object.keys(l).forEach(function(k){try{l[k].update('none');}catch(e){}});}catch(e){}}
+  /* PDF por captura de pantalla (html2canvas): se toma en claro */
+  function envolverPdf(){var f=window.html2canvas;if(!f||f.__ls)return;
+    var w=function(){var era=activo();if(era)poner(false,true);var r;try{r=f.apply(this,arguments);}catch(e){if(era)poner(true,true);throw e;}
+      return Promise.resolve(r).then(function(x){if(era)poner(true,true);return x;},function(e){if(era)poner(true,true);throw e;});};
+    for(var k in f)try{w[k]=f[k];}catch(e){}w.__ls=true;window.html2canvas=w;}
+  /* ---------- encender / apagar ---------- */
+  var LISTO=false;
+  function activo(){return H.getAttribute('data-tema')==='oscuro';}
+  /* Otros bloques (franja: barra fija) copian el color de fondo de la página como estilo escrito; al cambiar de
+     tema ese color se queda pegado (barra oscura en modo claro o al revés). Se reemplaza por el fondo nuevo. */
+  function fondoBody(){try{return document.body?getComputedStyle(document.body).backgroundColor:'';}catch(e){return '';}}
+  function despegar(b0){var b1=fondoBody();if(!b0||!b1||b0===b1)return;
+    Array.prototype.forEach.call(document.querySelectorAll('[style*="background"]'),function(el){try{if(el.style.backgroundColor===b0)el.style.backgroundColor=b1;}catch(e){}});}
+  function poner(on,temporal){
+    var b0=fondoBody();
+    if(on){if(!LISTO){hojas();arbol(document.body);LISTO=true;}H.setAttribute('data-tema','oscuro');observar();CV=true;}
+    else{H.removeAttribute('data-tema');soltar();CV=false;}
+    despegar(b0);repintar();if(!temporal)boton();}
+  function eleccion(){try{return localStorage.getItem(KEY);}catch(e){return null;}}
+  function sistema(){return !!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);}
+  function deseado(){var v=eleccion();return v?v==='oscuro':sistema();}
+  function cambiar(){var on=!activo();try{localStorage.setItem(KEY,on?'oscuro':'claro');}catch(e){}if(on)LISTO=false;poner(on);}
+  /* El botón del PORTAL de Sistemas (app.lives.com.pe) manda: el portal avisa el modo con postMessage
+     {tipo:'lives-tema',tema:'oscuro'|'claro'} al abrir la herramienta y cada vez que se cambia. Desde el primer
+     aviso, la herramienta sigue al portal y su propio botón 🌙/☀️ se quita (queda solo el del portal). Fuera del
+     portal (links directos) el botón propio sigue. */
+  var PORTAL='https://app.lives.com.pe',MANDA=false;
+  function enPortal(){try{if(window.top===window)return false;var a=location.ancestorOrigins;if(a&&a.length)return a[a.length-1]===PORTAL||a[0]===PORTAL;return /app\.lives\.com\.pe/.test(document.referrer||'');}catch(e){return false;}}
+  window.addEventListener('message',function(e){try{if(e.origin!==PORTAL)return;var d=e.data;if(!d||d.tipo!=='lives-tema'||(d.tema!=='oscuro'&&d.tema!=='claro'))return;
+    MANDA=true;var on=d.tema==='oscuro';try{localStorage.setItem(KEY,d.tema);}catch(x){}if(on!==activo()){if(on)LISTO=false;poner(on);}
+    if(BTN&&BTN.parentNode)BTN.remove();if(PIE&&PIE.parentNode)PIE.remove();}catch(x){}});
+  /* ---------- botón 🌙/☀️ dentro de la barra de filtros ---------- */
+  var BARRA='.bar,.toolbar,.filtros,.filters,.fbar,.filterbar,.barra,.controles,.controls,.fbarra,.fpanel,[class*="barra"]:not(.lsSinBarra):not(.lsBarra),[class*="filtro"],[class*="filter"],[class*="toolbar"]';
+  var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,#lsPo,.lsSinBarra,table,form';
+  var BTN=null,PIE=null;
+  function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
+  function barra(){var f=null;try{f=window.__lsBa&&window.__lsBa.bf&&window.__lsBa.bf();}catch(e){}
+    if(f&&vis(f))return f;
+    var c=Array.prototype.filter.call(document.querySelectorAll(BARRA),function(b){return vis(b)&&!b.closest(FUERA)&&b.querySelector('select,input:not([type=hidden]),button');});
+    c=c.filter(function(b){return !c.some(function(o){return o!==b&&o.contains(b);});});
+    c.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top;});
+    return c[0]&&c[0].getBoundingClientRect().top<400?c[0]:null;}
+  function boton(){
+    if(MANDA){if(BTN&&BTN.parentNode)BTN.remove();if(PIE&&PIE.parentNode)PIE.remove();return;}
+    if(!BTN){BTN=document.createElement('button');BTN.type='button';BTN.className='lsTemaBtn';
+      BTN.innerHTML='<svg class="lsTemaLuna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'+
+        '<svg class="lsTemaSol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg><span class="lsTemaTxt"></span>';
+      BTN.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();cambiar();});}
+    var on=activo();BTN.title=on?'Cambiar a modo claro':'Cambiar a modo oscuro';BTN.setAttribute('aria-label',BTN.title);
+    var tx=BTN.querySelector('.lsTemaTxt');if(tx)tx.textContent=on?'Modo claro':'Modo oscuro';
+    /* Estabilidad: si ya está en una barra visible, no se mueve (evita bucles con otros bloques que reacomodan la barra) */
+    if(BTN.parentNode&&BTN.parentNode!==PIE&&BTN.isConnected&&vis(BTN.parentNode)&&!BTN.parentNode.closest('.lsBarra')){cuadrar(false);return;}
+    var b=barra(),dest;
+    if(b)dest=b.querySelector(':scope > .lsAcc')||b;
+    else{/* pantalla sin barra de filtros (formularios): el botón va al pie de la página, en su sitio, no flotando */
+      /* clase con "menu": la franja no lo toma como grupo de botones suelto (si lo movía, ambos se lo pasaban en bucle y la página "bailaba") */
+      if(!PIE){PIE=document.createElement('div');PIE.className='lsTemaPie lstema-menu';}
+      if(!PIE.isConnected){var ult=null;for(var n=document.body.lastElementChild;n;n=n.previousElementSibling){
+          if(/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|LINK)$/.test(n.tagName)||(n.id&&/^ls/.test(n.id)))continue;
+          var ps=getComputedStyle(n);if(ps.position==='fixed'||ps.display==='none')continue;ult=n;break;}
+        if(ult)document.body.insertBefore(PIE,ult.nextSibling);else document.body.appendChild(PIE);}
+      dest=PIE;}
+    if(PIE&&dest!==PIE&&PIE.parentNode)PIE.remove();
+    if(BTN.parentNode!==dest)dest.appendChild(BTN);
+    cuadrar(dest===PIE);}
+  /* El botón toma el alto de los controles vecinos de su fila y se alinea con ellos (barras en grilla con
+     etiquetas arriba, barras en fila, celular). */
+  function cuadrar(pie){var st=BTN.style,ant=[st.top,st.height,st.width,st.position].join('|');st.top='';st.height='';st.width='';st.position='';
+    try{cuadrar2(pie);}catch(e){}
+    if([st.top,st.height,st.width,st.position].join('|')===ant)return;}
+  function cuadrar2(pie){var st=BTN.style;
+    if(pie||!vis(BTN))return;
+    var r=BTN.getBoundingClientRect(),cand=[],bar=BTN.parentElement;while(bar&&bar!==document.body&&!bar.matches(BARRA))bar=bar.parentElement;bar=bar||BTN.parentElement;
+    Array.prototype.forEach.call(bar.querySelectorAll('select,input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]),button,a.btn'),function(c){
+      if(c===BTN||!vis(c))return;var q=c.getBoundingClientRect();if(q.height<24||q.height>64)return;
+      if(q.bottom<=r.top+2||q.top>=r.bottom-2)return;cand.push({el:c,q:q,d:Math.abs((q.top+q.bottom)/2-(r.top+r.bottom)/2)+(q.right<=r.left+2?0:400)});});
+    if(!cand.length)return;cand.sort(function(a,b){return a.d-b.d;});var q=cand[0].q;
+    var h=Math.round(Math.max(32,Math.min(52,q.height)));st.height=h+'px';st.width=h+'px';
+    var r2=BTN.getBoundingClientRect();q=cand[0].el.getBoundingClientRect();var dy=Math.round(q.bottom-r2.bottom);
+    if(Math.abs(dy)>1&&Math.abs(dy)<90){st.position='relative';st.top=dy+'px';}}
+  var tB=null;function luegoBoton(){if(tB)return;tB=setTimeout(function(){tB=null;try{boton();}catch(e){}},350);}
+  /* ---------- arranque ---------- */
+  function inicio(){
+    /* restos de una copia exportada: se limpian para no mezclar claves viejas */
+    Array.prototype.forEach.call(document.querySelectorAll('#lsTemaGen,#lsTemaInl'),function(n){n.remove();});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-lsd],[data-lsinv]'),function(n){n.removeAttribute('data-lsd');n.removeAttribute('data-lsinv');});
+    H.removeAttribute('data-tema');
+    if(deseado())poner(true);else boton();
+    if(enPortal()){try{window.parent.postMessage({tipo:'lives-tema-pedir'},PORTAL);}catch(e){}}
+    H.classList.remove('lsTemaPrep');
+    document.addEventListener('DOMContentLoaded',function(){if(activo())hojas();luegoBoton();});
+    window.addEventListener('load',function(){if(activo()){hojas();repintar();}envolverPdf();luegoBoton();});
+    new MutationObserver(function(ms){for(var i=0;i<ms.length;i++)if(ms[i].addedNodes.length||ms[i].removedNodes.length){luegoBoton();return;}}).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',luegoBoton);document.addEventListener('click',function(){setTimeout(luegoBoton,60);},true);
+    var k=0,iv=setInterval(function(){envolverPdf();luegoBoton();if(++k>12)clearInterval(iv);},800);
+    if(window.matchMedia){var mq=matchMedia('(prefers-color-scheme: dark)');var chg=function(){if(!eleccion()&&mq.matches!==activo())poner(mq.matches);};
+      if(mq.addEventListener)mq.addEventListener('change',chg);else if(mq.addListener)mq.addListener(chg);}
+    window.addEventListener('storage',function(e){if(e.key===KEY&&deseado()!==activo())poner(deseado());});
+    var impr=false;window.addEventListener('beforeprint',function(){if(activo()){impr=true;poner(false,true);}});
+    window.addEventListener('afterprint',function(){if(impr){impr=false;poner(true,true);}});
+  }
+  window.LIVES_TEMA={cambiar:cambiar,activo:activo,poner:function(on){try{localStorage.setItem(KEY,on?'oscuro':'claro');}catch(e){}poner(!!on);}};
+  inicio();
+}catch(e){try{document.documentElement.classList.remove('lsTemaPrep');}catch(_){}}})();</script>
+<!-- ===== fin lives-tema v1 (final) ===== -->
+<!-- lives-actualizar v2.3 · vigente desde el 23/10/2026 · v2.2 + (1) compara contra la copia con la que se abrió la pantalla (si el navegador la abrió vieja, igual avisa) y (2) los campos dentro de [data-ls-fijo] no cuentan como trabajo sin guardar. Copia exacta del bloque publicado en las pantallas (todas menos Acabados).
+     Pegar antes de </body>. Reemplaza a v2 y v2.1: lee la version publicada real (?_lsact=), confirma el cambio con dos lecturas a 45 s
+     y nunca interrumpe un trabajo sin guardar (campos tocados, venta en curso, uso en los ultimos 3 min, o window.lsTrabajoPendiente()). -->
+<style id="lsActCss">
+#lsAct{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;
+  background:rgba(14,59,54,.78);padding:16px;font-family:Calibri,Arial,sans-serif}
+#lsAct .lsActCaja{background:#fff;border-radius:12px;border-top:4px solid #10B981;box-shadow:0 10px 30px rgba(0,0,0,.25);
+  max-width:440px;width:100%;padding:26px 24px 22px;text-align:center;color:#1a1a1a}
+#lsAct .lsActIco{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:#E7F6EF;color:#0F7A5A;
+  display:flex;align-items:center;justify-content:center;font-size:30px;line-height:1}
+#lsAct h2{margin:0 0 8px;font-size:21px;color:#0E3B36}
+#lsAct p{margin:0 0 18px;font-size:15.5px;line-height:1.45;color:#3d4f4b}
+#lsActSi{display:block;width:100%;background:#0F7A5A;color:#fff;border:none;border-radius:10px;font-family:inherit;
+  font-size:17px;font-weight:700;padding:14px 16px;min-height:52px;cursor:pointer}
+#lsActSi:hover{background:#0B6349}
+#lsActSi:focus{outline:3px solid #10B981;outline-offset:2px}
+@media (max-width:640px){
+  #lsAct{padding:0;background:#fff}
+  #lsAct .lsActCaja{max-width:none;height:100%;border-radius:0;box-shadow:none;border-top:6px solid #10B981;
+    display:flex;flex-direction:column;justify-content:center;padding:32px 22px}
+  #lsAct h2{font-size:24px}
+  #lsAct p{font-size:17px}
+  #lsActSi{font-size:19px;min-height:58px}
+}
+@media print{#lsAct{display:none!important}}
+</style>
+<script id="lsActJs">(function(){
+  'use strict';
+  if (window.__lsAct) return; window.__lsAct = true;
+  if (!/^https?:$/.test(location.protocol)) return;
+  var url = location.origin + location.pathname, base = null, pendiente = false, ultimaTecla = 0;
+  /* Mientras la persona escribe no se interrumpe: se espera a que pasen 20 s sin teclear. */
+  ['input','keydown','change'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ if (!e.target || !e.target.closest || !e.target.closest('#lsAct')) ultimaTecla = Date.now(); }, true);
+  });
+  /* v2.2 (14/10/2026): el aviso NUNCA corta un trabajo a medias. Se recuerdan los campos que la persona tocó y su
+     valor inicial; mientras alguno siga con algo escrito sin guardar (o haya una venta en curso, o haya usado la
+     pantalla en los últimos 3 minutos), el aviso espera. Sale cuando la pantalla queda libre (p. ej. después de
+     guardar, cuando el formulario se limpia). La actualización solo trae cambios de pantalla: no toca datos. */
+  var tocados = [], ultimoUso = 0;
+  function valorDe(el){ if (el.type === 'checkbox' || el.type === 'radio') return el.checked ? '1' : '0'; if (el.type === 'file') return (el.files && el.files.length) ? 'f' + el.files.length : ''; return el.value == null ? '' : String(el.value); }
+  document.addEventListener('focusin', function(e){ var el = e.target; if (!el || !el.matches || !el.matches('input,textarea,select,[contenteditable="true"]') || (el.closest && el.closest('#lsAct'))) return; if (!('__lsIni' in el)){ try { el.__lsIni = el.isContentEditable ? el.textContent : valorDe(el); } catch(x){} } }, true);
+  ['input','change'].forEach(function(ev){ document.addEventListener(ev, function(e){ var el = e.target; if (!e.isTrusted || !el || (el.closest && el.closest('#lsAct'))) return; if (!('__lsIni' in el)) el.__lsIni = ''; if (tocados.indexOf(el) < 0) tocados.push(el); }, true); });
+  ['pointerdown','keydown','input','wheel','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(e){ if (e.isTrusted && !(e.target && e.target.closest && e.target.closest('#lsAct'))) ultimoUso = Date.now(); }, true); });
+  function ocupado(){
+    if (Date.now() - ultimoUso < 3 * 60000) return true;
+    for (var i = 0; i < tocados.length; i++){ var el = tocados[i]; try { if (!el.isConnected) continue; if (el.closest && el.closest('[data-ls-fijo]')) continue; var v = el.isContentEditable ? el.textContent : valorDe(el); if (v !== el.__lsIni && String(v).trim() !== '') return true; } catch(x){} }
+    try { if (typeof window.lsTrabajoPendiente === 'function' && window.lsTrabajoPendiente()) return true; } catch(x){}
+    try { if (Function('return typeof CART!=="undefined"&&Array.isArray(CART)&&CART.length>0')()) return true; } catch(x){}
+    return false;
+  }
+  /* v3 (14/10/2026): la firma es el CONTENIDO de esta pantalla, no la fecha de publicación del repositorio.
+     GitHub vuelve a publicar todas las pantallas de un repositorio aunque solo cambie una, y sus servidores
+     pueden responder fechas distintas un rato: eso hacía salir el aviso sin que la pantalla cambiara.
+     Ahora: se mira la cabecera (barato) y solo si cambió se baja la pantalla y se compara su contenido. */
+  /* v2.1 (14/10/2026): GitHub Pages responde desde varios servidores y, durante unos minutos después de publicar,
+     unos dan la versión nueva y otros la vieja. Por eso el aviso salía varias veces seguidas. Ahora toda consulta
+     lleva una marca única (?_lsact=…) que obliga a leer la versión publicada de verdad, el cambio se confirma con
+     dos lecturas iguales y "Actualizar" carga la pantalla con esa misma marca, para no volver a recibir la vieja. */
+  var _et = null, _h = null, _cand = null;
+  function huella(t){ var h = 2166136261; for (var i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16) + '-' + t.length; }
+  function fresco(){ return url + '?_lsact=' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function firma(){
+    return fetch(fresco(), { method: 'HEAD', cache: 'no-store' }).then(function(r){
+      if (!r.ok) return null;
+      var et = r.headers.get('etag') || r.headers.get('last-modified') || '';
+      if (_h !== null && et && et === _et) return _h;
+      return fetch(fresco(), { cache: 'no-store' }).then(function(g){ return g.ok ? g.text() : null; }).then(function(t){
+        if (t === null) return _h;
+        _h = huella(t); _et = et; return _h;
+      });
+    }).catch(function(){ return null; });
+  }
+  function recargar(){
+    /* Si la herramienta guarda borrador (p. ej. el formulario de auditoría), se guarda antes de recargar. */
+    if (ultimaTecla){
+      ['guardarBorradorAhora','guardarBorradorPeriodico','guardarBorrador'].some(function(n){
+        try { if (typeof window[n] === 'function'){ window[n](); return true; } } catch(e){}
+        return false;
+      });
+    }
+    setTimeout(function(){
+      try { var u = new URL(location.href); u.searchParams.set('_lsact', Date.now().toString(36)); location.replace(u.toString()); }
+      catch(e){ location.reload(); }
+    }, 150);
+  }
+  function aviso(){
+    if (document.getElementById('lsAct') && document.getElementById('lsAct').style.display === 'flex') return;
+    if (Date.now() - ultimaTecla < 20000 || ocupado()) return;   /* se vuelve a intentar solo, cada 1,5 s */
+    var d = document.getElementById('lsAct');
+    if (!d){
+      d = document.createElement('div'); d.id = 'lsAct';
+      d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'lsActT');
+      d.innerHTML = '<div class="lsActCaja"><div class="lsActIco" aria-hidden="true">&#8635;</div>' +
+        '<h2 id="lsActT">Hay una versión nueva</h2>' +
+        '<p>Esta herramienta se actualizó. Toca <b>Actualizar</b> para seguir trabajando con la versión nueva.</p>' +
+        '<button id="lsActSi" type="button">Actualizar</button></div>';
+      (document.body || document.documentElement).appendChild(d);
+      document.getElementById('lsActSi').onclick = recargar;
+    }
+    d.style.display = 'flex';
+    document.documentElement.style.overflow = 'hidden';
+    var b = document.getElementById('lsActSi'); if (b) b.focus();
+  }
+  /* No se puede cerrar: Escape no hace nada, el foco no sale del aviso y si algo lo quita vuelve a salir. */
+  document.addEventListener('keydown', function(e){
+    var d = document.getElementById('lsAct'); if (!d || d.style.display !== 'flex') return;
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); }
+    if (e.key === 'Tab'){ e.preventDefault(); var b = document.getElementById('lsActSi'); if (b) b.focus(); }
+  }, true);
+  setInterval(function(){
+    if (!pendiente) return;
+    var d = document.getElementById('lsAct');
+    if (!d || d.style.display !== 'flex') aviso();
+  }, 1500);
+  function revisar(){
+    if (document.hidden || pendiente) return;
+    firma().then(function(f){
+      if (!f) return;
+      if (base === null){
+        /* v2.3: la base es la copia con la que se abrió esta pantalla (la guardada por el navegador), no la última publicada.
+           v2.4 (02/11/2026): solo si esa copia es reciente (<11 min, lo que dura la caché de GitHub). Una copia más vieja nunca fue la que se mostró (el portal de Sistemas abre la pantalla sin usar la caché) y hacía salir el aviso en cada apertura. */
+        fetch(location.href, { cache: 'force-cache' }).then(function(r){ var dt = Date.parse(r.headers.get('date') || ''); return (r.ok && dt && Date.now() - dt < 11 * 60000) ? r.text() : null; }).then(function(t){ return t === null ? f : huella(t); }, function(){ return f; }).then(function(b){
+          base = b;
+          if (b !== f){ _cand = f; setTimeout(function(){ _et = null; revisar(); }, 45000); }
+        });
+        return;
+      }
+      if (f === base){ _cand = null; return; }
+      if (_cand !== f){ _cand = f; setTimeout(function(){ _et = null; revisar(); }, 45000); return; }   /* se confirma con una segunda lectura */
+      pendiente = true; aviso();
+    });
+  }
+  revisar();
+  setInterval(revisar, 3 * 60000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) revisar(); });
+})();</script>
+</body>
+</html>
