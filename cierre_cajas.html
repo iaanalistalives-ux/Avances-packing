@@ -609,116 +609,135 @@ html.lsPoOn body>*:not(#lsPo){visibility:hidden!important}
 <title>Pesar y cerrar cajas · LIVES</title>
 <style>
 :root{
-  --petrol:#0E3B36; --petrol-2:#12463F; --emer:#10B981; --sage:#0F7A5A; --sage-dark:#0B815E; --slate:#4E6B78;
-  --taupe:#B45309; --rose:#DC2626; --tan:#F59E0B; --warm:#DCE5E2; --warm-light:#F1F6F4; --stone:#5F726C;
-  --card:#fff; --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04); --sh-h:0 4px 12px rgba(14,59,54,.10); --r:12px;
+  --petrol:#0E3B36;--petrol-2:#12463F;--petrol-3:#185A51;--emer:#10B981;--sage:#0F7A5A;--sage-dark:#0B815E;
+  --slate:#4E6B78;--taupe:#B45309;--rose:#DC2626;--tan:#F59E0B;--blue:#2F6FB5;
+  --warm:#DCE5E2;--warm-light:#F1F6F4;--stone:#5F726C;--card:#fff;--txt:#1F2D2A;
+  --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04);--sh-h:0 8px 24px rgba(14,59,54,.14);--r:14px;
+  --st-pe:#C9D4D0;--st-pr:#2F6FB5;--st-es:#F59E0B;--st-ob:#DC2626;--st-ce:#0F7A5A;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
-.wrap{width:100%;max-width:none;margin:0 auto;padding:14px clamp(16px,2.2vw,52px) 44px}
-.bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:14px;position:sticky;top:0;z-index:15}
-.bar label,.campo{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:2px}
-select,input,textarea{font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);border:1px solid var(--warm);border-radius:8px;padding:7px 10px;background:#fff;min-height:38px}
-textarea{font-weight:400;color:#333;min-height:70px;resize:vertical}
-input[type=search]{min-width:200px;color:#333;font-weight:400}
-.btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;min-height:38px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage)}
-.btn:hover{border-color:var(--sage)}
-.btn.primary{background:var(--sage);color:#fff;border-color:var(--sage)}
-.btn.primary:hover{background:var(--sage-dark)}
+body{margin:0;background:var(--warm-light);color:var(--txt);font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4;font-variant-numeric:tabular-nums}
+button{font-family:inherit}
+.wrap{width:100%;margin:0 auto;padding:14px clamp(16px,2.2vw,40px) 40px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:16px;position:sticky;top:0;z-index:15}
+.bar input,.bar select,.campo input,.campo select,.campo textarea{font-family:inherit;font-size:14px;border:1px solid var(--warm);border-radius:10px;padding:9px 12px;background:var(--card);color:var(--txt);min-height:42px}
+.bar input[type=search]{min-width:220px}
+.campo{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px}
+.campo textarea{min-height:70px;resize:vertical;text-transform:none;font-weight:400}
+.btn{font-weight:700;font-size:14px;border-radius:10px;padding:10px 16px;min-height:42px;border:1px solid var(--warm);background:var(--card);color:var(--sage);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .15s,border-color .15s}
+.btn:hover{border-color:var(--sage);transform:translateY(-1px)}
+.btn.pri{background:var(--sage);color:#fff;border-color:var(--sage);box-shadow:0 4px 12px rgba(15,122,90,.28)}
+.btn.pri:hover{background:var(--sage-dark)}
 .btn.peligro{color:var(--rose)}
-.btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed}
-.spacer{margin-left:auto}
+.btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed;box-shadow:none;transform:none}
+.btn svg{width:18px;height:18px;flex:none}
+.esp{flex:1}
 .lsAcc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:14px}
-.panel .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--warm)}
-.panel .tira.resultado{background:var(--sage)}.panel .tira.riesgo{background:var(--rose)}.panel .tira.volumen{background:var(--slate)}
-.panel .pt{font-size:15px;font-weight:700}
-.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:12px;max-width:130ch}
-.tscroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;white-space:nowrap}
-td{padding:8px 6px;border-bottom:1px solid var(--warm-light);vertical-align:top}
-tbody tr.clic{cursor:pointer}
-tbody tr.clic:hover td{background:var(--warm-light)}
-td.n,th.n{text-align:right;white-space:nowrap}
-.st{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
-.st.pe{background:var(--warm-light);color:var(--stone)}.st.pr{background:#EAF1F4;color:var(--slate)}
-.st.es{background:#FEF3E2;color:var(--taupe)}.st.ob{background:#FCEBEB;color:var(--rose)}
-.st.ce{background:#E7F4EF;color:var(--sage-dark)}.st.an{background:#E5E9E8;color:#8A9893}
-.st.ok{background:#E7F4EF;color:var(--sage-dark)}.st.mal{background:#FCEBEB;color:var(--rose)}
+.seg{display:inline-flex;background:var(--warm-light);border-radius:12px;padding:4px;gap:2px}
+.seg button{border:none;background:none;font-weight:700;font-size:14px;color:var(--stone);padding:8px 16px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.seg button svg{width:17px;height:17px}
+.seg button.act{background:var(--card);color:var(--sage);box-shadow:var(--sh)}
+.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px;position:relative;overflow:hidden;margin-bottom:14px}
+.panel h2{margin:0 0 10px;font-size:17px}
+.panel h2 small{color:var(--stone);font-weight:400}
+.vacio{padding:24px 10px;text-align:center;color:var(--stone);font-size:14px}
+.errBox{background:#FBE9E9;border:1px solid var(--rose);border-radius:10px;padding:12px 16px;color:var(--rose);font-size:13.5px;margin-bottom:14px;display:none}
+.okBox{background:#E7F4EF;border:1px solid var(--sage);border-radius:10px;padding:12px 16px;color:var(--sage-dark);font-size:13.5px;margin:10px 0}
+.aviso{background:#FEF3E2;border:1px solid var(--tan);border-radius:10px;padding:10px 14px;color:var(--taupe);font-size:13.5px;margin:8px 0}
+.chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--warm-light);color:var(--stone);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.anillo{flex:none;position:relative}
+.anillo svg{transform:rotate(-90deg);display:block}
+.anillo b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1}
+.anillo b small{font-size:10px;color:var(--stone);font-weight:700;margin-top:3px}
 .lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
-.vacio{padding:22px 10px;text-align:center;color:var(--stone);font-size:14px}
-.errBox{background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;padding:12px 16px;color:var(--rose);font-size:13px;margin-bottom:14px;display:none}
-.okBox{background:#E7F4EF;border:1px solid var(--sage);border-radius:8px;padding:12px 16px;color:var(--sage-dark);font-size:13px;margin-bottom:14px}
-.aviso{background:#FEF3E2;border:1px solid var(--tan);border-radius:8px;padding:10px 14px;color:var(--taupe);font-size:13px;margin:8px 0}
-.prog{height:8px;background:var(--warm-light);border-radius:4px;overflow:hidden;margin-top:4px}
-.prog>i{display:block;height:100%;background:var(--sage);border-radius:4px}
 .modal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(14,59,54,.5);align-items:center;justify-content:center;padding:2vh 2vw}
 .modal.show{display:flex}
-.mcaja{background:var(--warm-light);width:100%;height:100%;max-width:1300px;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)}
-.mcaja.chica{height:auto;max-height:96vh;max-width:900px}
+.mcaja{background:var(--warm-light);width:100%;height:100%;max-width:1400px;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.mcaja.chica{height:auto;max-height:96vh;max-width:620px}
 .mbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--warm)}
-.mbar b{flex:1;font-size:15px;color:#0E3B36}
-.mbar button{font-family:inherit;font-weight:700;font-size:14px;border:1px solid var(--warm);background:#fff;color:var(--rose);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer}
+.mbar b{flex:1;font-size:15px}
+.mbar button{font-weight:700;font-size:14px;border:1px solid var(--warm);background:var(--card);color:var(--rose);border-radius:10px;padding:8px 14px;min-height:40px;cursor:pointer}
 .mcaja iframe{flex:1;border:0;width:100%;background:var(--warm-light)}
-.dcuerpo{padding:14px 16px 18px;overflow:auto}
+.dcuerpo{padding:16px 18px 20px;overflow:auto}
 body.modalAbierta{overflow:hidden}
 .fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
-.fila>*{flex:1 1 160px}
+.fila>*{flex:1 1 150px}
 .acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;white-space:nowrap}
+td{padding:9px 6px;border-bottom:1px solid var(--warm-light);vertical-align:middle}
+td.n,th.n{text-align:right;white-space:nowrap}
+.tscroll{overflow-x:auto}
 @media(max-width:600px){
   .wrap{padding:12px 16px 36px}
   .bar{position:static;padding:8px 10px;gap:8px}
-  .bar>label{flex:1 1 calc(50% - 8px);min-width:0}
-  .bar>label select,.bar>label input{width:100%;min-width:0}
-  .bar>label:has(input[type=search]){flex-basis:100%}
+  .bar input[type=search]{min-width:0;flex:1 1 100%}
+  .bar .seg{flex:1 1 100%;justify-content:space-between}
+  .bar .seg button{flex:1;justify-content:center;padding:8px 6px;font-size:13px}
   .bar>.lsAcc{flex:1 1 100%}
   .bar>.lsAcc .btn{flex:1 1 auto}
-  .btn,select,input{min-height:44px;font-size:14px}
-  .spacer{display:none}
-  .panel{padding:18px 12px 12px}
+  .btn,.bar select{min-height:46px}
+  .esp{display:none}
   .modal{padding:0}
   .mcaja,.mcaja.chica{border-radius:0;max-width:none;height:100%;max-height:none}
 }
-.cols{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:14px;align-items:start}
-.lista .it{display:flex;justify-content:space-between;gap:8px;padding:10px;border-bottom:1px solid var(--warm-light);cursor:pointer;border-radius:8px}
-.lista .it:hover,.lista .it.act{background:var(--warm-light)}
-.lista .it b{font-size:14px}
-.lista .it small{color:var(--stone)}
-.peso input{font-size:28px;min-height:60px;width:200px;text-align:right;color:#333}
-.peso .u{font-size:20px;font-weight:700;color:var(--stone)}
-.res{border-radius:12px;padding:16px;margin:10px 0;font-weight:700;font-size:19px;line-height:1.3}
-.res small{display:block;font-size:14px;font-weight:400;margin-top:4px}
-.res.ok{background:#E7F4EF;color:var(--sage-dark);border:2px solid var(--sage)}
-.res.mal{background:#FCEBEB;color:var(--rose);border:2px solid var(--rose)}
-.res.nuevo{background:#FEF3E2;color:var(--taupe);border:2px solid var(--tan)}
-.dato{font-size:13px}.dato b{color:#0E3B36}
+.pasos{display:flex;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.paso{flex:1;padding:13px 14px;display:flex;align-items:center;gap:10px;font-weight:700;color:var(--stone);position:relative;min-width:0}
+.paso span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paso .n{width:30px;height:30px;border-radius:50%;border:2px solid var(--warm);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.paso.hecho .n{background:var(--sage);border-color:var(--sage);color:#fff}
+.paso.act{color:var(--txt);background:var(--warm-light)}
+.paso.act .n{border-color:var(--sage);color:var(--sage)}
+.paso+.paso::before{content:"";position:absolute;left:0;top:20%;bottom:20%;width:1px;background:var(--warm)}
+.mesa{display:grid;grid-template-columns:270px 1fr 380px;gap:16px;align-items:start}
+.lista .it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border-radius:12px;cursor:pointer;border:2px solid transparent;margin-bottom:6px;background:var(--warm-light)}
+.lista .it:hover{border-color:var(--warm)}
+.lista .it.act{border-color:var(--sage);background:var(--card)}
+.lista .it b{font-size:15px}
+.lista .it small{color:var(--stone);display:block}
+.lista .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.balanza{background:linear-gradient(160deg,#0B2A26,#0E3B36);border-radius:20px;padding:20px;color:#fff;box-shadow:var(--sh-h);margin-bottom:14px}
+.balanza .lbl{font-size:12px;letter-spacing:1.4px;color:#8FB3AC;font-weight:700;min-height:16px}
+.balanza .ref{font-size:12.5px;color:#B9CFC9;margin-top:4px;min-height:16px}
+.display{background:#06201C;border-radius:14px;padding:12px 18px;margin:10px 0 14px;display:flex;align-items:baseline;justify-content:flex-end;gap:8px;box-shadow:inset 0 2px 10px rgba(0,0,0,.6);border:1px solid #1B4A43}
+.display input{background:none;border:none;outline:none;color:#3CF0B0;font-family:Consolas,"Courier New",monospace;font-size:64px;font-weight:700;text-align:right;width:100%;min-width:0;text-shadow:0 0 14px rgba(60,240,176,.55);letter-spacing:2px}
+.display input::placeholder{color:#1F5C51}
+.display span{color:#3CF0B0;font-size:24px;font-weight:700;opacity:.8}
+.balanza .btn.pri{width:100%;font-size:18px;min-height:58px;background:var(--emer);border-color:var(--emer)}
+.balanza textarea{width:100%;margin-top:10px;border-radius:10px;border:none;padding:10px;font-family:inherit;font-size:14px;min-height:64px}
+.balanza .info{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#B9CFC9;margin-top:12px;flex-wrap:wrap}
+.cont .fl{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--warm-light);font-size:13.5px}
+.cont .fl span{color:var(--stone)}
+.medidor{text-align:center}
+.medidor svg{width:100%;max-width:330px}
+.res{font-size:21px;font-weight:800;margin-top:2px}
+.res small{display:block;font-size:13.5px;font-weight:400;color:var(--stone);margin-top:4px}
+.mu{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--warm-light)}
+.mu .q{flex:2 1 200px}
+.mu input{font-size:18px}
 /* etiqueta */
-.etq{background:#fff;color:#000;width:100mm;min-height:150mm;padding:5mm;border:1px dashed #999;margin:12px auto;font-family:Arial,sans-serif;display:flex;flex-direction:column;gap:2mm}
-.etq .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:2mm}
+.etq{background:#fff;color:#000;width:100mm;max-width:100%;min-height:150mm;padding:5mm;margin:0 auto;font-family:Arial,sans-serif;display:flex;flex-direction:column;gap:2mm;box-shadow:var(--sh-h);border-radius:4px}
+.etq .t{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:2mm}
 .etq .marca{font-size:20px;font-weight:700;letter-spacing:2px}
-.etq .nro{text-align:right;font-size:12px}
-.etq .nro b{display:block;font-size:30px;line-height:1}
-.etq .kv{display:grid;grid-template-columns:28mm 1fr;font-size:12px;gap:1mm 2mm}
-.etq .kv span{font-weight:700}
+.etq .nro{text-align:right;font-size:12px}.etq .nro b{display:block;font-size:30px;line-height:1}
+.etq .kv{display:grid;grid-template-columns:24mm 1fr;font-size:12px;gap:1mm 2mm}.etq .kv span{font-weight:700}
 .etq table{font-size:11px;border-collapse:collapse;width:100%}
 .etq th,.etq td{border:1px solid #000;padding:1mm 1.5mm;color:#000;text-transform:none;letter-spacing:0;font-size:11px}
 .etq th{background:#eee}
-.etq .pesos{display:flex;gap:2mm}
-.etq .pesos div{flex:1;border:2px solid #000;padding:1.5mm;text-align:center;font-size:11px}
-.etq .pesos b{display:block;font-size:18px}
-.etq .bc{text-align:center;margin-top:auto}
-.etq .bc svg{max-width:100%;height:auto}
-@media(max-width:900px){ .cols{grid-template-columns:1fr} }
+.etq .ps{display:flex;gap:2mm}.etq .ps div{flex:1;border:2px solid #000;padding:1.5mm;text-align:center;font-size:11px}.etq .ps b{display:block;font-size:18px}
+.etq .bc{text-align:center;margin-top:auto}.etq .bc svg{max-width:100%;height:auto}
+.etqvacia{border:2px dashed var(--warm);border-radius:12px;padding:40px 16px;text-align:center;color:var(--stone)}
+@media(max-width:1250px){.mesa{grid-template-columns:240px 1fr}.mesa .col3{grid-column:span 2}}
+@media(max-width:800px){.mesa{grid-template-columns:1fr}.mesa .col3{grid-column:auto}.pasos .paso span:last-child{display:none}.display input{font-size:48px}}
 @media print{
   @page{size:100mm 150mm;margin:0}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff!important;margin:0}
   body *{visibility:hidden!important}
-  #etqZona,#etqZona *{visibility:visible!important}
-  #etqZona{position:absolute;left:0;top:0;margin:0}
-  .etq{border:none;margin:0;width:100mm;height:150mm;min-height:0}
-  .noimp,#etqZona .noimp *{display:none!important;visibility:hidden!important}
+  #etq,#etq *{visibility:visible!important}
+  #etq{position:absolute;left:0;top:0}
+  .etq{box-shadow:none;margin:0;width:100mm;height:150mm;min-height:0;border-radius:0}
   .lsBarra,#lsFrToast{display:none!important}
 }
 </style>
@@ -727,47 +746,40 @@ body.modalAbierta{overflow:hidden}
 <body>
 <div class="wrap">
   <div class="errBox" id="errBox"></div>
-  <div class="cols">
-    <div class="panel lista noimp" id="colLista"><span class="tira volumen"></span>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Cajas por pesar</b><button class="btn" type="button" id="btnRecargar">Ver nuevas</button></div>
-      <div id="lista"></div>
-      <div class="vacio" id="vLista" style="display:none">No hay cajas esperando balanza. Las cajas aparecen aquí cuando tienen todas sus prendas escaneadas.</div>
+  <div class="pasos" id="pasos"></div>
+  <div class="mesa">
+    <div class="panel lista" id="colLista"><h2>Por pesar <small id="nLista"></small></h2><div id="lista"></div>
+      <div class="vacio" id="vLista" style="display:none">No hay cajas esperando balanza. Aparecen aquí cuando tienen todas sus prendas escaneadas.</div>
+      <div class="acciones"><button class="btn" type="button" id="btnRecargar" style="width:100%">Ver nuevas</button></div></div>
+    <div id="col2">
+      <div class="balanza" data-ls-fijo>
+        <div class="lbl" id="bLbl">ELIGE UNA CAJA DE LA LISTA</div>
+        <div class="ref" id="bRef"></div>
+        <div class="display"><input id="inPeso" inputmode="decimal" autocomplete="off" placeholder="0.00" disabled><span>kg</span></div>
+        <textarea id="bMot" placeholder="Motivo: por qué pesa distinto (al menos 10 letras)" style="display:none"></textarea>
+        <button class="btn pri" type="button" id="btnPesar" disabled>Registrar peso</button>
+        <div class="info" id="bInfo"></div>
+      </div>
+      <div class="panel" id="pMuestra" style="display:none"><h2>Faltan pesos de prenda</h2>
+        <div class="aviso">Pon <b class="nMu"></b> prendas iguales juntas en la balanza y escribe lo que marca. Se hace una sola vez por código. El peso de la caja ya escrito queda guardado.</div>
+        <div id="muestras"></div></div>
+      <div class="panel cont" id="pCont" style="display:none"><h2 id="cTit"></h2><div id="cDatos"></div>
+        <div class="fila"><label class="campo">Código de caja<select id="sTipo"></select></label></div>
+        <div id="cLin"></div></div>
     </div>
-    <div>
-      <div class="panel noimp" id="detalle" style="display:none"><span class="tira resultado"></span>
-        <div style="font-size:18px;font-weight:700;color:#0E3B36" id="dTit"></div>
-        <div class="fila dato" id="dDatos"></div>
-        <div class="tscroll"><table><thead><tr><th>Estilo</th><th>Color</th><th>Talla</th><th class="n">Prendas</th></tr></thead><tbody id="dLin"></tbody></table></div>
-        <div class="fila" style="margin-top:12px">
-          <label class="campo">Código de caja<select id="sTipo"></select></label>
-          <div class="dato" id="taraInfo"></div>
+    <div class="col3">
+      <div class="panel medidor" id="pMed" style="display:none"><h2>¿Cuadra el peso?</h2><svg viewBox="0 0 300 185" id="gauge"></svg><div class="res" id="resPeso"></div>
+        <div class="acciones" id="obsAcc" style="display:none;justify-content:center">
+          <button class="btn" type="button" id="btnRepesar">Revisé la caja: pesar otra vez</button>
         </div>
-        <div id="pasoTara" style="display:none" class="panel"><span class="tira riesgo"></span>
-          <div style="font-weight:700" id="taraTit"></div>
-          <div class="fila peso"><label class="campo">Peso de la caja vacía<span><input id="inTara" type="number" step="0.01" min="0.01" inputmode="decimal"> <span class="u">kg</span></span></label><div><button class="btn primary" type="button" id="btnTara">Guardar caja vacía</button></div></div>
-        </div>
-        <div id="pasoMuestra" style="display:none" class="panel"><span class="tira riesgo"></span>
-          <div style="font-weight:700">Estas prendas aún no tienen su peso. Pon <span class="nMu"></span> prendas juntas en la balanza y escribe lo que marca (se hace una sola vez por código).</div>
-          <div id="muestras"></div>
-        </div>
-        <div id="pasoPeso">
-          <div class="fila peso"><label class="campo" id="lblPeso">Peso de la caja cerrada (lo que marca la balanza)<span><input id="inPeso" type="number" step="0.01" min="0.01" inputmode="decimal"> <span class="u">kg</span></span></label>
-            <div><button class="btn primary" type="button" id="btnPesar" style="min-height:60px;font-size:16px">Registrar peso</button></div></div>
-        </div>
-        <div id="resPeso"></div>
-        <div id="pasoObs" style="display:none">
-          <label class="campo">Motivo para aprobar igual (queda registrado con tu nombre)<textarea id="inMotivo" placeholder="Ej.: se abrió la caja, se contaron las prendas y están completas; la diferencia es por bolsas"></textarea></label>
-          <div class="acciones"><button class="btn" type="button" id="btnRepesar">Pesar otra vez</button><button class="btn peligro" type="button" id="btnAprobar">Aprobar con motivo</button></div>
-        </div>
+        <div id="obsMot" style="display:none;text-align:left"><label class="campo">O aprobar igual, con motivo (queda con tu nombre)<textarea id="inMotivo" placeholder="Ej.: se abrió la caja, se contaron las prendas y están completas"></textarea></label>
+          <div class="acciones"><button class="btn peligro" type="button" id="btnAprobar">Aprobar con motivo</button></div></div>
       </div>
-      <div id="etqZona" style="display:none">
-        <div class="panel noimp" style="padding:12px 14px"><span class="tira resultado"></span><div class="acciones" style="justify-content:center;margin:0"><button class="btn primary" type="button" id="btnImprimir" style="min-height:50px;font-size:16px">Imprimir etiqueta</button><button class="btn" type="button" id="btnOtra">Siguiente caja</button></div></div>
-        <div id="etq"></div>
-      </div>
-      <div class="vacio noimp" id="vDet">Elige una caja de la lista para pesarla.</div>
+      <div class="panel" id="pEtq"><div class="etqvacia" id="etqVacia">La etiqueta aparece aquí cuando la caja se cierra.</div><div id="etq"></div>
+        <div class="acciones" id="etqAcc" style="display:none;justify-content:center"><button class="btn pri" type="button" id="btnImprimir" style="min-height:52px;font-size:16px">Imprimir etiqueta</button><button class="btn" type="button" id="btnOtra">Siguiente caja</button></div></div>
     </div>
   </div>
-  <div class="pie noimp" style="display:flex;justify-content:center;margin-top:14px"><button class="btn" id="btnQuien" type="button" style="display:none"></button></div>
+  <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn" id="btnQuien" type="button" style="display:none"></button></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -838,154 +850,178 @@ function pitido(ok){
     o.start(); o.stop(AUD.currentTime+(ok?.09:.45)); }catch(e){}
   try{ if(!ok&&navigator.vibrate) navigator.vibrate([180,80,180]); }catch(e){}
 }
+const COLST={PENDIENTE:'var(--st-pe)',EN_PROCESO:'var(--st-pr)',ESCANEADA:'var(--st-es)',OBSERVADA:'var(--st-ob)',CERRADA:'var(--st-ce)',ANULADA:'var(--st-pe)'};
+function anillo(p,tam,grosor,color,txt,sub,fs){const r=(tam-grosor)/2,c=2*Math.PI*r;
+  return '<div class="anillo" style="width:'+tam+'px;height:'+tam+'px"><svg width="'+tam+'" height="'+tam+'"><circle cx="'+tam/2+'" cy="'+tam/2+'" r="'+r+'" fill="none" stroke="#DCE5E2" stroke-opacity=".7" stroke-width="'+grosor+'"/>'+
+  '<circle cx="'+tam/2+'" cy="'+tam/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+grosor+'" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+c*(1-Math.max(0,Math.min(1,p||0)))+'" style="transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)"/></svg>'+
+  '<b><div style="white-space:nowrap;font-size:'+(fs||18)+'px">'+txt+'</div>'+(sub?'<small>'+sub+'</small>':'')+'</b></div>';}
+const ICO={
+  caja:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>',
+  pesa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 21h14l-2-11H7L5 21z"/><circle cx="12" cy="7" r="1.5"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  vacia:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>',
+  alerta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
+  mas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>',
+  subir:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+};
 
-let INI=null, PUEDE=false, CAJA=null, CONFIRMAR=false, PESO_PEND=null;
+let INI=null, PUEDE=false, CAJA=null, MODO='nada', CONFIRMAR=false, TCONF=false, PESO_PEND=null;
 async function iniciar(){
   try{ INI=await api('inicio'); }catch(e){ err(e.message); }
   const ok=prepararQuien($('btnQuien'));
   PUEDE=!!(INI&&INI.puede&&ok);
   if(INI&&!INI.puede) err(INI.supervision?'Modo supervisión: puedes ver todo, pero no se guarda nada.':'Solo para quien registra en Control de Cajas.');
   else if(!ok) err('Toca «Identificarme» abajo para poder pesar.');
-  const T=(INI&&INI.tipos)||[];
-  $('sTipo').innerHTML='<option value="">— Elige el código de caja —</option>'+
-    '<optgroup label="Más usadas">'+T.filter(t=>t.frecuente).map(o).join('')+'</optgroup><optgroup label="Todas">'+T.filter(t=>!t.frecuente).map(o).join('')+'</optgroup>';
+  llenarTipos();
   document.querySelectorAll('.nMu').forEach(x=>x.textContent=(INI&&INI.parametros&&INI.parametros.MUESTRA_PRENDAS)||5);
-  if(QS.get('etiqueta')){ $('colLista').style.display='none'; $('vDet').style.display='none'; await soloEtiqueta(QS.get('etiqueta')); return; }
+  pasos(0);
+  if(QS.get('etiqueta')){ $('colLista').style.display='none'; $('col2').style.display='none'; $('pasos').style.display='none'; await soloEtiqueta(QS.get('etiqueta')); return; }
   await cargarLista();
   if(QS.get('caja')) abrirCaja(QS.get('caja'));
 }
-function o(t){ return '<option value="'+esc(t.codigo)+'">'+esc(t.codigo+' · '+t.descripcion)+'</option>'; }
+function llenarTipos(){
+  const T=(INI&&INI.tipos)||[], o=t=>'<option value="'+esc(t.codigo)+'">'+esc(t.codigo+' · '+t.descripcion)+(t.tara_g!=null?' · '+num(t.tara_g/1000,2)+' kg':'')+'</option>';
+  $('sTipo').innerHTML='<option value="">— Elige el código de caja —</option><optgroup label="Más usadas">'+T.filter(t=>t.frecuente).map(o).join('')+'</optgroup><optgroup label="Todas">'+T.filter(t=>!t.frecuente).map(o).join('')+'</optgroup>';
+}
 function err(t){ const b=$('errBox'); b.textContent=t||''; b.style.display=t?'block':'none'; }
+function tipoSel(){ return ((INI&&INI.tipos)||[]).find(t=>t.codigo===$('sTipo').value); }
+function pasos(n){
+  const t=tipoSel(), c=CAJA&&CAJA.caja;
+  const P=[[c?'Caja '+c.numero+' · '+c.packing:'Caja',!!c],[t?(t.tara_g!=null?'Caja vacía '+t.codigo+' · '+num(t.tara_g/1000,2)+' kg':'Caja vacía '+t.codigo):'Caja vacía',!!(t&&t.tara_g!=null)],['Peso',n>=4],['Etiqueta',n>=5]];
+  const act=!c?0:!(t&&t.tara_g!=null)?1:n>=4?3:2;
+  $('pasos').innerHTML=P.map((p,i)=>'<div class="paso'+(p[1]?' hecho':'')+(i===act&&!p[1]?' act':'')+'"><span class="n">'+(p[1]?'✓':i+1)+'</span><span>'+esc(p[0])+'</span></div>').join('');
+}
 async function cargarLista(){
   try{ const d=await api('por_pesar'); const L=d.cajas||[];
-    $('lista').innerHTML=L.map(c=>'<div class="it'+(CAJA&&CAJA.caja.id===c.id?' act':'')+'" data-id="'+esc(c.id)+'"><div><b>Packing '+esc(c.packing)+' · Caja '+c.numero+'/'+c.total_cajas+'</b><br><small>'+esc([c.cliente,c.grupo,c.po].filter(Boolean).join(' · '))+'</small></div><div>'+estPill(c.estado)+'</div></div>').join('');
-    $('vLista').style.display=L.length?'none':'block';
+    $('lista').innerHTML=L.map(c=>'<div class="it'+(CAJA&&CAJA.caja.id===c.id?' act':'')+'" data-id="'+esc(c.id)+'"><div><b>Caja '+c.numero+'/'+c.total_cajas+'</b><small>'+esc(c.packing+' · '+(c.cliente||''))+'</small></div><span class="dot" style="background:'+COLST[c.estado]+'" title="'+esc(EST[c.estado][1])+'"></span></div>').join('');
+    $('vLista').style.display=L.length?'none':'block'; $('nLista').textContent=L.length?'· '+L.length:'';
   }catch(e){ err('No se pudo cargar la lista: '+e.message); }
 }
 $('btnRecargar').addEventListener('click',cargarLista);
 $('lista').addEventListener('click',e=>{ const it=e.target.closest('.it'); if(it) abrirCaja(it.dataset.id); });
 async function abrirCaja(id){
   let d; try{ d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); }catch(e){ err(e.message); return; }
-  CAJA=d; CONFIRMAR=false; PESO_PEND=null; err('');
+  CAJA=d; CONFIRMAR=false; TCONF=false; PESO_PEND=null; err('');
   document.querySelectorAll('.lista .it').forEach(x=>x.classList.toggle('act',x.dataset.id===id));
-  $('vDet').style.display='none'; $('etqZona').style.display='none';
-  if(d.caja.estado==='CERRADA'){ $('detalle').style.display='none'; mostrarEtiqueta(d); return; }
-  $('detalle').style.display='';
-  pintarDetalle();
-  $('pasoTara').style.display='none'; $('pasoMuestra').style.display='none'; $('pasoObs').style.display='none'; $('resPeso').innerHTML='';
-  $('lblPeso').firstChild.textContent='Peso de la caja cerrada (lo que marca la balanza)';
-  $('inPeso').value=''; $('inPeso').disabled=!PUEDE; $('btnPesar').disabled=!PUEDE;
-  if(d.caja.estado==='OBSERVADA'){ res('mal','Caja observada','El peso no cuadró: revísala y pésala otra vez, o apruébala con motivo.'); $('pasoObs').style.display=''; }
-  else if(!['ESCANEADA'].includes(d.caja.estado)){ res('nuevo','Esta caja aún no está completa','Termina de escanearla antes de pesarla.'); $('btnPesar').disabled=true; }
-  if(PUEDE) $('inPeso').focus();
+  $('pMed').style.display='none'; $('pMuestra').style.display='none'; limpiarEtq();
+  if(d.caja.estado==='CERRADA'){ mostrarEtiqueta(d); modo('nada'); pasos(5); return; }
+  const c=d.caja, req=d.lineas.reduce((a,l)=>a+l.cantidad,0);
+  $('pCont').style.display=''; $('cTit').innerHTML='Caja '+c.numero+' <small>de '+c.total_cajas+' · packing '+esc(c.packing)+'</small>';
+  $('cDatos').innerHTML=[['Cliente',c.cliente],['Destino',c.destino],['PO',c.po],['Prendas',req],['Medida en el packing',c.medidas_packing]].filter(x=>x[1]).map(x=>'<div class="fl"><span>'+x[0]+'</span><b>'+esc(x[1])+'</b></div>').join('');
+  $('cLin').innerHTML='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+d.lineas.map(l=>'<span class="chip" style="font-size:13px">'+esc(l.talla)+' × '+l.cantidad+' · '+esc(l.color_nombre||l.color_cod)+'</span>').join('')+'</div>';
+  $('sTipo').value=c.tipo_cod||'';
+  if(c.estado==='OBSERVADA'){ modo('peso','CAJA OBSERVADA: REVÍSALA Y PÉSALA OTRA VEZ'); $('obsMot').style.display=''; $('pMed').style.display=''; $('resPeso').innerHTML='<span style="color:var(--rose)">Caja observada</span><small>El peso no cuadró. Ábrela, revísala y pésala otra vez, o apruébala con motivo.</small>'; gauge(null); }
+  else if(c.estado!=='ESCANEADA'){ modo('nada','ESTA CAJA AÚN NO ESTÁ COMPLETA'); }
+  else modo('peso');
+  pasos(3);
 }
-function pintarDetalle(){
-  const c=CAJA.caja, cods={}, tot=CAJA.lineas.reduce((a,l)=>a+l.cantidad,0);
-  $('dTit').textContent='Packing '+c.packing+' · Caja '+c.numero+' de '+c.total_cajas;
-  $('dDatos').innerHTML=[['Cliente',c.cliente],['Destino',c.destino],['Grupo',c.grupo],['PO',c.po],['Prendas',tot],['Medida en el packing',c.medidas_packing]].filter(x=>x[1]).map(x=>'<div><b>'+x[0]+':</b> '+esc(x[1])+'</div>').join('');
-  $('dLin').innerHTML=CAJA.lineas.map(l=>'<tr><td>'+esc(l.estilo)+'</td><td>'+esc(l.color_nombre||l.color_cod)+'</td><td><b>'+esc(l.talla)+'</b></td><td class="n">'+l.cantidad+'</td></tr>').join('');
-  $('sTipo').value=c.tipo_cod||''; infoTara();
+function modo(m,lbl){
+  MODO=m; const t=tipoSel(), i=$('inPeso');
+  i.disabled=!PUEDE||m==='nada'; $('btnPesar').disabled=i.disabled; i.value=''; $('bMot').style.display='none'; $('bMot').value='';
+  const L={peso:CONFIRMAR?'SEGUNDA LECTURA: VUELVE A PONER LA CAJA Y ESCRIBE EL PESO':'PESO DE LA CAJA CERRADA (LO QUE MARCA LA BALANZA)',tara:'PESA UNA CAJA VACÍA '+(t?t.codigo:'')+' Y ESCRIBE LO QUE MARCA',nada:'ELIGE UNA CAJA DE LA LISTA'};
+  $('bLbl').textContent=lbl||L[m]; $('bRef').textContent='';
+  $('btnPesar').textContent=m==='tara'?'Guardar caja vacía':'Registrar peso';
+  if(m==='tara'){ const ref=t&&(t.tara_g||t.tara_hoja_g||t.tara_sistema_g); $('bRef').textContent=(ref?'Referencia: '+num(ref/1000,2)+' kg · ':'')+'Se hace una sola vez por código de caja. El peso de la caja llena ('+num(PESO_PEND,2)+' kg) queda guardado.'; }
+  const c=CAJA&&CAJA.caja; $('bInfo').innerHTML=c?'<span>'+esc(c.packing+' · caja '+c.numero)+'</span><span>'+(t&&t.tara_g!=null?'caja vacía '+num(t.tara_g/1000,2)+' kg':'')+'</span>':'';
+  if(!i.disabled) setTimeout(()=>i.focus(),50);
 }
-function tipoSel(){ return ((INI&&INI.tipos)||[]).find(t=>t.codigo===$('sTipo').value); }
-function infoTara(){
-  const t=tipoSel(), g=v=>num(v/1000,2)+' kg';
-  $('taraInfo').innerHTML=!t?'<span style="color:var(--rose);font-weight:700">Elige el código de la caja</span>':
-    (t.tara_g!=null?'Caja vacía: <b>'+g(t.tara_g)+'</b> (pesada)':'Caja vacía: <b style="color:var(--rose)">sin pesar</b>'+(t.tara_hoja_g||t.tara_sistema_g?' · referencia '+g(t.tara_hoja_g||t.tara_sistema_g):''));
-}
-$('sTipo').addEventListener('change',infoTara);
-function res(cls,t,s){ $('resPeso').innerHTML='<div class="res '+cls+'">'+esc(t)+(s?'<small>'+s+'</small>':'')+'</div>'; }
-function leerKg(inp){ const v=parseFloat(String($(inp).value).replace(',','.')); return v>0?v:null; }
-$('inPeso').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); pesar(); } });
-$('btnPesar').addEventListener('click',()=>pesar());
-async function pesar(reintento){
-  const kgv=reintento?PESO_PEND:leerKg('inPeso');
-  if(!kgv){ $('inPeso').focus(); res('mal','Escribe el peso que marca la balanza','En kg, por ejemplo 7.10'); return; }
+$('sTipo').addEventListener('change',()=>{ pasos(3); if(MODO==='peso'||MODO==='tara') modo('peso'); });
+$('inPeso').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('btnPesar').click(); } });
+$('btnPesar').addEventListener('click',()=>{ const v=parseFloat(String($('inPeso').value).replace(',','.')); if(!(v>0)){ $('inPeso').focus(); return; } if(MODO==='tara') guardarTara(v); else pesar(v); });
+async function pesar(kgv){
   if(kgv>60&&!confirm(kgv+' kg es mucho para una caja. ¿Está bien escrito?')) return;
   PESO_PEND=kgv; $('btnPesar').disabled=true;
   try{
     const r=await api('pesar',{caja_id:CAJA.caja.id,peso_g:Math.round(kgv*1000),tipo_cod:$('sTipo').value,confirmado:CONFIRMAR,origen:'DIGITADO'});
-    if(r.falta_tipo){ res('mal','Elige el código de la caja',r.medidas_packing?'La medida del packing ('+esc(r.medidas_packing)+') coincide con varias cajas o con ninguna.':''); $('sTipo').focus(); return; }
-    if(r.falta_tara){ mostrarPasoTara(r); return; }
+    if(r.falta_tipo){ modo('peso','ELIGE EL CÓDIGO DE CAJA ABAJO Y VUELVE A REGISTRAR'); $('inPeso').value=kgv; $('sTipo').focus(); return; }
+    if(r.falta_tara){ if(!$('sTipo').value) $('sTipo').value=r.tipo_cod; TCONF=false; modo('tara'); return; }
     if(r.falta_peso){ mostrarMuestras(r.falta_peso); return; }
-    if(r.reconfirmar){ CONFIRMAR=true; PESO_PEND=null; $('inPeso').value=''; $('lblPeso').firstChild.textContent='Segunda lectura: vuelve a poner la caja en la balanza y escribe el peso otra vez';
-      res('nuevo','El peso no cuadra','Puede ser un error al escribir. Vuelve a pesarla y escribe el peso otra vez.'); $('inPeso').focus(); return; }
-    if(!r.ok){ res('mal','No se registró',esc(r.error||'')); return; }
-    CONFIRMAR=false; PESO_PEND=null; CAJA=r;
+    if(r.reconfirmar){ CONFIRMAR=true; modo('peso'); pitido(false); $('pMed').style.display=''; gauge(null); $('resPeso').innerHTML='<span style="color:var(--taupe)">El peso no cuadra</span><small>Puede ser un error al escribir: vuelve a poner la caja en la balanza y escribe el peso otra vez.</small>'; return; }
+    if(!r.ok){ modo('peso'); $('inPeso').value=kgv; err(r.error||'No se registró'); return; }
+    CONFIRMAR=false; PESO_PEND=null; CAJA=r; const c=r.caja;
+    $('pMed').style.display=''; $('obsAcc').style.display='none'; $('obsMot').style.display='none';
     if(r.resultado==='OK'||r.resultado==='REFERENCIA'){
-      pitido(true); $('detalle').style.display='none';
-      mostrarEtiqueta(r, r.resultado==='REFERENCIA'?'Caja cerrada. Era de un solo código: su peso enseñó cuánto pesa cada prenda.':'Caja cerrada: el peso cuadra.');
-      cargarLista();
+      pitido(true); gauge(c, r.resultado==='REFERENCIA');
+      mostrarEtiqueta(r); modo('nada','CAJA CERRADA · IMPRIME LA ETIQUETA'); pasos(5); cargarLista();
     } else {
-      pitido(false);
-      const pe=r.prendas_estimadas, dif=+r.diferencia_g;
-      res('mal','Caja OBSERVADA: el peso no cuadra',(dif>0?'Pesa ':'Le faltan ')+num(Math.abs(dif))+' g '+(dif>0?'de más':'')+' · esperado '+kg(r.caja.peso_esperado_g)+' kg ± '+num(r.caja.tolerancia_g)+' g'+
-        (pe?' · <b>≈ '+Math.abs(pe)+' prenda'+(Math.abs(pe)===1?'':'s')+' de '+(pe>0?'más':'menos')+'</b>':'')+'. Ábrela y revísala.');
-      $('pasoObs').style.display=''; cargarLista();
+      pitido(false); gauge(c); modo('nada','CAJA OBSERVADA');
+      $('obsAcc').style.display=''; $('obsMot').style.display=''; cargarLista();
     }
-  }catch(e){ res('mal','No se registró',esc(e.message)+'. El peso escrito sigue en el campo: vuelve a intentar.'); $('inPeso').value=kgv; }
-  finally{ $('btnPesar').disabled=!PUEDE; }
+  }catch(e){ err('No se registró: '+e.message+'. El peso escrito sigue en el campo.'); modo(MODO==='nada'?'peso':MODO); $('inPeso').value=kgv; }
 }
-function mostrarPasoTara(r){
-  $('pasoTara').style.display=''; $('taraTit').innerHTML='La caja <b>'+esc(r.tipo_cod)+'</b> aún no tiene su peso vacía. Pon una caja vacía <b>'+esc(r.tipo_cod)+'</b> en la balanza y escribe lo que marca. Se hace una sola vez.'+
-    (r.tara_referencia_g?'<br><small style="color:var(--stone)">Como referencia, la hoja/sistema dice '+num(r.tara_referencia_g/1000,2)+' kg.</small>':'');
-  $('inTara').value=''; $('inTara').focus();
-  res('nuevo','Falta el peso de la caja vacía','El peso de la caja llena ('+num(PESO_PEND,2)+' kg) queda guardado: se usa apenas registres la caja vacía.');
+async function guardarTara(v){
+  if(TCONF&&$('bMot').value.trim().length<10){ $('bMot').focus(); return; }
+  try{ const r=await api('guardar_tipo',{codigo:$('sTipo').value||CAJA.caja.tipo_cod,tara_g:Math.round(v*1000),confirmado:TCONF,motivo:$('bMot').value});
+    if(r.fuera_rango){ TCONF=true; const m=$('bMot').value; modo('tara','SEGUNDA PESADA DE LA CAJA VACÍA · '+r.codigo); $('bRef').textContent=r.error; $('bMot').style.display=''; $('bMot').value=m; pitido(false); return; }
+    if(!r.ok) throw new Error(r.error);
+    const t=tipoSel(); if(t){ t.tara_g=r.tara_g; } llenarTipos(); $('sTipo').value=r.codigo; TCONF=false; pasos(3);
+    modo('peso'); await pesar(PESO_PEND);
+  }catch(e){ err('No se guardó: '+e.message); }
 }
-$('btnTara').addEventListener('click',async()=>{
-  const v=leerKg('inTara'); if(!v){ $('inTara').focus(); return; }
-  if(v>5&&!confirm(v+' kg es mucho para una caja vacía. ¿Está bien escrito?')) return;
-  try{ const r=await api('guardar_tipo',{codigo:$('sTipo').value||CAJA.caja.tipo_cod,tara_g:Math.round(v*1000)}); if(!r.ok) throw new Error(r.error);
-    const t=tipoSel(); if(t){ t.tara_g=Math.round(v*1000); t.tara_pesada_por=USUARIO; }
-    if(!$('sTipo').value) $('sTipo').value=r.codigo;
-    $('pasoTara').style.display='none'; infoTara(); await pesar(true);
-  }catch(e){ alert('No se guardó: '+e.message); }
-});
 function mostrarMuestras(L){
-  $('pasoMuestra').style.display=''; const n=(INI&&INI.parametros&&INI.parametros.MUESTRA_PRENDAS)||5;
-  $('muestras').innerHTML=L.map(f=>'<div class="fila peso" data-mu="'+esc(f.barcode)+'"><div style="flex:2 1 220px"><b>'+esc(f.estilo+' · '+f.color+' · talla '+f.talla)+'</b><br><small>'+esc(f.barcode)+'</small></div>'+
-    '<label class="campo">Cuántas prendas<input type="number" min="1" step="1" value="'+n+'" data-cant style="width:90px;font-size:18px"></label>'+
-    '<label class="campo">Peso de esas prendas<span><input type="number" step="0.01" min="0.01" inputmode="decimal" data-kg style="width:130px;font-size:22px"> <span class="u">kg</span></span></label>'+
-    '<div><button class="btn primary" type="button" data-gmu>Guardar</button></div></div>').join('');
-  res('nuevo','Faltan pesos de prenda','El peso de la caja ('+num(PESO_PEND,2)+' kg) queda guardado: se usa apenas registres los pesos.');
+  $('pMuestra').style.display=''; const n=(INI&&INI.parametros&&INI.parametros.MUESTRA_PRENDAS)||5;
+  modo('nada','FALTAN PESOS DE PRENDA (ABAJO)');
+  $('muestras').innerHTML=L.map(f=>'<div class="mu" data-mu="'+esc(f.barcode)+'"><div class="q"><b>'+esc(f.estilo+' · '+f.color+' · talla '+f.talla)+'</b><br><small style="color:var(--stone)">'+esc(f.barcode)+'</small></div>'+
+    '<label class="campo">Prendas<input type="number" min="1" step="1" value="'+n+'" data-cant style="width:80px"></label>'+
+    '<label class="campo">Pesan (kg)<input type="number" step="0.01" min="0.01" inputmode="decimal" data-kg style="width:120px"></label>'+
+    '<button class="btn pri" type="button" data-gmu>Guardar</button><div style="flex-basis:100%;display:none" data-mot><div class="aviso" data-msg></div><label class="campo">Motivo<input data-motxt placeholder="Por qué pesa distinto (al menos 10 letras)"></label></div></div>').join('');
   const pri=$('muestras').querySelector('[data-kg]'); if(pri) pri.focus();
 }
 $('muestras').addEventListener('click',async e=>{
   const b=e.target.closest('[data-gmu]'); if(!b) return; const f=b.closest('[data-mu]');
   const cant=parseInt(f.querySelector('[data-cant]').value,10), v=parseFloat(String(f.querySelector('[data-kg]').value).replace(',','.'));
-  if(!(cant>0)||!(v>0)){ alert('Escribe cuántas prendas pusiste y cuánto pesaron (kg).'); return; }
-  b.disabled=true;
-  try{ const r=await api('muestra_peso',{barcode:f.dataset.mu,cantidad:cant,peso_g:Math.round(v*1000)}); if(!r.ok) throw new Error(r.error);
-    f.remove(); if(!$('muestras').children.length){ $('pasoMuestra').style.display='none'; await pesar(true); }
-  }catch(err){ alert('No se guardó: '+err.message); b.disabled=false; }
+  if(!(cant>0)||!(v>0)){ f.querySelector('[data-kg]').focus(); return; }
+  const conf=f.dataset.conf==='1'; b.disabled=true;
+  try{ const r=await api('muestra_peso',{barcode:f.dataset.mu,cantidad:cant,peso_g:Math.round(v*1000),confirmado:conf,motivo:f.querySelector('[data-motxt]').value});
+    if(r.fuera_rango){ f.dataset.conf='1'; f.querySelector('[data-mot]').style.display=''; f.querySelector('[data-msg]').textContent=r.error; f.querySelector('[data-kg]').value=''; f.querySelector('[data-kg]').focus(); b.disabled=false; return; }
+    if(!r.ok) throw new Error(r.error);
+    f.remove(); if(!$('muestras').children.length){ $('pMuestra').style.display='none'; modo('peso'); await pesar(PESO_PEND); }
+  }catch(err2){ alert('No se guardó: '+err2.message); b.disabled=false; }
 });
-$('btnRepesar').addEventListener('click',()=>{ CONFIRMAR=false; $('pasoObs').style.display='none'; $('resPeso').innerHTML=''; $('inPeso').value=''; $('lblPeso').firstChild.textContent='Peso de la caja después de revisarla'; $('inPeso').focus(); });
+$('btnRepesar').addEventListener('click',()=>{ CONFIRMAR=false; $('obsAcc').style.display='none'; modo('peso','PESO DE LA CAJA DESPUÉS DE REVISARLA'); });
 $('btnAprobar').addEventListener('click',async()=>{
-  const m=$('inMotivo').value.trim(); if(m.length<10){ alert('Explica el motivo (al menos 10 letras).'); $('inMotivo').focus(); return; }
+  const m=$('inMotivo').value.trim(); if(m.length<10){ $('inMotivo').focus(); alert('Explica el motivo (al menos 10 letras).'); return; }
   if(!confirm('La caja se cerrará aunque el peso no cuadra, con tu nombre y este motivo. ¿Seguro?')) return;
   try{ const r=await api('aprobar_con_motivo',{caja_id:CAJA.caja.id,motivo:m}); if(!r.ok) throw new Error(r.error);
-    $('detalle').style.display='none'; mostrarEtiqueta(r,'Caja cerrada con motivo.'); cargarLista(); }catch(e){ alert('No se aprobó: '+e.message); }
+    CAJA=r; $('obsAcc').style.display='none'; $('obsMot').style.display='none'; $('resPeso').innerHTML='<span style="color:var(--taupe)">Cerrada con motivo</span><small>'+esc(m)+'</small>';
+    mostrarEtiqueta(r); modo('nada','CAJA CERRADA · IMPRIME LA ETIQUETA'); pasos(5); cargarLista(); }catch(e){ alert('No se aprobó: '+e.message); }
 });
+/* medidor */
+function gauge(c,ref){
+  const g=$('gauge'), cx=150, cy=150, r=110;
+  const arco=(a1,a2,col,w)=>{const p=a=>[cx+r*Math.cos((a-90)*Math.PI/180),cy+r*Math.sin((a-90)*Math.PI/180)];const[x1,y1]=p(a1),[x2,y2]=p(a2);return '<path d="M'+x1+' '+y1+' A'+r+' '+r+' 0 0 1 '+x2+' '+y2+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>';};
+  if(!c||c.peso_esperado_g==null){ g.innerHTML=arco(-90,90,'#DCE5E2',18)+(ref?'<text x="150" y="120" text-anchor="middle" font-size="15" fill="#5F726C" font-weight="700">Caja de un solo código:</text><text x="150" y="140" text-anchor="middle" font-size="15" fill="#5F726C" font-weight="700">su peso enseñó el de cada prenda</text>':'');
+    if(ref) $('resPeso').innerHTML='<span style="color:var(--sage)">✓ Caja cerrada</span><small>'+kg(c.peso_bruto_g)+' kg. La próxima caja de este código ya se controlará por peso.</small>'; return; }
+  const esp=+c.peso_esperado_g, tol=+c.tolerancia_g, d=+c.peso_bruto_g-esp, max=Math.max(tol*4,Math.abs(d)*1.2), t=tol/max*90, ang=Math.max(-1,Math.min(1,d/max))*90, rad=(ang-90)*Math.PI/180;
+  g.innerHTML=arco(-90,90,'#DCE5E2',18)+arco(-90,-t,'rgba(220,38,38,.35)',18)+arco(t,90,'rgba(220,38,38,.35)',18)+arco(-t,t,'#0F7A5A',18)+
+    '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+(r-14)*Math.cos(rad))+'" y2="'+(cy+(r-14)*Math.sin(rad))+'" stroke="#1F2D2A" stroke-width="5" stroke-linecap="round"/><circle cx="'+cx+'" cy="'+cy+'" r="10" fill="#1F2D2A"/>'+
+    '<text x="30" y="178" font-size="13" fill="#5F726C" font-weight="700">FALTA</text><text x="228" y="178" font-size="13" fill="#5F726C" font-weight="700">SOBRA</text>';
+  const prendas=CAJA.lineas.reduce((a,l)=>a+l.cantidad,0), unit=(esp-(c.tara_g||0))/(prendas||1), pr=Math.round(d/unit), ok=Math.abs(d)<=tol;
+  $('resPeso').innerHTML=ok?'<span style="color:var(--sage)">✓ Cuadra · caja cerrada</span><small>'+kg(c.peso_bruto_g)+' kg · esperado '+kg(esp)+' kg · diferencia '+(d>=0?'+':'')+Math.round(d)+' g (margen ±'+Math.round(tol)+' g)</small>':
+    '<span style="color:var(--rose)">✖ No cuadra'+(pr?' · ≈ '+Math.abs(pr)+' prenda'+(Math.abs(pr)>1?'s':'')+' de '+(pr>0?'más':'menos'):'')+'</span><small>'+kg(c.peso_bruto_g)+' kg · esperado '+kg(esp)+' kg · '+(d>0?'+':'')+Math.round(d)+' g. Ábrela y revísala.</small>';
+}
 /* etiqueta */
-async function soloEtiqueta(id){ try{ const d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); mostrarEtiqueta(d); }catch(e){ err(e.message); } }
-function mostrarEtiqueta(d,msg){
-  const c=d.caja, L=d.lineas, tot=L.reduce((a,l)=>a+l.cantidad,0);
-  const neto=(c.peso_bruto_g!=null&&c.tara_g!=null)?(c.peso_bruto_g-c.tara_g):null;
-  $('etqZona').style.display='';
-  $('etq').innerHTML=(msg?'<div class="okBox noimp" style="max-width:520px;margin:10px auto">'+esc(msg)+'</div>':'')+
-   '<div class="etq"><div class="top"><div class="marca">LIVES</div><div class="nro">CAJA<b>'+c.numero+' / '+c.total_cajas+'</b></div></div>'+
+function limpiarEtq(){ $('etq').innerHTML=''; $('etqVacia').style.display=''; $('etqAcc').style.display='none'; }
+async function soloEtiqueta(id){ try{ const d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); CAJA=d; mostrarEtiqueta(d); }catch(e){ err(e.message); } }
+function mostrarEtiqueta(d){
+  const c=d.caja, L=d.lineas, tot=L.reduce((a,l)=>a+l.cantidad,0), neto=(c.peso_bruto_g!=null&&c.tara_g!=null)?(c.peso_bruto_g-c.tara_g):null;
+  $('etqVacia').style.display='none'; $('etqAcc').style.display=c.estado==='CERRADA'?'flex':'none';
+  $('etq').innerHTML='<div class="etq"><div class="t"><div class="marca">LIVES</div><div class="nro">CAJA<b>'+c.numero+' / '+c.total_cajas+'</b></div></div>'+
    '<div class="kv"><span>Packing</span><div>'+esc(c.packing)+'</div><span>Cliente</span><div>'+esc(c.cliente||'')+'</div><span>Destino</span><div>'+esc(c.destino||'')+'</div><span>PO</span><div>'+esc(c.po||'')+'</div><span>Grupo</span><div>'+esc(c.grupo||'')+'</div><span>Caja</span><div>'+esc((c.tipo_cod||'')+' '+(c.tipo_medidas||''))+'</div></div>'+
    '<table><thead><tr><th>Estilo</th><th>Color</th><th>Talla</th><th style="text-align:right">Cant.</th></tr></thead><tbody>'+
    L.map(l=>'<tr><td>'+esc(l.estilo)+'</td><td>'+esc(l.color_nombre||l.color_cod)+'</td><td>'+esc(l.talla)+'</td><td style="text-align:right">'+l.cantidad+'</td></tr>').join('')+
    '<tr><td colspan="3"><b>Total</b></td><td style="text-align:right"><b>'+tot+'</b></td></tr></tbody></table>'+
-   '<div class="pesos"><div>Peso bruto<b>'+(c.peso_bruto_g!=null?kg(c.peso_bruto_g)+' kg':'—')+'</b></div><div>Peso neto<b>'+(neto!=null?kg(neto)+' kg':'—')+'</b></div></div>'+
+   '<div class="ps"><div>Peso bruto<b>'+(c.peso_bruto_g!=null?kg(c.peso_bruto_g)+' kg':'—')+'</b></div><div>Peso neto<b>'+(neto!=null?kg(neto)+' kg':'—')+'</b></div></div>'+
    '<div style="font-size:10px">Cerrada '+fFecha(c.cerrada_en)+(c.cerrada_nombre?' · '+esc(c.cerrada_nombre):'')+(c.peso_resultado==='APROBADO_CON_MOTIVO'?' · aprobada con motivo':'')+'</div>'+
    '<div class="bc"><svg id="bcSvg"></svg></div></div>';
   try{ JsBarcode('#bcSvg',c.id,{format:'CODE128',width:2,height:55,fontSize:14,margin:0}); }catch(e){}
-  $('btnImprimir').disabled=c.estado!=='CERRADA';
   $('btnOtra').style.display=QS.get('etiqueta')?'none':'';
 }
 $('btnImprimir').addEventListener('click',()=>window.print());
-$('btnOtra').addEventListener('click',()=>{ $('etqZona').style.display='none'; $('vDet').style.display=''; CAJA=null; cargarLista(); });
+$('btnOtra').addEventListener('click',async()=>{ CAJA=null; limpiarEtq(); $('pMed').style.display='none'; $('pCont').style.display='none'; modo('nada'); pasos(0); await cargarLista(); const f=$('lista').querySelector('.it'); if(f) abrirCaja(f.dataset.id); });
 iniciar();
 </script>
 <!-- ===== lives-franja v6.2 (2026-10-27: pestañas ya no se meten en la barra al bajar y subir) · v6.1 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).

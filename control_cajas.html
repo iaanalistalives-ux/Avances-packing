@@ -609,117 +609,144 @@ html.lsPoOn body>*:not(#lsPo){visibility:hidden!important}
 <title>Control de Cajas · LIVES</title>
 <style>
 :root{
-  --petrol:#0E3B36; --petrol-2:#12463F; --emer:#10B981; --sage:#0F7A5A; --sage-dark:#0B815E; --slate:#4E6B78;
-  --taupe:#B45309; --rose:#DC2626; --tan:#F59E0B; --warm:#DCE5E2; --warm-light:#F1F6F4; --stone:#5F726C;
-  --card:#fff; --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04); --sh-h:0 4px 12px rgba(14,59,54,.10); --r:12px;
+  --petrol:#0E3B36;--petrol-2:#12463F;--petrol-3:#185A51;--emer:#10B981;--sage:#0F7A5A;--sage-dark:#0B815E;
+  --slate:#4E6B78;--taupe:#B45309;--rose:#DC2626;--tan:#F59E0B;--blue:#2F6FB5;
+  --warm:#DCE5E2;--warm-light:#F1F6F4;--stone:#5F726C;--card:#fff;--txt:#1F2D2A;
+  --sh:0 1px 3px rgba(14,59,54,.06),0 1px 2px rgba(14,59,54,.04);--sh-h:0 8px 24px rgba(14,59,54,.14);--r:14px;
+  --st-pe:#C9D4D0;--st-pr:#2F6FB5;--st-es:#F59E0B;--st-ob:#DC2626;--st-ce:#0F7A5A;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--warm-light);color:#333;font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
-.wrap{width:100%;max-width:none;margin:0 auto;padding:14px clamp(16px,2.2vw,52px) 44px}
-.bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:14px;position:sticky;top:0;z-index:15}
-.bar label,.campo{font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:2px}
-select,input,textarea{font-family:inherit;font-size:13.5px;font-weight:700;color:var(--sage);border:1px solid var(--warm);border-radius:8px;padding:7px 10px;background:#fff;min-height:38px}
-textarea{font-weight:400;color:#333;min-height:70px;resize:vertical}
-input[type=search]{min-width:200px;color:#333;font-weight:400}
-.btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;min-height:38px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage)}
-.btn:hover{border-color:var(--sage)}
-.btn.primary{background:var(--sage);color:#fff;border-color:var(--sage)}
-.btn.primary:hover{background:var(--sage-dark)}
+body{margin:0;background:var(--warm-light);color:var(--txt);font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.4;font-variant-numeric:tabular-nums}
+button{font-family:inherit}
+.wrap{width:100%;margin:0 auto;padding:14px clamp(16px,2.2vw,40px) 40px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:10px 14px;margin-bottom:16px;position:sticky;top:0;z-index:15}
+.bar input,.bar select,.campo input,.campo select,.campo textarea{font-family:inherit;font-size:14px;border:1px solid var(--warm);border-radius:10px;padding:9px 12px;background:var(--card);color:var(--txt);min-height:42px}
+.bar input[type=search]{min-width:220px}
+.campo{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--stone);text-transform:uppercase;letter-spacing:.4px}
+.campo textarea{min-height:70px;resize:vertical;text-transform:none;font-weight:400}
+.btn{font-weight:700;font-size:14px;border-radius:10px;padding:10px 16px;min-height:42px;border:1px solid var(--warm);background:var(--card);color:var(--sage);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .15s,border-color .15s}
+.btn:hover{border-color:var(--sage);transform:translateY(-1px)}
+.btn.pri{background:var(--sage);color:#fff;border-color:var(--sage);box-shadow:0 4px 12px rgba(15,122,90,.28)}
+.btn.pri:hover{background:var(--sage-dark)}
 .btn.peligro{color:var(--rose)}
-.btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed}
-.spacer{margin-left:auto}
+.btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed;box-shadow:none;transform:none}
+.btn svg{width:18px;height:18px;flex:none}
+.esp{flex:1}
 .lsAcc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:20px 18px 16px;position:relative;overflow:hidden;margin-bottom:14px}
-.panel .tira{position:absolute;left:0;right:0;top:0;height:4px;background:var(--warm)}
-.panel .tira.resultado{background:var(--sage)}.panel .tira.riesgo{background:var(--rose)}.panel .tira.volumen{background:var(--slate)}
-.panel .pt{font-size:15px;font-weight:700}
-.panel .ph{font-size:11.5px;color:var(--stone);margin-top:2px;margin-bottom:12px;max-width:130ch}
-.tscroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;white-space:nowrap}
-td{padding:8px 6px;border-bottom:1px solid var(--warm-light);vertical-align:top}
-tbody tr.clic{cursor:pointer}
-tbody tr.clic:hover td{background:var(--warm-light)}
-td.n,th.n{text-align:right;white-space:nowrap}
-.st{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
-.st.pe{background:var(--warm-light);color:var(--stone)}.st.pr{background:#EAF1F4;color:var(--slate)}
-.st.es{background:#FEF3E2;color:var(--taupe)}.st.ob{background:#FCEBEB;color:var(--rose)}
-.st.ce{background:#E7F4EF;color:var(--sage-dark)}.st.an{background:#E5E9E8;color:#8A9893}
-.st.ok{background:#E7F4EF;color:var(--sage-dark)}.st.mal{background:#FCEBEB;color:var(--rose)}
+.seg{display:inline-flex;background:var(--warm-light);border-radius:12px;padding:4px;gap:2px}
+.seg button{border:none;background:none;font-weight:700;font-size:14px;color:var(--stone);padding:8px 16px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.seg button svg{width:17px;height:17px}
+.seg button.act{background:var(--card);color:var(--sage);box-shadow:var(--sh)}
+.panel{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px;position:relative;overflow:hidden;margin-bottom:14px}
+.panel h2{margin:0 0 10px;font-size:17px}
+.panel h2 small{color:var(--stone);font-weight:400}
+.vacio{padding:24px 10px;text-align:center;color:var(--stone);font-size:14px}
+.errBox{background:#FBE9E9;border:1px solid var(--rose);border-radius:10px;padding:12px 16px;color:var(--rose);font-size:13.5px;margin-bottom:14px;display:none}
+.okBox{background:#E7F4EF;border:1px solid var(--sage);border-radius:10px;padding:12px 16px;color:var(--sage-dark);font-size:13.5px;margin:10px 0}
+.aviso{background:#FEF3E2;border:1px solid var(--tan);border-radius:10px;padding:10px 14px;color:var(--taupe);font-size:13.5px;margin:8px 0}
+.chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--warm-light);color:var(--stone);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.anillo{flex:none;position:relative}
+.anillo svg{transform:rotate(-90deg);display:block}
+.anillo b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1}
+.anillo b small{font-size:10px;color:var(--stone);font-weight:700;margin-top:3px}
 .lsTope500{font-size:12px;color:#5F726C;text-align:center;padding:8px 0}
-.vacio{padding:22px 10px;text-align:center;color:var(--stone);font-size:14px}
-.errBox{background:#FBE9E9;border:1px solid var(--rose);border-radius:8px;padding:12px 16px;color:var(--rose);font-size:13px;margin-bottom:14px;display:none}
-.okBox{background:#E7F4EF;border:1px solid var(--sage);border-radius:8px;padding:12px 16px;color:var(--sage-dark);font-size:13px;margin-bottom:14px}
-.aviso{background:#FEF3E2;border:1px solid var(--tan);border-radius:8px;padding:10px 14px;color:var(--taupe);font-size:13px;margin:8px 0}
-.prog{height:8px;background:var(--warm-light);border-radius:4px;overflow:hidden;margin-top:4px}
-.prog>i{display:block;height:100%;background:var(--sage);border-radius:4px}
 .modal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(14,59,54,.5);align-items:center;justify-content:center;padding:2vh 2vw}
 .modal.show{display:flex}
-.mcaja{background:var(--warm-light);width:100%;height:100%;max-width:1300px;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)}
-.mcaja.chica{height:auto;max-height:96vh;max-width:900px}
+.mcaja{background:var(--warm-light);width:100%;height:100%;max-width:1400px;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.mcaja.chica{height:auto;max-height:96vh;max-width:620px}
 .mbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--warm)}
-.mbar b{flex:1;font-size:15px;color:#0E3B36}
-.mbar button{font-family:inherit;font-weight:700;font-size:14px;border:1px solid var(--warm);background:#fff;color:var(--rose);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer}
+.mbar b{flex:1;font-size:15px}
+.mbar button{font-weight:700;font-size:14px;border:1px solid var(--warm);background:var(--card);color:var(--rose);border-radius:10px;padding:8px 14px;min-height:40px;cursor:pointer}
 .mcaja iframe{flex:1;border:0;width:100%;background:var(--warm-light)}
-.dcuerpo{padding:14px 16px 18px;overflow:auto}
+.dcuerpo{padding:16px 18px 20px;overflow:auto}
 body.modalAbierta{overflow:hidden}
 .fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
-.fila>*{flex:1 1 160px}
+.fila>*{flex:1 1 150px}
 .acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);border-bottom:1px solid var(--warm);padding:8px 6px;white-space:nowrap}
+td{padding:9px 6px;border-bottom:1px solid var(--warm-light);vertical-align:middle}
+td.n,th.n{text-align:right;white-space:nowrap}
+.tscroll{overflow-x:auto}
 @media(max-width:600px){
   .wrap{padding:12px 16px 36px}
   .bar{position:static;padding:8px 10px;gap:8px}
-  .bar>label{flex:1 1 calc(50% - 8px);min-width:0}
-  .bar>label select,.bar>label input{width:100%;min-width:0}
-  .bar>label:has(input[type=search]){flex-basis:100%}
+  .bar input[type=search]{min-width:0;flex:1 1 100%}
+  .bar .seg{flex:1 1 100%;justify-content:space-between}
+  .bar .seg button{flex:1;justify-content:center;padding:8px 6px;font-size:13px}
   .bar>.lsAcc{flex:1 1 100%}
   .bar>.lsAcc .btn{flex:1 1 auto}
-  .btn,select,input{min-height:44px;font-size:14px}
-  .spacer{display:none}
-  .panel{padding:18px 12px 12px}
+  .btn,.bar select{min-height:46px}
+  .esp{display:none}
   .modal{padding:0}
   .mcaja,.mcaja.chica{border-radius:0;max-width:none;height:100%;max-height:none}
 }
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
-.kpi{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:0;position:relative;overflow:hidden}
-.kpi .banda{display:block;height:5px;background:var(--sage)}
-.kpi.alert .banda{background:var(--rose)}.kpi.neutro .banda{background:var(--slate)}
-.kpi .cuerpo{padding:16px 18px 18px}
-.kpi .l{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--stone)}
-.kpi .row{display:flex;align-items:baseline;gap:10px;margin-top:8px}
-.kpi .v{font-size:46px;font-weight:700;line-height:1;color:var(--sage);letter-spacing:-1.5px}
-.kpi.alert .v{color:var(--rose)}.kpi.neutro .v{color:var(--slate)}
-.kpi .s{font-size:11.5px;color:var(--stone);margin-top:6px}
-.kpi.hero{background:var(--petrol)}.kpi.hero .banda{background:var(--emer)}
-.kpi.hero .l,.kpi.hero .s{color:#8FB3AC}.kpi.hero .v{color:#fff}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--warm);margin:6px 0 14px;flex-wrap:wrap}
-.tabs button{background:none;border:none;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--stone);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
-.tabs button:hover{color:var(--sage)}
-.tabs button.active{color:var(--sage-dark);border-bottom-color:var(--sage)}
-.tabpane{display:none}.tabpane.active{display:block}
-.drop{display:block;border:2px dashed var(--warm);border-radius:var(--r);background:var(--card);box-shadow:var(--sh);padding:30px 20px;text-align:center;cursor:pointer}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.k{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px;display:flex;gap:12px;align-items:center}
+.k .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.k .ic svg{width:23px;height:23px}
+.k b{font-size:30px;display:block;line-height:1}
+.k span{font-size:11.5px;color:var(--stone);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.pks{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:18px}
+.pk{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:16px;cursor:pointer;display:flex;gap:14px;align-items:center;border:2px solid transparent;transition:.18s;position:relative;overflow:hidden}
+.pk:hover{box-shadow:var(--sh-h);transform:translateY(-2px)}
+.pk.act{border-color:var(--sage)}
+.pk .cli{position:absolute;top:0;right:0;font-size:10px;font-weight:800;letter-spacing:.8px;color:#fff;background:var(--slate);padding:4px 10px;border-radius:0 0 0 10px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk h3{margin:0;font-size:22px;letter-spacing:-.3px}
+.pk .sub{color:var(--stone);font-size:12.5px;margin-top:2px}
+.pk .chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.zona{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--stone);font-weight:700}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.cajas{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:8px}
+.cj{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:#fff;cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s;overflow:hidden;border:none}
+.cj:hover{transform:scale(1.07);box-shadow:var(--sh-h);z-index:2}
+.cj small{font-size:10px;font-weight:700;opacity:.92;position:relative}
+.cj span{position:relative}
+.cj .lleno{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.25)}
+.cj.PENDIENTE{background:var(--st-pe);color:var(--stone)}.cj.EN_PROCESO{background:var(--st-pr)}.cj.ESCANEADA{background:var(--st-es)}.cj.OBSERVADA{background:var(--st-ob);animation:late 1.6s infinite}.cj.CERRADA{background:var(--st-ce)}
+.cj.sel{outline:3px solid var(--txt);outline-offset:2px}
+@keyframes late{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0)}}
+.det .estado{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:12px;padding:5px 12px;border-radius:20px;color:#fff;margin-bottom:10px}
+.det .fl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--warm-light);font-size:13.5px}
+.det .fl span{color:var(--stone)}
+.barras .b{margin:9px 0}
+.barras .b div{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700}
+.barras .t{height:9px;background:var(--warm-light);border-radius:6px;overflow:hidden;margin-top:4px}
+.barras .t i{display:block;height:100%;border-radius:6px;transition:width .6s}
+.vista{display:none}.vista.act{display:block;animation:entra .25s ease}
+@keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cods{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.cod{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer;transition:.15s}
+.cod:hover{box-shadow:var(--sh-h)}
+.cod .tl{width:58px;height:58px;border-radius:14px;background:var(--warm-light);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--sage);flex:none}
+.cod h3{margin:0;font-size:15px;word-break:break-all}
+.cod .sub{color:var(--stone);font-size:12.5px}
+.tips td .med{color:var(--stone);font-size:12px}
+.porrev{border-left:4px solid var(--tan)}
+.drop{display:block;border:2px dashed var(--warm);border-radius:var(--r);background:var(--card);padding:30px 20px;text-align:center;cursor:pointer}
 .drop:hover,.drop.over{border-color:var(--sage);background:var(--warm-light)}
-.drop .big{font-size:16px;font-weight:700;color:#333;margin-bottom:4px}
+.drop .big{font-size:16px;font-weight:700;margin-bottom:4px}
 .drop .sm{font-size:12.5px;color:var(--stone)}
+@media(max-width:1200px){.zona{grid-template-columns:1fr}.kp{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){
-  .kpis{grid-template-columns:1fr 1fr;gap:10px}
-  .kpi .v{font-size:32px}
-  .tabs{flex-wrap:nowrap;overflow-x:auto;gap:0}
-  .tabs button{flex:none;padding:12px 10px;font-size:13px}
-  .tabpane table,.tabpane tbody,.tabpane tr{display:block;width:100%}
-  .tabpane thead{display:none}
-  .tabpane tbody tr{border:1px solid var(--warm);border-radius:10px;padding:8px 10px;margin-bottom:8px}
-  .tabpane td{border:none;padding:2px 0;display:flex;gap:8px;text-align:left!important;width:100%}
-  .tabpane td::before{content:attr(data-l);flex:none;width:110px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--stone);padding-top:2px}
+  .kp{gap:10px}.k{padding:12px}.k b{font-size:24px}.k .ic{width:38px;height:38px}
+  .pks{grid-template-columns:1fr}
+  .cajas{grid-template-columns:repeat(auto-fill,minmax(56px,1fr))}
+  .tips table,.tips tbody,.tips tr,.tips td{display:block;width:100%}
+  .tips thead{display:none}
+  .tips tr{border:1px solid var(--warm);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+  .tips td{border:none;padding:3px 0;display:flex;gap:8px;text-align:left!important}
+  .tips td::before{content:attr(data-l);flex:none;width:110px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--stone)}
 }
 @media print{
   @page{size:A4 landscape;margin:9mm}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff!important}
-  .bar,.modal,.tabs{display:none!important}
-  .tabpane{display:block!important}
-  .panel,.kpi{box-shadow:none;border:1px solid var(--warm)}
-  .kpi.hero{background:#fff!important}.kpi.hero .v{color:var(--sage)!important}.kpi.hero .l,.kpi.hero .s{color:var(--stone)!important}
+  .bar,.modal{display:none!important}
+  .panel,.k,.pk,.cod{box-shadow:none;border:1px solid var(--warm)}
 }
 </style>
 <style id="lsLimp3Css">/* lives-limpieza v3 (30/10/2026) · fuera del portal tampoco hay títulos de panel ni notas explicativas */.panel>.pt,.panel>.ph{display:none!important}</style>
@@ -727,45 +754,52 @@ body.modalAbierta{overflow:hidden}
 <body>
 <div class="wrap">
   <div class="bar">
-    <label>Packings<select id="fEst"><option value="ABIERTO">Abiertos</option><option value="">Todos</option><option value="CERRADO">Cerrados</option><option value="ANULADO">Anulados</option></select></label>
-    <label>Cliente<select id="fCli"><option value="">Todos</option></select></label>
-    <label>Buscar<input type="search" id="fQ" placeholder="Packing, PO, grupo, estilo, código…"></label>
-    <span class="spacer"></span>
+    <nav class="seg" id="vistas" aria-label="Vistas">
+      <button type="button" data-v="cajas" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>Cajas</button>
+      <button type="button" data-v="codigos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Códigos</button>
+      <button type="button" data-v="vacias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/></svg>Cajas vacías</button>
+    </nav>
+    <input type="search" id="fQ" placeholder="Buscar packing, PO, grupo, código…">
+    <select id="fEst"><option value="ABIERTO">Packings abiertos</option><option value="">Todos</option><option value="CERRADO">Cerrados</option><option value="ANULADO">Anulados</option></select>
+    <span class="esp"></span>
     <div class="lsAcc">
-      <button class="btn primary" id="btnCargar" type="button" disabled>Cargar packing</button>
-      <button class="btn" id="btnEscanear" type="button">Escanear</button>
-      <button class="btn" id="btnCierre" type="button">Pesar y cerrar</button>
+      <button class="btn pri" id="btnEscanear" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Escanear</button>
+      <button class="btn pri" id="btnCierre" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 21h14l-2-11H7L5 21z"/><circle cx="12" cy="7" r="1.5"/></svg>Pesar y cerrar</button>
+      <button class="btn" id="btnCargar" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Cargar packing</button>
       <button class="btn" id="btnQuien" type="button" style="display:none"></button>
     </div>
   </div>
   <div class="errBox" id="errBox"></div>
-  <div class="kpis" id="kpis"></div>
-  <nav class="tabs" id="tabs" aria-label="Vistas">
-    <button type="button" data-t="pk" class="active">Packings</button>
-    <button type="button" data-t="cj">Cajas</button>
-    <button type="button" data-t="cod">Códigos de prenda</button>
-    <button type="button" data-t="tip">Cajas vacías</button>
-  </nav>
-  <section class="tabpane active" id="t_pk"><div class="panel"><span class="tira volumen"></span>
-    <div class="pt">Packings</div>
-    <div class="tscroll"><table><thead><tr><th>Packing</th><th>Cliente</th><th>Destino</th><th>Grupo</th><th>PO</th><th class="n">Cajas cerradas</th><th class="n">Observadas</th><th class="n">Prendas escaneadas</th><th class="n">Bruto pesado kg</th><th class="n">Bruto declarado kg</th><th class="n">Diferencia kg</th><th>Estado</th><th>Cargado</th></tr></thead><tbody id="tbPk"></tbody></table></div>
-    <div class="vacio" id="vPk" style="display:none"></div><div class="lsTope500" id="topePk" style="display:none"></div>
-  </div></section>
-  <section class="tabpane" id="t_cj"><div class="panel"><span class="tira resultado"></span>
-    <div class="pt">Cajas</div>
-    <div class="tscroll"><table><thead><tr><th>Packing</th><th class="n">Caja</th><th>Código caja</th><th>Estado</th><th class="n">Prendas</th><th class="n">Alertas</th><th class="n">Peso kg</th><th class="n">Esperado kg</th><th>Peso</th><th>Cerrada por</th><th>Último movimiento</th></tr></thead><tbody id="tbCj"></tbody></table></div>
-    <div class="vacio" id="vCj" style="display:none"></div><div class="lsTope500" id="topeCj" style="display:none"></div>
-  </div></section>
-  <section class="tabpane" id="t_cod"><div class="panel"><span class="tira"></span>
-    <div class="pt">Códigos de prenda</div>
-    <div class="tscroll"><table><thead><tr><th>Código de barras</th><th>Estilo</th><th>Color</th><th>Talla</th><th class="n">Peso por prenda g</th><th class="n">Prendas pesadas</th><th>Registrado por</th><th>Fecha</th><th>Revisado</th></tr></thead><tbody id="tbCod"></tbody></table></div>
-    <div class="vacio" id="vCod" style="display:none"></div><div class="lsTope500" id="topeCod" style="display:none"></div>
-  </div></section>
-  <section class="tabpane" id="t_tip"><div class="panel"><span class="tira"></span>
-    <div class="pt">Cajas vacías</div>
-    <div class="tscroll"><table><thead><tr><th>Código</th><th>Descripción</th><th>Medidas cm</th><th class="n">Vacía según sistema kg</th><th class="n">Vacía según hoja kg</th><th class="n">Vacía pesada kg</th><th>Pesada por</th><th>Pesar caja vacía</th></tr></thead><tbody id="tbTip"></tbody></table></div>
-    <div class="vacio" id="vTip" style="display:none"></div>
-  </div></section>
+
+  <section class="vista act" id="v_cajas">
+    <div class="kp" id="kp"></div>
+    <div class="pks" id="pks"></div>
+    <div class="vacio" id="vPk" style="display:none"></div>
+    <div class="lsTope500" id="topePk" style="display:none"></div>
+    <div class="zona" id="zona">
+      <div class="panel"><h2 id="gTit"></h2>
+        <div class="leyenda"><span><i style="background:var(--st-pe)"></i>Sin empezar</span><span><i style="background:var(--st-pr)"></i>Escaneando</span><span><i style="background:var(--st-es)"></i>Por pesar</span><span><i style="background:var(--st-ob)"></i>Observada</span><span><i style="background:var(--st-ce)"></i>Cerrada</span></div>
+        <div class="cajas" id="cajas"></div>
+        <div class="acciones" id="pkAcc"></div>
+      </div>
+      <div class="panel det" id="det"></div>
+    </div>
+  </section>
+
+  <section class="vista" id="v_codigos">
+    <div class="cods" id="cods"></div>
+    <div class="vacio" id="vCod" style="display:none"></div>
+    <div class="lsTope500" id="topeCod" style="display:none"></div>
+  </section>
+
+  <section class="vista" id="v_vacias">
+    <div class="panel porrev" id="revPanel" style="display:none"><h2>Pesadas por revisar</h2><div class="tscroll"><table><thead><tr><th>Caja</th><th class="n">Pesada kg</th><th class="n">Esperado kg</th><th>Motivo</th><th>Quién</th><th>Fecha</th><th></th></tr></thead><tbody id="tbRev"></tbody></table></div></div>
+    <div class="panel tips">
+      <div class="acciones" style="margin:0 0 10px"><button class="btn" type="button" id="btnCajaNueva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>Caja nueva</button></div>
+      <div class="tscroll"><table><thead><tr><th>Código</th><th>Medidas cm</th><th class="n">Vacía pesada kg</th><th class="n">Pesadas</th><th class="n">Según hoja kg</th><th class="n">Según sistema kg</th><th>Pesada por</th><th></th></tr></thead><tbody id="tbTip"></tbody></table></div>
+      <div class="vacio" id="vTip" style="display:none"></div>
+    </div>
+  </section>
 </div>
 
 <div class="modal" id="modal"><div class="mcaja">
@@ -845,113 +879,186 @@ function pitido(ok){
     o.start(); o.stop(AUD.currentTime+(ok?.09:.45)); }catch(e){}
   try{ if(!ok&&navigator.vibrate) navigator.vibrate([180,80,180]); }catch(e){}
 }
+const COLST={PENDIENTE:'var(--st-pe)',EN_PROCESO:'var(--st-pr)',ESCANEADA:'var(--st-es)',OBSERVADA:'var(--st-ob)',CERRADA:'var(--st-ce)',ANULADA:'var(--st-pe)'};
+function anillo(p,tam,grosor,color,txt,sub,fs){const r=(tam-grosor)/2,c=2*Math.PI*r;
+  return '<div class="anillo" style="width:'+tam+'px;height:'+tam+'px"><svg width="'+tam+'" height="'+tam+'"><circle cx="'+tam/2+'" cy="'+tam/2+'" r="'+r+'" fill="none" stroke="#DCE5E2" stroke-opacity=".7" stroke-width="'+grosor+'"/>'+
+  '<circle cx="'+tam/2+'" cy="'+tam/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+grosor+'" stroke-linecap="round" stroke-dasharray="'+c+'" stroke-dashoffset="'+c*(1-Math.max(0,Math.min(1,p||0)))+'" style="transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)"/></svg>'+
+  '<b><div style="white-space:nowrap;font-size:'+(fs||18)+'px">'+txt+'</div>'+(sub?'<small>'+sub+'</small>':'')+'</b></div>';}
+const ICO={
+  caja:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>',
+  scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>',
+  pesa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 21h14l-2-11H7L5 21z"/><circle cx="12" cy="7" r="1.5"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
+  vacia:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>',
+  alerta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
+  mas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>',
+  subir:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+};
 
-let INI=null, T=null, TAB='pk', VPK=[], VCJ=[], VCOD=[];
-const PUEDE=()=>!!(INI&&INI.puede)&&(NOMBRE_PORTAL||USUARIO);
-
+let INI=null, T=null, VISTA='cajas', SEL=null, CSEL=null, VPK=[], VCJ=[], VCOD=[];
+const PUEDE=()=>!!(INI&&INI.puede)&&!!(NOMBRE_PORTAL||USUARIO);
 async function iniciar(){
   try{ INI=await api('inicio'); }catch(e){ INI=null; }
   const ok=prepararQuien($('btnQuien'));
   const b=$('btnCargar');
-  if(INI&&INI.puede&&ok){ b.disabled=false; b.textContent='Cargar packing'; }
-  else { b.disabled=true; b.textContent=(!ok&&INI&&INI.puede)?'Cargar packing':'Solo para quien registra';
-    b.title=!ok?'Primero toca Identificarme':(INI&&INI.supervision?'Modo supervisión: ves todo, no se guarda nada':'Solo para quien registra'); }
+  if(INI&&INI.puede&&ok){ b.disabled=false; }
+  else { b.disabled=true; b.title=!ok?'Primero toca Identificarme':(INI&&INI.supervision?'Modo supervisión: ves todo, no se guarda nada':'Solo para quien registra');
+    if(INI&&!INI.puede){ b.lastChild.textContent='Solo para quien registra'; } }
   await cargar();
 }
 async function cargar(){
   $('errBox').style.display='none';
   try{ const d=await api('tablero'); if(!d.ok) throw new Error(d.error||'Error'); T=d; }
   catch(e){ $('errBox').textContent='No se pudo cargar: '+e.message; $('errBox').style.display='block'; return; }
-  const cl=[...new Set((T.packings||[]).map(p=>p.cliente).filter(Boolean))].sort();
-  const sel=$('fCli'), v=sel.value; sel.innerHTML='<option value="">Todos</option>'+cl.map(c=>'<option>'+esc(c)+'</option>').join(''); sel.value=v;
   pintar();
-}
-function filtroPk(p){
-  const e=$('fEst').value, c=$('fCli').value, q=norm($('fQ').value.trim());
-  if(e&&p.estado!==e) return false;
-  if(c&&p.cliente!==c) return false;
-  if(q&&!norm([p.packing,p.cliente,p.destino,p.grupo,p.po,p.descripcion].join(' ')).includes(q)) return false;
-  return true;
 }
 function pintar(){
   if(!T) return;
-  const q=norm($('fQ').value.trim()), hayFiltro=!!(q||$('fCli').value||$('fEst').value!=='ABIERTO');
-  VPK=(T.packings||[]).filter(filtroPk);
+  const q=norm($('fQ').value.trim()), e=$('fEst').value, filtro=!!(q||e!=='ABIERTO');
+  VPK=(T.packings||[]).filter(p=>(!e||p.estado===e)&&(!q||norm([p.packing,p.cliente,p.destino,p.grupo,p.po,p.descripcion].join(' ')).includes(q)));
   const ids=new Set(VPK.map(p=>p.id));
-  VCJ=(T.cajas||[]).filter(c=>ids.has(c.packing_id)||(q&&norm([c.packing,c.tipo_cod,c.id].join(' ')).includes(q)&&filtroPk(Object.assign({},c,{estado:(T.packings.find(p=>p.id===c.packing_id)||{}).estado,descripcion:''}))));
+  VCJ=(T.cajas||[]).filter(c=>ids.has(c.packing_id));
   VCOD=(T.codigos||[]).filter(c=>!q||norm([c.barcode,c.estilo,c.color_cod,c.color_nombre,c.talla].join(' ')).includes(q));
-  // KPIs
-  const tot=VCJ.length, cer=VCJ.filter(c=>c.estado==='CERRADA').length, obs=VCJ.filter(c=>c.estado==='OBSERVADA').length;
-  const req=VCJ.reduce((a,c)=>a+(+c.requeridas||0),0), escn=VCJ.reduce((a,c)=>a+(+c.escaneadas||0),0), al=VCJ.reduce((a,c)=>a+(+c.alertas||0),0);
-  const pend=VCJ.filter(c=>c.estado==='ESCANEADA').length;
-  const k=(cls,l,v,s)=>'<div class="kpi '+cls+'"><span class="banda"></span><div class="cuerpo"><div class="l">'+l+'</div><div class="row"><span class="v">'+v+'</span></div><div class="s">'+s+'</div></div></div>';
-  $('kpis').innerHTML=
-    k('hero','Cajas cerradas',tot?num(cer):'—',tot?('de '+num(tot)+' cajas en '+num(VPK.length)+' packing'+(VPK.length===1?'':'s')+' · '+num(cer/tot*100,1)+'% de las cajas'):'Sin cajas con este filtro')+
-    k('neutro','Por pesar',tot?num(pend):'—','cajas con todas sus prendas escaneadas, esperando balanza')+
-    k(obs?'alert':'neutro','Cajas observadas',tot?num(obs):'—','el peso no cuadró dos veces: revisar o aprobar con motivo')+
-    k('','Prendas escaneadas',req?num(escn/req*100,1)+'%':'—',req?(num(escn)+' de '+num(req)+' prendas del packing · '+num(al)+' alertas (sobra o no corresponde)'):'');
-  // packings
-  const LPK=hayFiltro?VPK:VPK.slice(0,500);
-  $('tbPk').innerHTML=LPK.map(p=>{
-    const dif=(p.cajas&&p.cerradas===p.cajas&&p.peso_real_kg!=null&&p.peso_bruto_kg!=null)?(p.peso_real_kg-p.peso_bruto_kg):null;
-    return '<tr class="clic" data-pk="'+esc(p.id)+'"><td data-l="Packing"><b>'+esc(p.packing)+'</b></td><td data-l="Cliente">'+esc(p.cliente)+'</td><td data-l="Destino">'+esc(p.destino)+'</td><td data-l="Grupo">'+esc(p.grupo)+'</td><td data-l="PO">'+esc(p.po)+'</td>'+
-      '<td class="n" data-l="Cajas cerradas">'+num(p.cerradas)+' / '+num(p.cajas)+'<div class="prog"><i style="width:'+(p.cajas?Math.round(p.cerradas/p.cajas*100):0)+'%"></i></div></td>'+
-      '<td class="n" data-l="Observadas">'+(p.observadas?'<b style="color:var(--rose)">'+num(p.observadas)+'</b>':'0')+'</td>'+
-      '<td class="n" data-l="Prendas">'+num(p.escaneadas)+' / '+num(p.requeridas)+'</td>'+
-      '<td class="n" data-l="Bruto pesado">'+(p.peso_real_kg!=null?num(p.peso_real_kg,2):'')+'</td><td class="n" data-l="Bruto declarado">'+(p.peso_bruto_kg!=null?num(p.peso_bruto_kg,2):'')+'</td>'+
-      '<td class="n" data-l="Diferencia">'+(dif!=null?'<b style="color:'+(Math.abs(dif)>0.5?'var(--rose)':'var(--sage)')+'">'+(dif>0?'+':'')+num(dif,2)+'</b>':'')+'</td>'+
-      '<td data-l="Estado">'+esc(p.estado==='ABIERTO'?'Abierto':p.estado==='CERRADO'?'Cerrado':'Anulado')+'</td><td data-l="Cargado">'+fFecha(p.creado)+'<br><small>'+esc(p.creado_nombre||'')+'</small></td></tr>';
-  }).join('');
-  vacio('vPk',VPK.length,'No hay packings con este filtro. Carga uno con «Cargar packing».');
-  tope('topePk',hayFiltro,VPK.length);
-  const LCJ=hayFiltro?VCJ:VCJ.slice(0,500);
-  $('tbCj').innerHTML=LCJ.map(c=>'<tr class="clic" data-cj="'+esc(c.id)+'"><td data-l="Packing">'+esc(c.packing)+'<br><small>'+esc(c.cliente||'')+'</small></td><td class="n" data-l="Caja"><b>'+num(c.numero)+'</b></td><td data-l="Código caja">'+esc(c.tipo_cod||'—')+'</td><td data-l="Estado">'+estPill(c.estado)+'</td>'+
-    '<td class="n" data-l="Prendas">'+num(c.escaneadas)+' / '+num(c.requeridas)+'</td><td class="n" data-l="Alertas">'+(c.alertas?'<b style="color:var(--rose)">'+num(c.alertas)+'</b>':'0')+'</td>'+
-    '<td class="n" data-l="Peso kg">'+kg(c.peso_bruto_g)+'</td><td class="n" data-l="Esperado kg">'+kg(c.peso_esperado_g)+'</td><td data-l="Peso">'+resPeso(c.peso_resultado)+'</td>'+
-    '<td data-l="Cerrada por">'+esc(c.cerrada_nombre||'')+'</td><td data-l="Último mov.">'+fFecha(c.actualizado)+'</td></tr>').join('');
-  vacio('vCj',VCJ.length,'No hay cajas con este filtro.');
-  tope('topeCj',hayFiltro,VCJ.length);
-  const LCOD=q?VCOD:VCOD.slice(0,500);
-  $('tbCod').innerHTML=LCOD.map(c=>'<tr class="clic" data-cod="'+esc(c.barcode)+'"><td data-l="Código"><b>'+esc(c.barcode)+'</b>'+(c.activo?'':' <span class="st an">Bloqueado</span>')+'</td><td data-l="Estilo">'+esc(c.estilo)+'</td><td data-l="Color">'+esc(c.color_nombre||c.color_cod)+'</td><td data-l="Talla"><b>'+esc(c.talla)+'</b></td>'+
-    '<td class="n" data-l="Peso prenda g">'+(c.peso_unit_g!=null?num(c.peso_unit_g,1):'<span style="color:var(--stone)">sin peso</span>')+'</td><td class="n" data-l="Prendas pesadas">'+num(c.peso_prendas)+'</td>'+
-    '<td data-l="Registrado por">'+esc(c.creado_nombre||c.creado_por||'')+'</td><td data-l="Fecha">'+fFecha(c.creado)+'</td><td data-l="Revisado">'+(c.verificado?'<span class="st ok">Sí</span>':'<span class="st pe">No</span>')+'</td></tr>').join('');
-  vacio('vCod',VCOD.length,q?'Ningún código coincide con la búsqueda.':'Aún no hay códigos: se registran solos la primera vez que se escanean.');
-  tope('topeCod',!!q,VCOD.length);
-  pintarTipos();
-  try{ if(window.LS_XLS&&window.lsXlsRefresca) window.lsXlsRefresca(); }catch(e){}
+  if(!SEL||!ids.has(SEL)){ SEL=VPK.length?VPK[0].id:null; CSEL=null; }
+  pintarCajas(filtro); pintarCodigos(q); pintarVacias(q);
 }
-function resPeso(r){ return {OK:'<span class="st ok">Cuadra</span>',FUERA:'<span class="st mal">No cuadra</span>',REFERENCIA:'<span class="st pr">Enseñó el peso</span>',APROBADO_CON_MOTIVO:'<span class="st es">Aprobada con motivo</span>'}[r]||''; }
-function vacio(id,n,txt){ const v=$(id); v.style.display=n?'none':'block'; v.textContent=txt; }
-function tope(id,filtro,n){ const t=$(id); if(!filtro&&n>500){ t.style.display='block'; t.textContent='Se muestran los 500 registros más recientes de '+num(n)+'. Usa los filtros para ver los demás.'; } else t.style.display='none'; }
-function pintarTipos(){
-  const q=norm($('fQ').value.trim()), usados=new Set((T.cajas||[]).map(c=>c.tipo_cod).filter(Boolean));
-  const L=(T.tipos||[]).filter(t=>q?norm([t.codigo,t.descripcion].join(' ')).includes(q):(t.frecuente||t.tara_g!=null||usados.has(t.codigo)))
+/* ---------------- vista Cajas ---------------- */
+function pintarCajas(filtro){
+  const n=s=>VCJ.filter(c=>c.estado===s).length;
+  const kp=(v,l,ic,bg)=>'<div class="k"><div class="ic" style="background:'+bg+'">'+ICO[ic]+'</div><div><b>'+num(v)+'</b><span>'+l+'</span></div></div>';
+  $('kp').innerHTML=kp(n('CERRADA'),'Cajas cerradas','ok','var(--sage)')+kp(n('ESCANEADA'),'Por pesar','pesa','var(--tan)')+kp(n('OBSERVADA'),'Observadas','alerta','var(--rose)')+kp(n('EN_PROCESO'),'Escaneando','scan','var(--blue)');
+  const L=filtro?VPK:VPK.slice(0,500);
+  $('pks').innerHTML=L.map(p=>{const tot=p.cajas||0, ce=p.cerradas||0;
+    return '<div class="pk'+(p.id===SEL?' act':'')+'" data-pk="'+esc(p.id)+'"><span class="cli">'+esc(p.cliente||'')+'</span>'+anillo(tot?ce/tot:0,78,9,'#0F7A5A',(tot?Math.round(ce/tot*100):0)+'%','cerradas')+
+      '<div style="min-width:0"><h3>'+esc(p.packing)+'</h3><div class="sub">'+esc([p.grupo,p.destino,p.po?'PO '+p.po:''].filter(Boolean).join(' · '))+'</div><div class="chips">'+
+      '<span class="chip"><i style="background:var(--st-ce)"></i>'+ce+'/'+tot+' cajas</span>'+(p.por_pesar?'<span class="chip"><i style="background:var(--st-es)"></i>'+p.por_pesar+' por pesar</span>':'')+
+      (p.observadas?'<span class="chip" style="color:var(--rose)"><i style="background:var(--st-ob)"></i>'+p.observadas+' observada'+(p.observadas>1?'s':'')+'</span>':'')+
+      '<span class="chip">'+num(p.escaneadas)+'/'+num(p.requeridas)+' prendas</span>'+(p.estado!=='ABIERTO'?'<span class="chip">'+(p.estado==='ANULADO'?'Anulado':'Cerrado')+'</span>':'')+'</div></div></div>';}).join('');
+  const v=$('vPk'); v.style.display=VPK.length?'none':'block'; v.textContent=filtro?'Ningún packing coincide con el filtro.':'Aún no hay packings abiertos. Carga uno con «Cargar packing».';
+  const t=$('topePk'); if(!filtro&&VPK.length>500){ t.style.display='block'; t.textContent='Se muestran los 500 registros más recientes de '+num(VPK.length)+'. Usa los filtros para ver los demás.'; } else t.style.display='none';
+  $('zona').style.display=SEL?'':'none';
+  if(!SEL) return;
+  const p=VPK.find(x=>x.id===SEL), cs=VCJ.filter(c=>c.packing_id===SEL).sort((a,b)=>a.numero-b.numero);
+  $('gTit').innerHTML='Packing '+esc(p.packing)+' <small>· '+cs.length+' cajas · '+esc(p.cliente||'')+(p.peso_bruto_kg!=null?' · bruto declarado '+num(p.peso_bruto_kg,2)+' kg':'')+(p.peso_real_kg!=null?' · pesado '+num(p.peso_real_kg,2)+' kg':'')+'</small>';
+  $('cajas').innerHTML=cs.map(c=>'<button type="button" class="cj '+c.estado+(c.id===CSEL?' sel':'')+'" data-cj="'+esc(c.id)+'" title="'+esc((EST[c.estado]||['',''])[1])+'"><span class="lleno" style="height:'+(c.estado==='EN_PROCESO'&&c.requeridas?Math.round(c.escaneadas/c.requeridas*100):0)+'%"></span><span>'+c.numero+'</span><small>'+c.escaneadas+'/'+c.requeridas+'</small></button>').join('');
+  $('pkAcc').innerHTML=(PUEDE()&&p.estado==='ABIERTO'&&!p.escaneadas?'<button class="btn peligro" type="button" id="btnAnularPk">Anular packing</button>':'');
+  const an=$('btnAnularPk'); if(an) an.onclick=()=>anularPacking(p);
+  if(!CSEL||!cs.some(c=>c.id===CSEL)){ const o=cs.find(c=>c.estado==='OBSERVADA')||cs.find(c=>c.estado==='ESCANEADA')||cs.find(c=>c.estado==='EN_PROCESO')||cs[0]; CSEL=o?o.id:null; if(CSEL) $('cajas').querySelector('[data-cj="'+CSEL+'"]').classList.add('sel'); }
+  if(CSEL) verCaja(CSEL);
+}
+let DETSEQ=0;
+async function verCaja(id){
+  const seq=++DETSEQ; let d;
+  try{ d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); }catch(e){ $('det').innerHTML='<div class="errBox" style="display:block">'+esc(e.message)+'</div>'; return; }
+  if(seq!==DETSEQ) return;
+  const c=d.caja, s=c.estado, req=d.lineas.reduce((a,l)=>a+l.cantidad,0), van=d.lineas.reduce((a,l)=>a+l.escaneadas,0);
+  const peso=c.peso_bruto_g!=null?kg(c.peso_bruto_g)+' kg'+(c.peso_esperado_g!=null?' · esperado '+kg(c.peso_esperado_g):''):'';
+  const pr=c.peso_esperado_g&&c.peso_bruto_g&&d.lineas.length?Math.round((c.peso_bruto_g-c.peso_esperado_g)/((c.peso_esperado_g-(c.tara_g||0))/req)):0;
+  $('det').innerHTML='<h2>Caja '+c.numero+' <small>de '+c.total_cajas+'</small></h2><span class="estado" style="background:'+COLST[s]+(s==='PENDIENTE'?';color:var(--stone)':'')+'">'+esc((EST[s]||['',s])[1])+'</span>'+
+    '<div class="fl"><span>Prendas</span><b>'+van+' / '+req+'</b></div><div class="fl"><span>Código de caja</span><b>'+esc(c.tipo_cod||'por elegir')+(c.tipo_medidas?' · '+esc(c.tipo_medidas):'')+'</b></div>'+
+    (peso?'<div class="fl"><span>Peso</span><b style="color:'+(s==='OBSERVADA'?'var(--rose)':'var(--sage)')+'">'+peso+'</b></div>':'')+
+    (s==='OBSERVADA'&&pr?'<div class="fl"><span>Diagnóstico</span><b style="color:var(--rose)">≈ '+Math.abs(pr)+' prenda'+(Math.abs(pr)>1?'s':'')+' de '+(pr>0?'más':'menos')+'</b></div>':'')+
+    (c.peso_motivo?'<div class="aviso">Motivo: '+esc(c.peso_motivo)+'</div>':'')+
+    '<div class="barras">'+d.lineas.map(l=>'<div class="b"><div><span>'+esc(l.talla)+' <small style="color:var(--stone);font-weight:400">'+esc(l.estilo+' · '+(l.color_nombre||l.color_cod))+'</small></span><span>'+l.escaneadas+' / '+l.cantidad+'</span></div><div class="t"><i style="width:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%;background:'+(l.escaneadas>=l.cantidad?'var(--sage)':'var(--blue)')+'"></i></div></div>').join('')+'</div>'+
+    '<div class="acciones">'+
+      (s==='CERRADA'?'<button class="btn pri" type="button" data-a="etq">Imprimir etiqueta</button>':'')+
+      (['ESCANEADA','OBSERVADA'].includes(s)?'<button class="btn pri" type="button" data-a="pesar">'+(s==='OBSERVADA'?'Revisar y pesar':'Pesar ahora')+'</button>':'')+
+      (['PENDIENTE','EN_PROCESO'].includes(s)?'<button class="btn pri" type="button" data-a="esc">Escanear esta caja</button>':'')+
+      (PUEDE()&&['CERRADA','OBSERVADA'].includes(s)?'<button class="btn peligro" type="button" data-a="reabrir">Reabrir</button>':'')+'</div>';
+  $('det').querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{
+    const a=b.dataset.a;
+    if(a==='etq') abrirPantalla('cierre_cajas.html','Etiqueta de caja',{etiqueta:c.id});
+    if(a==='pesar') abrirPantalla('cierre_cajas.html','Pesar y cerrar cajas',{caja:c.id});
+    if(a==='esc') abrirPantalla('escaneo_cajas.html','Escanear prendas',{caja:c.id});
+    if(a==='reabrir'){ const m=prompt('Motivo para reabrir la caja '+c.numero+' (queda registrado):'); if(!m) return;
+      try{ const r=await api('reabrir',{caja_id:c.id,motivo:m}); if(!r.ok) throw new Error(r.error); await cargar(); }catch(err){ alert('No se reabrió: '+err.message); } }
+  });
+}
+$('pks').addEventListener('click',e=>{ const t=e.target.closest('.pk'); if(t){ SEL=t.dataset.pk; CSEL=null; pintarCajas(true); } });
+$('cajas').addEventListener('click',e=>{ const t=e.target.closest('.cj'); if(!t) return; CSEL=t.dataset.cj; document.querySelectorAll('.cj').forEach(x=>x.classList.toggle('sel',x===t)); verCaja(CSEL); });
+async function anularPacking(p){
+  const m=prompt('Motivo para anular el packing '+p.packing+' (por ejemplo: se cargó un archivo equivocado):'); if(!m) return;
+  try{ const r=await api('anular_packing',{id:p.id,motivo:m}); if(!r.ok) throw new Error(r.error); SEL=null; await cargar(); }catch(err){ alert('No se anuló: '+err.message); }
+}
+/* ---------------- vista Códigos ---------------- */
+function pintarCodigos(q){
+  const L=q?VCOD:VCOD.slice(0,500);
+  $('cods').innerHTML=L.map(c=>'<div class="cod" data-cod="'+esc(c.barcode)+'"><div class="tl">'+esc(c.talla)+'</div><div style="min-width:0;flex:1"><h3>'+esc(c.barcode)+'</h3><div class="sub">'+esc(c.estilo+' · '+(c.color_nombre||c.color_cod))+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+
+    '<span class="chip">'+(c.peso_unit_g!=null?num(c.peso_unit_g,0)+' g por prenda':'sin peso todavía')+'</span>'+(c.activo?'':'<span class="chip" style="color:var(--rose)">bloqueado</span>')+
+    (c.verificado?'<span class="chip" style="color:var(--sage)">✓ revisado</span>':'<span class="chip" style="color:var(--taupe)">por revisar</span>')+'</div></div></div>').join('');
+  const v=$('vCod'); v.style.display=VCOD.length?'none':'block'; v.textContent=q?'Ningún código coincide con la búsqueda.':'Aún no hay códigos de prenda: se graban solos la primera vez que se escanean.';
+  const t=$('topeCod'); if(!q&&VCOD.length>500){ t.style.display='block'; t.textContent='Se muestran los 500 registros más recientes de '+num(VCOD.length)+'. Usa los filtros para ver los demás.'; } else t.style.display='none';
+}
+$('cods').addEventListener('click',e=>{ const t=e.target.closest('.cod'); if(t) verCodigo(t.dataset.cod); });
+function verCodigo(bc){
+  const c=(T.codigos||[]).find(x=>x.barcode===bc); if(!c) return;
+  abrirDlg('Código '+bc,
+    '<div class="fila" style="font-size:13.5px"><div><b>Registrado por</b><br>'+esc(c.creado_nombre||c.creado_por||'')+' · '+fFecha(c.creado)+'</div><div><b>Peso por prenda</b><br>'+(c.peso_unit_g!=null?num(c.peso_unit_g,1)+' g ('+num(c.peso_prendas)+' prendas pesadas)':'sin peso')+'</div></div>'+
+    (PUEDE()?'<div class="fila"><label class="campo">Estilo<input id="cEst" value="'+esc(c.estilo)+'"></label><label class="campo">Código de color<input id="cCol" value="'+esc(c.color_cod)+'"></label><label class="campo">Talla (la del hang tag)<input id="cTal" value="'+esc(c.talla)+'"></label></div>'+
+      '<label class="campo">Motivo de la corrección<textarea id="cMot"></textarea></label>'+
+      '<div class="acciones"><button class="btn pri" type="button" id="cGuardar">Guardar corrección</button>'+(c.verificado?'':'<button class="btn" type="button" id="cVerif">Marcar revisado</button>')+
+      '<button class="btn peligro" type="button" id="cBloq">'+(c.activo?'Bloquear':'Desbloquear')+'</button></div>':''));
+  if(!PUEDE()) return;
+  $('dCuerpo').addEventListener('input',()=>{ D_SUCIO=true; });
+  $('cGuardar').onclick=async()=>{ try{ const r=await api('corregir_codigo',{barcode:bc,estilo:$('cEst').value,color_cod:$('cCol').value,talla:$('cTal').value,motivo:$('cMot').value}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert('No se guardó: '+err.message); } };
+  const v=$('cVerif'); if(v) v.onclick=async()=>{ try{ const r=await api('verificar_codigo',{barcode:bc}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert(err.message); } };
+  $('cBloq').onclick=async()=>{ const m=$('cMot').value.trim()||prompt('Motivo:'); if(!m) return; try{ const r=await api('corregir_codigo',{barcode:bc,activo:!c.activo,motivo:m}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert(err.message); } };
+}
+/* ---------------- vista Cajas vacías ---------------- */
+function pintarVacias(q){
+  const g=v=>v==null?'':num(v/1000,2), usados=new Set((T.cajas||[]).map(c=>c.tipo_cod).filter(Boolean));
+  const nPes={}; (T.taras||[]).forEach(t=>{ if(t.estado!=='RECHAZADA') nPes[t.tipo_cod]=(nPes[t.tipo_cod]||0)+1; });
+  const L=(T.tipos||[]).filter(t=>q?norm([t.codigo,t.descripcion].join(' ')).includes(q):(t.frecuente||t.tara_g!=null||usados.has(t.codigo)||t.origen==='MANUAL'))
     .sort((a,b)=>(b.frecuente-a.frecuente)||a.codigo.localeCompare(b.codigo));
-  const g=v=>v==null?'':num(v/1000,2);
-  $('tbTip').innerHTML=L.map(t=>'<tr><td data-l="Código"><b>'+esc(t.codigo)+'</b>'+(t.frecuente?' <span class="st ok">Más usada</span>':'')+'</td><td data-l="Descripción">'+esc(t.descripcion)+'</td>'+
+  $('tbTip').innerHTML=L.map(t=>'<tr><td data-l="Código"><b>'+esc(t.codigo)+'</b> '+(t.frecuente?'<span class="chip" style="color:var(--sage)">más usada</span> ':'')+(t.origen==='MANUAL'?'<span class="chip" style="color:var(--taupe)">por confirmar con Sistemas</span>':'')+'<div class="med">'+esc(t.descripcion)+'</div></td>'+
     '<td data-l="Medidas cm">'+[t.largo_cm,t.ancho_cm,t.alto_cm].map(x=>x==null?'?':num(x,1)).join(' × ')+'</td>'+
-    '<td class="n" data-l="Sistema kg">'+(t.tara_sistema_g==null?'<span style="color:var(--rose)">0</span>':g(t.tara_sistema_g))+'</td><td class="n" data-l="Hoja kg">'+g(t.tara_hoja_g)+'</td>'+
-    '<td class="n" data-l="Pesada kg"><b>'+g(t.tara_g)+'</b></td><td data-l="Pesada por">'+esc(t.tara_pesada_por||'')+(t.tara_pesada_en?'<br><small>'+fFecha(t.tara_pesada_en)+'</small>':'')+'</td>'+
-    '<td data-l="Pesar vacía">'+(PUEDE()?'<span style="display:inline-flex;gap:6px"><input type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="kg" style="width:90px" data-tara="'+esc(t.codigo)+'"><button class="btn" type="button" data-gtara="'+esc(t.codigo)+'">Guardar</button></span>':'')+'</td></tr>').join('');
-  vacio('vTip',L.length,q?'Ningún código de caja coincide con la búsqueda.':'No hay cajas para mostrar.');
+    '<td class="n" data-l="Vacía pesada"><b style="font-size:15px">'+(t.tara_g!=null?g(t.tara_g):'<span style="color:var(--stone);font-weight:400">sin pesar</span>')+'</b></td><td class="n" data-l="Pesadas">'+(nPes[t.codigo]||0)+'</td>'+
+    '<td class="n" data-l="Según hoja">'+g(t.tara_hoja_g)+'</td><td class="n" data-l="Según sistema">'+(t.tara_sistema_g==null?'<span style="color:var(--rose)">0</span>':g(t.tara_sistema_g))+'</td>'+
+    '<td data-l="Pesada por">'+esc(t.tara_pesada_por||'')+(t.tara_pesada_en?'<br><small style="color:var(--stone)">'+fFecha(t.tara_pesada_en)+'</small>':'')+'</td>'+
+    '<td>'+(PUEDE()?'<button class="btn" type="button" data-tara="'+esc(t.codigo)+'">Pesar vacía</button>':'')+'</td></tr>').join('');
+  const v=$('vTip'); v.style.display=L.length?'none':'block'; v.textContent=q?'Ningún código de caja coincide con la búsqueda.':'No hay cajas para mostrar.';
+  const R=(T.taras||[]).filter(t=>t.estado==='POR_REVISAR');
+  $('revPanel').style.display=R.length?'':'none';
+  $('tbRev').innerHTML=R.map(t=>'<tr><td><b>'+esc(t.tipo_cod)+'</b></td><td class="n"><b style="color:var(--rose)">'+g(t.peso_g)+'</b></td><td class="n">'+g(t.referencia_g)+'</td><td>'+esc(t.motivo||'')+'</td><td>'+esc(t.nombre||t.usuario||'')+'</td><td>'+fFecha(t.fecha)+'</td>'+
+    '<td>'+(PUEDE()?'<span style="display:inline-flex;gap:6px"><button class="btn" type="button" data-rev="'+t.id+'" data-d="APROBADA">Aprobar</button><button class="btn peligro" type="button" data-rev="'+t.id+'" data-d="RECHAZADA">Rechazar</button></span>':'')+'</td></tr>').join('');
+  $('btnCajaNueva').style.display=PUEDE()?'':'none';
 }
-$('tbTip').addEventListener('click',async e=>{
-  const b=e.target.closest('[data-gtara]'); if(!b) return;
-  const cod=b.dataset.gtara, inp=document.querySelector('[data-tara="'+CSS.escape(cod)+'"]'), v=parseFloat(String(inp.value).replace(',','.'));
-  if(!(v>0)){ inp.focus(); alert('Escribe el peso de la caja vacía en kg (ej. 1.10).'); return; }
-  if(v>5&&!confirm('¿Seguro? '+v+' kg es mucho para una caja vacía.')) return;
-  b.disabled=true;
-  try{ const r=await api('guardar_tipo',{codigo:cod,tara_g:Math.round(v*1000)}); if(!r.ok) throw new Error(r.error); await cargar(); }
-  catch(err){ alert('No se guardó: '+err.message); b.disabled=false; }
-});
-['fEst','fCli'].forEach(id=>$(id).addEventListener('change',pintar));
-$('fQ').addEventListener('input',pintar);
-document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));
-  document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('active',p.id==='t_'+b.dataset.t)); TAB=b.dataset.t;
+$('tbTip').addEventListener('click',e=>{ const b=e.target.closest('[data-tara]'); if(b) dlgTara(b.dataset.tara); });
+$('tbRev').addEventListener('click',async e=>{ const b=e.target.closest('[data-rev]'); if(!b) return;
+  const nota=b.dataset.d==='RECHAZADA'?prompt('¿Por qué se rechaza esta pesada?'):''; if(nota===null) return;
+  try{ const r=await api('revisar_tara',{id:+b.dataset.rev,decision:b.dataset.d,nota}); if(!r.ok) throw new Error(r.error); await cargar(); }catch(err){ alert(err.message); } });
+function dlgTara(cod,nueva){
+  const t=(T.tipos||[]).find(x=>x.codigo===cod)||{}, ref=t.tara_g||t.tara_hoja_g||t.tara_sistema_g;
+  abrirDlg(nueva?'Caja nueva':'Pesar caja vacía '+cod,
+    (nueva?'<div class="aviso">Solo para una caja que no está en el catálogo de Sistemas. Queda «por confirmar» hasta que Sistemas le dé su código oficial.</div>'+
+      '<div class="fila"><label class="campo">Código<input id="nCod" autocomplete="off"></label><label class="campo">Descripción<input id="nDes" autocomplete="off"></label></div>'+
+      '<div class="fila"><label class="campo">Largo cm<input id="nL" type="number" step="0.1"></label><label class="campo">Ancho cm<input id="nA" type="number" step="0.1"></label><label class="campo">Alto cm<input id="nH" type="number" step="0.1"></label></div>':
+      '<div style="font-size:13.5px;margin-bottom:6px">'+esc(t.descripcion||'')+(ref?' · referencia <b>'+num(ref/1000,2)+' kg</b>':'')+'</div>')+
+    '<label class="campo">Peso de la caja vacía (lo que marca la balanza)<input id="tKg" type="number" step="0.01" min="0.01" inputmode="decimal" style="font-size:24px;min-height:56px"></label>'+
+    '<div id="tMot" style="display:none"><label class="campo">Motivo<textarea id="tMotTxt" placeholder="Ej.: caja de otro proveedor, cartón más grueso"></textarea></label></div>'+
+    '<div id="tRes"></div><div class="acciones"><button class="btn pri" type="button" id="tGuardar">Guardar</button></div>');
+  let conf=false;
+  $('tKg').focus();
+  $('tGuardar').onclick=async()=>{
+    const v=parseFloat(String($('tKg').value).replace(',','.')); if(!(v>0)){ $('tKg').focus(); return; }
+    const p={codigo:nueva?$('nCod').value:cod,tara_g:Math.round(v*1000),confirmado:conf,motivo:$('tMotTxt').value};
+    if(nueva) Object.assign(p,{descripcion:$('nDes').value,largo_cm:$('nL').value,ancho_cm:$('nA').value,alto_cm:$('nH').value});
+    try{ const r=await api('guardar_tipo',p);
+      if(r.fuera_rango){ conf=true; $('tMot').style.display=''; $('tKg').value=''; $('tKg').focus(); $('tRes').innerHTML='<div class="aviso">'+esc(r.error)+'</div>'; return; }
+      if(!r.ok) throw new Error(r.error);
+      cerrarDlg(true); await cargar();
+    }catch(err){ $('tRes').innerHTML='<div class="errBox" style="display:block">'+esc(err.message)+'</div>'; }
+  };
+}
+$('btnCajaNueva').addEventListener('click',()=>dlgTara('',true));
+/* ---------------- navegación, filtros, ventanas ---------------- */
+document.querySelectorAll('#vistas button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#vistas button').forEach(x=>x.classList.toggle('act',x===b));
+  document.querySelectorAll('.vista').forEach(v=>v.classList.toggle('act',v.id==='v_'+b.dataset.v)); VISTA=b.dataset.v;
 }));
-
-/* ---------- ventana con otra pantalla (escaneo / cierre / etiqueta) ---------- */
+$('fQ').addEventListener('input',pintar); $('fEst').addEventListener('change',pintar);
 let M_REFRESCAR=false;
 function abrirPantalla(arch,tit,extra){
   const u=new URL(arch,location.href); u.searchParams.set('modal','1'); if(NOMBRE_PORTAL) u.searchParams.set('usuario',NOMBRE_PORTAL);
@@ -962,83 +1069,16 @@ function cerrarPantalla(){ $('modal').classList.remove('show'); document.body.cl
 $('mCerrar').addEventListener('click',cerrarPantalla);
 $('btnEscanear').addEventListener('click',()=>abrirPantalla('escaneo_cajas.html','Escanear prendas'));
 $('btnCierre').addEventListener('click',()=>abrirPantalla('cierre_cajas.html','Pesar y cerrar cajas'));
-
-/* ---------- ventana propia (detalle / carga) ---------- */
 let D_SUCIO=false;
 function abrirDlg(tit,html){ $('dTit').textContent=tit; $('dCuerpo').innerHTML=html; $('dlg').classList.add('show'); document.body.classList.add('modalAbierta'); D_SUCIO=false; }
 function cerrarDlg(forzar){ if(!forzar&&D_SUCIO&&!confirm('¿Salir sin guardar?')) return; $('dlg').classList.remove('show'); document.body.classList.remove('modalAbierta'); $('dCuerpo').innerHTML=''; D_SUCIO=false; }
 $('dCerrar').addEventListener('click',()=>cerrarDlg(false));
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('dlg').classList.contains('show')) cerrarDlg(false); else if($('modal').classList.contains('show')) cerrarPantalla(); });
-
-$('tbPk').addEventListener('click',e=>{ const tr=e.target.closest('tr[data-pk]'); if(tr) verPacking(tr.dataset.pk); });
-$('tbCj').addEventListener('click',e=>{ const tr=e.target.closest('tr[data-cj]'); if(tr) verCaja(tr.dataset.cj); });
-$('tbCod').addEventListener('click',e=>{ const tr=e.target.closest('tr[data-cod]'); if(tr) verCodigo(tr.dataset.cod); });
-
-function verPacking(id){
-  const p=(T.packings||[]).find(x=>x.id===id); if(!p) return;
-  const cj=(T.cajas||[]).filter(c=>c.packing_id===id).sort((a,b)=>a.numero-b.numero);
-  abrirDlg('Packing '+p.packing+' · '+(p.cliente||''),
-    '<div class="fila" style="font-size:13px"><div><b>Destino:</b> '+esc(p.destino||'')+'</div><div><b>Grupo:</b> '+esc(p.grupo||'')+'</div><div><b>PO:</b> '+esc(p.po||'')+'</div><div><b>Neto / bruto declarado:</b> '+num(p.peso_neto_kg,2)+' / '+num(p.peso_bruto_kg,2)+' kg</div></div>'+
-    '<div class="tscroll"><table><thead><tr><th class="n">Caja</th><th>Código caja</th><th>Estado</th><th class="n">Prendas</th><th class="n">Peso kg</th><th>Peso</th></tr></thead><tbody>'+
-    cj.map(c=>'<tr class="clic" data-cj="'+esc(c.id)+'"><td class="n"><b>'+num(c.numero)+'</b></td><td>'+esc(c.tipo_cod||'—')+'</td><td>'+estPill(c.estado)+'</td><td class="n">'+num(c.escaneadas)+' / '+num(c.requeridas)+'</td><td class="n">'+kg(c.peso_bruto_g)+'</td><td>'+resPeso(c.peso_resultado)+'</td></tr>').join('')+
-    '</tbody></table></div>'+
-    (PUEDE()&&p.estado==='ABIERTO'&&!p.escaneadas?'<div class="acciones"><button class="btn peligro" type="button" id="btnAnularPk">Anular packing</button></div>':''));
-  $('dCuerpo').querySelector('tbody').addEventListener('click',e=>{ const tr=e.target.closest('tr[data-cj]'); if(tr) verCaja(tr.dataset.cj); });
-  const an=$('btnAnularPk'); if(an) an.addEventListener('click',async()=>{
-    const m=prompt('Motivo para anular el packing '+p.packing+' (por ejemplo: se cargó un archivo equivocado):'); if(!m) return;
-    try{ const r=await api('anular_packing',{id:p.id,motivo:m}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert('No se anuló: '+err.message); }
-  });
-}
-async function verCaja(id){
-  abrirDlg('Caja','<div class="vacio">Cargando…</div>');
-  let d; try{ d=await api('caja',{caja_id:id}); if(!d.ok) throw new Error(d.error); }catch(e){ $('dCuerpo').innerHTML='<div class="errBox" style="display:block">'+esc(e.message)+'</div>'; return; }
-  const c=d.caja, req=d.lineas.reduce((a,l)=>a+l.cantidad,0), escn=d.lineas.reduce((a,l)=>a+l.escaneadas,0);
-  $('dTit').textContent='Packing '+c.packing+' · Caja '+c.numero+' de '+c.total_cajas;
-  $('dCuerpo').innerHTML='<div class="fila" style="font-size:13px"><div>'+estPill(c.estado)+' '+resPeso(c.peso_resultado)+'</div><div><b>Código de caja:</b> '+esc(c.tipo_cod||'—')+' '+esc(c.tipo_medidas||c.medidas_packing||'')+'</div><div><b>Prendas:</b> '+num(escn)+' de '+num(req)+'</div>'+
-      (c.peso_bruto_g?'<div><b>Peso:</b> '+kg(c.peso_bruto_g)+' kg'+(c.peso_esperado_g?' (esperado '+kg(c.peso_esperado_g)+' ± '+kg(c.tolerancia_g)+')':'')+'</div>':'')+'</div>'+
-    (c.peso_motivo?'<div class="aviso"><b>Motivo:</b> '+esc(c.peso_motivo)+'</div>':'')+
-    '<div class="tscroll"><table><thead><tr><th>Estilo</th><th>Lote</th><th>Color</th><th>Talla</th><th class="n">Escaneadas</th><th class="n">Debe llevar</th></tr></thead><tbody>'+
-    d.lineas.map(l=>'<tr><td>'+esc(l.estilo)+'</td><td>'+esc(l.lote||'')+'</td><td>'+esc(l.color_nombre||l.color_cod)+'</td><td><b>'+esc(l.talla)+'</b></td><td class="n" style="color:'+(l.escaneadas===l.cantidad?'var(--sage)':'var(--rose)')+'"><b>'+num(l.escaneadas)+'</b></td><td class="n">'+num(l.cantidad)+'</td></tr>').join('')+
-    '</tbody></table></div>'+
-    (d.escaneos.length?'<div style="margin-top:12px;font-weight:700;font-size:13px">Últimos escaneos</div><div class="tscroll"><table><tbody>'+
-      d.escaneos.slice(0,40).map(s=>'<tr><td>'+fFecha(s.fecha)+'</td><td>'+esc(s.barcode)+'</td><td>'+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · '))+'</td><td>'+({OK:'<span class="st ok">Correcta</span>',SOBRA:'<span class="st mal">Sobra</span>',NO_CORRESPONDE:'<span class="st mal">No corresponde</span>'}[s.resultado]||esc(s.resultado))+(s.anulado?' <span class="st an">Quitada</span>':'')+'</td><td>'+esc(s.nombre||'')+'</td></tr>').join('')+'</tbody></table></div>':'')+
-    '<div class="acciones">'+(c.estado==='CERRADA'?'<button class="btn primary" type="button" id="btnEtq">Imprimir etiqueta</button>':'')+
-      (PUEDE()&&['CERRADA','OBSERVADA'].includes(c.estado)?'<button class="btn peligro" type="button" id="btnReabrir">Reabrir caja</button>':'')+'</div>';
-  const be=$('btnEtq'); if(be) be.addEventListener('click',()=>{ cerrarDlg(true); abrirPantalla('cierre_cajas.html','Etiqueta de caja',{etiqueta:c.id}); });
-  const br=$('btnReabrir'); if(br) br.addEventListener('click',async()=>{
-    const m=prompt('Motivo para reabrir la caja '+c.numero+' (queda registrado):'); if(!m) return;
-    try{ const r=await api('reabrir',{caja_id:c.id,motivo:m}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert('No se reabrió: '+err.message); }
-  });
-}
-function verCodigo(bc){
-  const c=(T.codigos||[]).find(x=>x.barcode===bc); if(!c) return;
-  abrirDlg('Código '+bc,
-    '<div class="fila" style="font-size:13px"><div><b>Registrado por:</b> '+esc(c.creado_nombre||c.creado_por||'')+' · '+fFecha(c.creado)+'</div><div><b>Peso por prenda:</b> '+(c.peso_unit_g!=null?num(c.peso_unit_g,1)+' g ('+num(c.peso_prendas)+' prendas pesadas)':'sin peso')+'</div><div><b>Revisado:</b> '+(c.verificado?'sí, por '+esc(c.verificado_nombre||c.verificado_por||''):'no')+'</div></div>'+
-    (PUEDE()?'<div class="fila"><label class="campo">Estilo<input id="cEst" value="'+esc(c.estilo)+'"></label><label class="campo">Código de color<input id="cCol" value="'+esc(c.color_cod)+'"></label><label class="campo">Nombre de color<input id="cColN" value="'+esc(c.color_nombre||'')+'"></label><label class="campo">Talla (la del hang tag)<input id="cTal" value="'+esc(c.talla)+'"></label></div>'+
-      '<label class="campo">Motivo de la corrección<textarea id="cMot"></textarea></label>'+
-      '<div class="acciones"><button class="btn primary" type="button" id="cGuardar">Guardar corrección</button>'+(c.verificado?'':'<button class="btn" type="button" id="cVerif">Marcar como revisado</button>')+
-      '<button class="btn peligro" type="button" id="cBloq">'+(c.activo?'Bloquear código':'Desbloquear código')+'</button></div>':''));
-  if(!PUEDE()) return;
-  $('dCuerpo').addEventListener('input',()=>{ D_SUCIO=true; });
-  $('cGuardar').addEventListener('click',async()=>{
-    try{ const r=await api('corregir_codigo',{barcode:bc,estilo:$('cEst').value,color_cod:$('cCol').value,color_nombre:$('cColN').value,talla:$('cTal').value,motivo:$('cMot').value}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert('No se guardó: '+err.message); }
-  });
-  const v=$('cVerif'); if(v) v.addEventListener('click',async()=>{ try{ const r=await api('verificar_codigo',{barcode:bc}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert(err.message); } });
-  $('cBloq').addEventListener('click',async()=>{
-    const m=$('cMot').value.trim()||prompt('Motivo:'); if(!m) return;
-    try{ const r=await api('corregir_codigo',{barcode:bc,activo:!c.activo,motivo:m}); if(!r.ok) throw new Error(r.error); cerrarDlg(true); await cargar(); }catch(err){ alert(err.message); }
-  });
-}
-
-/* ---------- carga del Excel de packing (Relación de cajas packing list) ---------- */
+/* ---------------- carga del Excel de packing ---------------- */
 let CARGA=null;
 $('btnCargar').addEventListener('click',()=>{
   CARGA=null;
-  abrirDlg('Cargar packing',
-    '<label class="drop" id="drop"><input type="file" id="fArch" accept=".xlsx,.xls" style="display:none">'+
-    '<div class="big">Arrastra aquí el Excel «Relación de cajas packing list» o toca para elegirlo</div>'+
-    '<div class="sm">El que sale del sistema (CajasProgramadas…xlsx), con la hoja de cajas y la hoja de pesos y medidas.</div></label>'+
-    '<div id="prev"></div>');
+  abrirDlg('Cargar packing','<label class="drop" id="drop"><input type="file" id="fArch" accept=".xlsx,.xls" style="display:none"><div class="big">Arrastra aquí el Excel «Relación de cajas packing list» o toca para elegirlo</div><div class="sm">El que sale del sistema (CajasProgramadas…xlsx).</div></label><div id="prev"></div>');
   const dr=$('drop'), fi=$('fArch');
   fi.addEventListener('change',()=>{ if(fi.files[0]) leerArchivo(fi.files[0]); });
   dr.addEventListener('dragover',e=>{ e.preventDefault(); dr.classList.add('over'); });
@@ -1092,58 +1132,57 @@ function leerPacking(wb,nombre){
   return {packing,cliente,destino,descripcion:desc,grupo,grupo_prefijo:grupo.split('-')[0]||'',po:[...pos].join(', '),peso_neto_kg:neto,peso_bruto_kg:bruto,archivo:nombre,cajas:lista,
     _prendas:lista.reduce((a,c)=>a+c.lineas.reduce((x,l)=>x+l.cantidad,0),0),_totGen:totGen,_difs:difs,_medidas:unicas,_sinMed:lista.filter(c=>!c.medidas).length};
 }
+
 function leerArchivo(f){
   const rd=new FileReader();
   rd.onload=()=>{
     try{ CARGA=leerPacking(XLSX.read(new Uint8Array(rd.result),{type:'array'}),f.name); }
-    catch(e){ $('prev').innerHTML='<div class="errBox" style="display:block">'+esc(e.message)+'</div>'; return; }
-    D_SUCIO=true;
-    const c=CARGA, sumG=Object.values(c._totGen).reduce((a,b)=>a+b,0);
-    $('prev').innerHTML='<div class="panel" style="margin-top:12px"><span class="tira volumen"></span>'+
-      '<div class="fila" style="font-size:13.5px"><div><b>Packing</b><br>'+esc(c.packing||'¿?')+'</div><div><b>Cliente</b><br>'+esc(c.cliente)+'</div><div><b>Destino</b><br>'+esc(c.destino)+'</div><div><b>Grupo</b><br>'+esc(c.grupo)+'</div><div><b>PO</b><br>'+esc(c.po)+'</div></div>'+
-      '<div class="fila" style="font-size:13.5px"><div><b>Cajas</b><br>'+num(c.cajas.length)+'</div><div><b>Prendas</b><br>'+num(c._prendas)+'</div><div><b>Neto / bruto declarado</b><br>'+(c.peso_neto_kg!=null?num(c.peso_neto_kg,2)+' / '+num(c.peso_bruto_kg,2)+' kg':'no vienen en el archivo')+'</div><div><b>Medida de caja</b><br>'+esc(c._medidas.join(' · ')||'no viene')+'</div></div>'+
-      (c._difs.length?'<div class="errBox" style="display:block">Las tallas no suman igual que la fila «Total general» ('+esc(c._difs.join(', '))+'). Revisa el archivo antes de cargarlo.</div>':(sumG?'<div class="okBox">Las cantidades por talla cuadran con el «Total general» del archivo ('+num(sumG)+' prendas).</div>':''))+
-      (c.peso_neto_kg!=null&&c.peso_neto_kg===c.peso_bruto_kg?'<div class="aviso">Ojo: el archivo declara el mismo neto y bruto ('+num(c.peso_neto_kg,2)+' kg). El bruto debería incluir el peso de las cajas vacías.</div>':'')+
+    catch(e){ $('prev').innerHTML='<div class="errBox" style="display:block;margin-top:10px">'+esc(e.message)+'</div>'; return; }
+    D_SUCIO=true; const c=CARGA, sumG=Object.values(c._totGen).reduce((a,b)=>a+b,0);
+    const dato=(l,v)=>'<div><span class="chip">'+l+'</span><div style="font-size:18px;font-weight:800;margin-top:4px">'+v+'</div></div>';
+    $('prev').innerHTML='<div class="panel" style="margin-top:12px">'+
+      '<div class="fila">'+dato('Packing',esc(c.packing||'¿?'))+dato('Cliente',esc(c.cliente))+dato('Destino',esc(c.destino))+'</div>'+
+      '<div class="fila">'+dato('Cajas',num(c.cajas.length))+dato('Prendas',num(c._prendas))+dato('Neto / bruto',c.peso_neto_kg!=null?num(c.peso_neto_kg,2)+' / '+num(c.peso_bruto_kg,2)+' kg':'—')+'</div>'+
+      '<div style="font-size:13px;color:var(--stone)">'+esc([c.grupo,c.po?'PO '+c.po:'',c._medidas.length?'caja '+c._medidas.join(' · '):''].filter(Boolean).join(' · '))+'</div>'+
+      (c._difs.length?'<div class="errBox" style="display:block;margin-top:10px">Las tallas no suman igual que el «Total general» ('+esc(c._difs.join(', '))+'). Revisa el archivo.</div>':(sumG?'<div class="okBox">✓ Las tallas cuadran con el «Total general» del archivo ('+num(sumG)+' prendas).</div>':''))+
+      (c.peso_neto_kg!=null&&c.peso_neto_kg===c.peso_bruto_kg?'<div class="aviso">El archivo declara el mismo neto y bruto ('+num(c.peso_neto_kg,2)+' kg): el bruto debería incluir el peso de las cajas vacías.</div>':'')+
       (c._sinMed?'<div class="aviso">'+num(c._sinMed)+' cajas sin medida: el código de caja se elegirá al pesarlas.</div>':'')+
-      '<div class="tscroll" style="max-height:260px;overflow:auto"><table><thead><tr><th class="n">Caja</th><th>Contenido</th><th class="n">Prendas</th></tr></thead><tbody>'+
-      c.cajas.map(x=>'<tr><td class="n"><b>'+x.numero+'</b></td><td>'+x.lineas.map(l=>esc(l.estilo+' '+(l.color_nombre||l.color_cod)+' '+l.talla+'×'+l.cantidad)).join(' · ')+'</td><td class="n">'+num(x.lineas.reduce((a,l)=>a+l.cantidad,0))+'</td></tr>').join('')+
-      '</tbody></table></div>'+
-      '<div class="acciones"><button class="btn primary" type="button" id="btnGuardarPk"'+(c._difs.length||!c.packing||!c.cajas.length?' disabled':'')+'>Guardar packing</button></div><div id="resPk"></div></div>';
-    $('btnGuardarPk').addEventListener('click',guardarPacking);
+      '<div class="acciones"><button class="btn pri" type="button" id="btnGuardarPk"'+(c._difs.length||!c.packing||!c.cajas.length?' disabled':'')+'>Guardar packing</button></div><div id="resPk"></div></div>';
+    $('btnGuardarPk').onclick=guardarPacking;
   };
   rd.readAsArrayBuffer(f);
 }
 async function guardarPacking(){
   const b=$('btnGuardarPk'); b.disabled=true; b.textContent='Guardando…';
   const p=Object.assign({},CARGA); Object.keys(p).filter(k=>k[0]==='_').forEach(k=>delete p[k]);
-  try{
-    const r=await api('guardar_packing',p); if(!r.ok) throw new Error(r.error);
-    D_SUCIO=false;
-    const tipos=Object.entries(r.tipos||{}).map(([k,v])=>(k==='?'?'sin reconocer':k)+': '+v).join(' · ');
-    $('resPk').innerHTML='<div class="okBox" style="margin-top:10px">Packing '+esc(CARGA.packing)+' cargado: '+num(r.cajas)+' cajas y '+num(r.prendas)+' prendas. Código de caja: '+esc(tipos)+'.'+(r.sin_tipo?' Las cajas sin reconocer piden su código al pesarlas.':'')+'</div>';
-    b.textContent='Guardado'; await cargar();
-  }catch(e){ $('resPk').innerHTML='<div class="errBox" style="display:block;margin-top:10px">No se guardó: '+esc(e.message)+'</div>'; b.disabled=false; b.textContent='Guardar packing'; }
+  try{ const r=await api('guardar_packing',p); if(!r.ok) throw new Error(r.error);
+    D_SUCIO=false; const tipos=Object.entries(r.tipos||{}).map(([k,v])=>(k==='?'?'sin reconocer':k)+': '+v).join(' · ');
+    $('resPk').innerHTML='<div class="okBox">Packing '+esc(CARGA.packing)+' cargado: '+num(r.cajas)+' cajas y '+num(r.prendas)+' prendas. Código de caja: '+esc(tipos)+'.</div>';
+    b.textContent='Guardado'; SEL=r.id; await cargar();
+  }catch(e){ $('resPk').innerHTML='<div class="errBox" style="display:block">No se guardó: '+esc(e.message)+'</div>'; b.disabled=false; b.textContent='Guardar packing'; }
 }
-
-/* ===================== Excel (bloque lives-excel-reporte, enganche LS_XLS) ===================== */
+/* ---------------- Excel LIVES ---------------- */
 window.LS_XLS={
   clase:'btn',
-  ancla:function(){ return $('btnCierre'); },
+  ancla:function(){ return $('btnCargar'); },
   datos:function(){
     const col=(campo,titulo,tipo)=>({campo,titulo,tipo});
-    const filt=[$('fEst').options[$('fEst').selectedIndex].text,$('fCli').value,$('fQ').value.trim()?'búsqueda "'+$('fQ').value.trim()+'"':''].filter(Boolean).join(' · ');
+    const filt=[$('fEst').options[$('fEst').selectedIndex].text,$('fQ').value.trim()?'búsqueda "'+$('fQ').value.trim()+'"':''].filter(Boolean).join(' · ');
+    const RES={OK:'Cuadra',FUERA:'No cuadra',REFERENCIA:'Enseñó el peso',APROBADO_CON_MOTIVO:'Aprobada con motivo'};
     return {titulo:'Control de Cajas',sub:'Filtro: '+filt,
-      resumen:[{titulo:'Packings',nota:'Cajas cerradas sobre las cajas del packing; prendas escaneadas sobre las prendas que pide el packing. Diferencia = bruto pesado − bruto declarado (solo con todas las cajas cerradas).',
+      resumen:[{titulo:'Packings',nota:'Cajas cerradas sobre las cajas del packing; prendas escaneadas sobre las que pide el packing. Bruto pesado = suma de las cajas cerradas.',
         columnas:[col('packing','Packing','alfanumerico'),col('cliente','Cliente','texto'),col('destino','Destino','texto'),col('grupo','Grupo','alfanumerico'),col('po','PO','alfanumerico'),
           col('cajas','Cajas','entero'),col('cerradas','Cerradas','entero'),col('observadas','Observadas','entero'),col('requeridas','Prendas del packing','entero'),col('escaneadas','Prendas escaneadas','entero'),
-          col('alertas','Alertas de escaneo','entero'),col('peso_real_kg','Bruto pesado kg','decimal'),col('peso_bruto_kg','Bruto declarado kg','decimal'),col('peso_neto_kg','Neto declarado kg','decimal'),col('neto_real_kg','Neto pesado kg','decimal'),col('est','Estado','texto')],
-        filas:VPK.map(p=>Object.assign({},p,{est:p.estado==='ABIERTO'?'Abierto':p.estado==='CERRADO'?'Cerrado':'Anulado'}))}],
+          col('alertas','Alertas de escaneo','entero'),col('peso_real_kg','Bruto pesado kg','decimal'),col('peso_bruto_kg','Bruto declarado kg','decimal'),col('peso_neto_kg','Neto declarado kg','decimal'),col('neto_real_kg','Neto pesado kg','decimal')],
+        filas:VPK},
+       {titulo:'Cajas vacías: pesado vs sistema',nota:'Para Sistemas: peso de caja vacía pesado aquí (mediana de las últimas pesadas) frente al de su catálogo. En el sistema 0 = no registrado.',
+        columnas:[col('codigo','Código','alfanumerico'),col('descripcion','Descripción','texto'),col('pk','Pesada kg','decimal'),col('hk','Según hoja kg','decimal'),col('sk','Según sistema kg','decimal'),col('or','Origen','texto')],
+        filas:(T.tipos||[]).filter(t=>t.tara_g!=null||t.origen==='MANUAL').map(t=>({codigo:t.codigo,descripcion:t.descripcion,pk:t.tara_g!=null?t.tara_g/1000:null,hk:t.tara_hoja_g!=null?t.tara_hoja_g/1000:null,sk:t.tara_sistema_g!=null?t.tara_sistema_g/1000:0,or:t.origen==='MANUAL'?'Por confirmar':'Catálogo de Sistemas'}))}],
       detalle:{nota:'Una fila por caja.',
-        columnas:[col('packing','Packing','alfanumerico'),col('cliente','Cliente','texto'),col('po','PO','alfanumerico'),col('numero','Caja','entero'),col('tipo_cod','Código caja','alfanumerico'),col('medidas','Medidas','texto'),
+        columnas:[col('packing','Packing','alfanumerico'),col('cliente','Cliente','texto'),col('po','PO','alfanumerico'),col('numero','Caja','entero'),col('tipo_cod','Código caja','alfanumerico'),
           col('est','Estado','texto'),col('requeridas','Prendas del packing','entero'),col('escaneadas','Prendas escaneadas','entero'),col('alertas','Alertas','entero'),
           col('pkg','Peso kg','decimal'),col('ekg','Esperado kg','decimal'),col('tkg','Margen kg','decimal'),col('res','Peso','texto'),col('peso_motivo','Motivo','texto'),col('cerrada_nombre','Cerrada por','texto'),col('fc','Cerrada','fecha')],
-        filas:VCJ.map(c=>Object.assign({},c,{est:(EST[c.estado]||['',c.estado])[1],pkg:c.peso_bruto_g!=null?c.peso_bruto_g/1000:null,ekg:c.peso_esperado_g!=null?c.peso_esperado_g/1000:null,tkg:c.tolerancia_g!=null?c.tolerancia_g/1000:null,
-          res:{OK:'Cuadra',FUERA:'No cuadra',REFERENCIA:'Enseñó el peso',APROBADO_CON_MOTIVO:'Aprobada con motivo'}[c.peso_resultado]||'',fc:c.cerrada_en?new Date(c.cerrada_en):null}))}};
+        filas:VCJ.map(c=>Object.assign({},c,{est:(EST[c.estado]||['',c.estado])[1],pkg:c.peso_bruto_g!=null?c.peso_bruto_g/1000:null,ekg:c.peso_esperado_g!=null?c.peso_esperado_g/1000:null,tkg:c.tolerancia_g!=null?c.tolerancia_g/1000:null,res:RES[c.peso_resultado]||'',fc:c.cerrada_en?new Date(c.cerrada_en):null}))}};
   }
 };
 iniciar();
