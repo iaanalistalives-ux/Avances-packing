@@ -11,7 +11,6 @@
 
 create sequence if not exists caja_seq_packing;
 create sequence if not exists caja_seq_caja;
-create sequence if not exists caja_seq_tipo;
 
 -- ---------- parámetros ----------
 create table if not exists caja_parametros(
@@ -27,16 +26,35 @@ insert into caja_parametros(clave,valor,descripcion) values
 on conflict (clave) do nothing;
 
 -- ---------- tipos de caja (tara) ----------
+-- codigo = Cod_DimensionCaja del sistema de la empresa (sin espacios, MAYÚSCULAS). Los datos se cargan con CJ02.
 create table if not exists caja_tipos(
-  codigo text primary key,                       -- TC-001
-  medidas text not null unique,                  -- como viene en el packing: "24 X13 X12 PG"
-  tara_g numeric(10,1),                          -- peso real de la caja vacía (se mide una vez)
-  tara_sistema_g numeric(10,1),                  -- la que usa el sistema: (bruto-neto)/cajas
+  codigo text primary key,
+  descripcion text not null,                     -- Des_DimensionCaja
+  largo_cm numeric(6,1), ancho_cm numeric(6,1), alto_cm numeric(6,1),
+  largo_pul numeric(6,2), alto_pul numeric(6,2), ancho_pul numeric(6,2),   -- el packing en pulgadas viene Largo X Alto X Ancho
+  des_packing text,                              -- Des_Dim_Caja_Packing
+  tara_sistema_g numeric(10,1),                  -- peso_caja_vacia del sistema (null si viene 0 = no registrado)
+  tara_hoja_g numeric(10,1),                     -- hoja de Encajado "peso caja vacía" (cajas más usadas)
+  tara_g numeric(10,1),                          -- pesada aquí, caja vacía real: es la que usa el control de peso
+  tara_pesada_por text,
+  tara_pesada_en timestamptz,
+  frecuente boolean not null default false,      -- está en la hoja de cajas más usadas
+  origen text not null default 'SISTEMAS' check (origen in ('SISTEMAS','MANUAL')),
   activo boolean not null default true,
   creado timestamptz not null default now(),
   creado_por text,
   actualizado timestamptz,
   actualizado_por text
+);
+
+-- caja habitual por cliente (hoja de Encajado). destino '*' = cualquier destino
+create table if not exists caja_tipo_cliente(
+  cliente_cod text not null,                     -- prefijo del cliente (cat_clientes.prefijo; VIV aún no está en el catálogo)
+  destino text not null default '*',
+  tipo_cod text not null references caja_tipos(codigo),
+  principal boolean not null default true,
+  nota text,
+  primary key (cliente_cod, destino, tipo_cod)
 );
 
 -- ---------- códigos de barra aprendidos ----------
@@ -97,6 +115,7 @@ create table if not exists caja_cajas(
   packing_id text not null references caja_packings(id),
   numero int not null,
   tipo_cod text references caja_tipos(codigo),
+  medidas_packing text,                          -- la medida tal como viene en el Excel del packing
   estado text not null default 'PENDIENTE'
     check (estado in ('PENDIENTE','EN_PROCESO','ESCANEADA','OBSERVADA','CERRADA','ANULADA')),
   peso_bruto_g numeric(10,1),
@@ -154,7 +173,7 @@ create index if not exists caja_eventos_caja on caja_eventos(caja_id);
 
 -- ---------- lectura libre en Supabase (en SQL Server: exige usuario) ----------
 do $$ declare t text; begin
-  foreach t in array array['caja_parametros','caja_tipos','caja_codigos','caja_pesos','caja_packings',
+  foreach t in array array['caja_parametros','caja_tipos','caja_tipo_cliente','caja_codigos','caja_pesos','caja_packings',
                            'caja_cajas','caja_lineas','caja_escaneos','caja_eventos'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists %I on %I', t||'_leer', t);
@@ -169,6 +188,48 @@ create or replace function caja_norm(v text) returns text
 language sql immutable as $$
   select regexp_replace(upper(btrim(coalesce(v,''))), '[^[:alnum:]]', '', 'g')
 $$;
+
+-- tres medidas ordenadas de menor a mayor (para comparar sin importar el orden)
+create or replace function caja_dims_(a numeric, b numeric, c numeric) returns numeric[]
+language sql immutable as $$
+  select array(select x from unnest(array[a,b,c]) x order by x)
+$$;
+
+-- reconoce el código de caja a partir de la medida escrita en el packing ("54.0X41.0X26.0", "24 X13 X12 PG").
+-- Varias cajas pueden tener la misma medida: manda la caja habitual del cliente, luego las más usadas.
+-- Si sigue habiendo más de una posible, devuelve null y la pantalla pide elegir.
+create or replace function caja_tipo_de_(p_medidas text, p_cliente text, p_destino text) returns text
+language plpgsql stable security definer set search_path to 'public' as $$
+declare n numeric[]; pul boolean; tol numeric; v text; v_cli boolean; v_frec boolean; v_cnt int;
+begin
+  select array(select m[1]::numeric from regexp_matches(coalesce(p_medidas,''),'([0-9]+(?:\.[0-9]+)?)','g') m) into n;
+  if coalesce(array_length(n,1),0) <> 3 then return null; end if;
+  pul := p_medidas ~* '(PG|PUL|")' or greatest(n[1],n[2],n[3]) <= 30;
+  tol := case when pul then 0.3 else 0.6 end;
+  n := caja_dims_(n[1],n[2],n[3]);
+  with cand as (
+    select t.codigo, t.frecuente from caja_tipos t
+     cross join lateral (select case when pul then caja_dims_(t.largo_pul,t.alto_pul,t.ancho_pul)
+                                     else caja_dims_(t.largo_cm,t.ancho_cm,t.alto_cm) end d) z
+     where t.activo and abs(z.d[1]-n[1]) <= tol and abs(z.d[2]-n[2]) <= tol and abs(z.d[3]-n[3]) <= tol),
+  orden as (
+    select c.codigo, c.frecuente,
+           exists(select 1 from caja_tipo_cliente k where k.tipo_cod=c.codigo and k.cliente_cod=upper(btrim(coalesce(p_cliente,'')))
+                    and k.destino in (upper(btrim(coalesce(p_destino,''))),'*')) es_cli,
+           exists(select 1 from caja_tipo_cliente k where k.tipo_cod=c.codigo and k.cliente_cod=upper(btrim(coalesce(p_cliente,'')))
+                    and k.destino in (upper(btrim(coalesce(p_destino,''))),'*') and k.principal) es_pri
+      from cand c)
+  select o.codigo, o.es_cli, o.frecuente, (select count(*) from cand) into v, v_cli, v_frec, v_cnt
+    from orden o order by o.es_cli desc, o.es_pri desc, o.frecuente desc, o.codigo limit 1;
+  if v is null then return null; end if;
+  if v_cnt = 1 or v_cli then return v; end if;
+  if v_frec and (select count(*) from caja_tipos t where t.frecuente and t.codigo in (
+       select t2.codigo from caja_tipos t2
+        cross join lateral (select case when pul then caja_dims_(t2.largo_pul,t2.alto_pul,t2.ancho_pul)
+                                        else caja_dims_(t2.largo_cm,t2.ancho_cm,t2.alto_cm) end d) z
+        where t2.activo and abs(z.d[1]-n[1]) <= tol and abs(z.d[2]-n[2]) <= tol and abs(z.d[3]-n[3]) <= tol)) = 1 then return v; end if;
+  return null;
+end $$;
 
 create or replace function caja_par(p_clave text) returns text
 language sql stable security definer set search_path to 'public' as $$
@@ -214,7 +275,7 @@ language sql stable security definer set search_path to 'public' as $$
     'caja', to_jsonb(c) || jsonb_build_object(
         'packing', k.packing, 'cliente', k.cliente, 'destino', k.destino, 'grupo', k.grupo, 'po', k.po,
         'total_cajas', (select count(*) from caja_cajas z where z.packing_id = c.packing_id and z.estado <> 'ANULADA'),
-        'tipo_medidas', t.medidas, 'tara_g', t.tara_g, 'tara_sistema_g', t.tara_sistema_g,
+        'tipo_medidas', t.descripcion, 'tara_g', t.tara_g, 'tara_sistema_g', t.tara_sistema_g, 'tara_hoja_g', t.tara_hoja_g,
         'cerrada_nombre', caja_nombre_(c.cerrada_por)),
     'lineas', coalesce((select jsonb_agg(jsonb_build_object(
         'id', l.id, 'estilo', l.estilo, 'lote', l.lote, 'color_cod', l.color_cod, 'color_nombre', l.color_nombre,
@@ -241,7 +302,7 @@ declare
   v_caja caja_cajas%rowtype; v_cod caja_codigos%rowtype; v_lin caja_lineas%rowtype;
   v_id text; v_pk text; v_tipo text; v_n int; v_req int; v_res text; v_ok int;
   v_tara numeric; v_esp numeric; v_tol numeric; v_min numeric; v_peso numeric; v_dif numeric;
-  v_falta jsonb; v_bc text; v_cnt int; v_prom numeric; r record; x jsonb; v_numcajas int;
+  v_falta jsonb; v_bc text; v_cnt int; v_prom numeric; r record; x jsonb; v_numcajas int; v_cli text;
   f_escritura boolean := p_accion in ('guardar_packing','anular_packing','escanear','quitar','registrar_codigo',
      'corregir_codigo','verificar_codigo','muestra_peso','anular_muestra','pesar','aprobar_con_motivo','reabrir',
      'guardar_tipo','guardar_parametro');
@@ -280,7 +341,7 @@ begin
            'id',c.id,'packing_id',c.packing_id,'packing',k.packing,'cliente',k.cliente,'grupo',k.grupo,'po',k.po,
            'numero',c.numero,'estado',c.estado,'peso_bruto_g',c.peso_bruto_g,'peso_esperado_g',c.peso_esperado_g,
            'tolerancia_g',c.tolerancia_g,'peso_resultado',c.peso_resultado,'peso_origen',c.peso_origen,'peso_motivo',c.peso_motivo,
-           'cerrada_en',c.cerrada_en,'cerrada_nombre',caja_nombre_(c.cerrada_por),'actualizado',c.actualizado,'medidas',t.medidas,
+           'cerrada_en',c.cerrada_en,'cerrada_nombre',caja_nombre_(c.cerrada_por),'actualizado',c.actualizado,'tipo_cod',c.tipo_cod,'medidas',coalesce(t.descripcion,c.medidas_packing),
            'requeridas',(select coalesce(sum(cantidad),0) from caja_lineas l where l.caja_id=c.id),
            'escaneadas',(select count(*) from caja_escaneos e where e.caja_id=c.id and e.resultado='OK' and not e.anulado),
            'alertas',(select count(*) from caja_escaneos e where e.caja_id=c.id and e.resultado in ('SOBRA','NO_CORRESPONDE')))
@@ -301,7 +362,7 @@ begin
 
   elsif p_accion = 'cajas_packing' then
     return jsonb_build_object('ok',true,'cajas', coalesce((select jsonb_agg(jsonb_build_object(
-        'id',c.id,'numero',c.numero,'estado',c.estado,'medidas',t.medidas,
+        'id',c.id,'numero',c.numero,'estado',c.estado,'tipo_cod',c.tipo_cod,'medidas',coalesce(t.descripcion,c.medidas_packing),
         'requeridas',(select coalesce(sum(cantidad),0) from caja_lineas l where l.caja_id=c.id),
         'escaneadas',(select count(*) from caja_escaneos e where e.caja_id=c.id and e.resultado='OK' and not e.anulado),
         'resumen',(select string_agg(l.estilo||' '||coalesce(l.color_nombre,l.color_cod)||' '||l.talla||'×'||l.cantidad, ' · ' order by l.id) from caja_lineas l where l.caja_id=c.id))
@@ -329,30 +390,23 @@ begin
       return jsonb_build_object('ok',false,'error','El packing '||btrim(p->>'packing')||' ya está cargado. Si cambió, anúlalo primero (solo si aún no tiene escaneos).');
     end if;
     v_pk := 'CPK-'||lpad(nextval('caja_seq_packing')::text,6,'0');
-    insert into caja_packings(id,packing,cliente_cod,cliente,destino,descripcion,grupo,po,peso_neto_kg,peso_bruto_kg,archivo,creado_por)
-    values (v_pk, btrim(p->>'packing'),
+    v_cli := coalesce(
       (select prefijo from cat_clientes where caja_norm(cliente)=caja_norm(p->>'cliente') or caja_norm(prefijo)=caja_norm(p->>'grupo_prefijo') limit 1),
+      (select distinct cliente_cod from caja_tipo_cliente where cliente_cod = upper(btrim(coalesce(p->>'grupo_prefijo',''))) limit 1));
+    insert into caja_packings(id,packing,cliente_cod,cliente,destino,descripcion,grupo,po,peso_neto_kg,peso_bruto_kg,archivo,creado_por)
+    values (v_pk, btrim(p->>'packing'), v_cli,
       nullif(btrim(p->>'cliente'),''), nullif(btrim(p->>'destino'),''), nullif(btrim(p->>'descripcion'),''),
       nullif(btrim(p->>'grupo'),''), nullif(btrim(p->>'po'),''),
       nullif(p->>'peso_neto_kg','')::numeric, nullif(p->>'peso_bruto_kg','')::numeric,
       nullif(btrim(p->>'archivo'),''), v_usuario);
     v_numcajas := jsonb_array_length(p->'cajas');
     for x in select * from jsonb_array_elements(p->'cajas') loop
-      v_tipo := null;
-      if coalesce(btrim(x->>'medidas'),'') <> '' then
-        select codigo into v_tipo from caja_tipos where caja_norm(medidas) = caja_norm(x->>'medidas');
-        if v_tipo is null then
-          v_tipo := 'TC-'||lpad(nextval('caja_seq_tipo')::text,3,'0');
-          insert into caja_tipos(codigo,medidas,tara_sistema_g,creado_por)
-          values (v_tipo, upper(btrim(x->>'medidas')),
-            case when nullif(p->>'peso_bruto_kg','') is not null and nullif(p->>'peso_neto_kg','') is not null
-                      and (p->>'peso_bruto_kg')::numeric > (p->>'peso_neto_kg')::numeric
-                 then round(((p->>'peso_bruto_kg')::numeric - (p->>'peso_neto_kg')::numeric)*1000/v_numcajas,1) end,
-            v_usuario);
-        end if;
-      end if;
+      -- código de caja: el que mande la pantalla (si existe) o el reconocido por la medida del packing
+      select codigo into v_tipo from caja_tipos where codigo = upper(btrim(coalesce(x->>'tipo_cod',''))) and activo;
+      if v_tipo is null then v_tipo := caja_tipo_de_(x->>'medidas', v_cli, p->>'destino'); end if;
       v_id := 'CJ-'||lpad(nextval('caja_seq_caja')::text,6,'0');
-      insert into caja_cajas(id,packing_id,numero,tipo_cod) values (v_id, v_pk, (x->>'numero')::int, v_tipo);
+      insert into caja_cajas(id,packing_id,numero,tipo_cod,medidas_packing)
+      values (v_id, v_pk, (x->>'numero')::int, v_tipo, nullif(upper(btrim(x->>'medidas')),''));
       insert into caja_lineas(caja_id,estilo,lote,color_cod,color_nombre,talla,cantidad)
       select v_id, upper(btrim(l->>'estilo')), nullif(btrim(l->>'lote'),''), upper(btrim(l->>'color_cod')),
              nullif(upper(btrim(l->>'color_nombre')),''), upper(btrim(l->>'talla')), (l->>'cantidad')::int
@@ -360,7 +414,9 @@ begin
     end loop;
     insert into caja_eventos(packing_id,accion,detalle,usuario)
     values (v_pk,'CARGA_PACKING', jsonb_build_object('packing',p->>'packing','cajas',v_numcajas,'archivo',p->>'archivo'), v_usuario);
-    return jsonb_build_object('ok',true,'id',v_pk,'cajas',v_numcajas,
+    return jsonb_build_object('ok',true,'id',v_pk,'cajas',v_numcajas,'cliente_cod',v_cli,
+      'sin_tipo',(select count(*) from caja_cajas where packing_id=v_pk and tipo_cod is null),
+      'tipos',(select jsonb_object_agg(coalesce(tipo_cod,'?'),n) from (select tipo_cod,count(*) n from caja_cajas where packing_id=v_pk group by 1) q),
       'prendas',(select sum(l.cantidad) from caja_lineas l join caja_cajas c on c.id=l.caja_id where c.packing_id=v_pk));
 
   elsif p_accion = 'anular_packing' then
@@ -487,11 +543,16 @@ begin
         else 'La caja aún no está completa: termina de escanearla' end); end if;
     v_peso := nullif(p->>'peso_g','')::numeric;
     if coalesce(v_peso,0) <= 0 then return jsonb_build_object('ok',false,'error','Peso no válido'); end if;
-    v_tipo := coalesce(nullif(p->>'tipo_cod',''), v_caja.tipo_cod);
+    v_tipo := coalesce(nullif(upper(btrim(coalesce(p->>'tipo_cod',''))),''), v_caja.tipo_cod);
+    if v_tipo is null then return jsonb_build_object('ok',false,'falta_tipo',true,'medidas_packing',v_caja.medidas_packing,
+      'error','Elige el código de la caja (la medida del packing no alcanzó para reconocerla)'); end if;
+    if not exists(select 1 from caja_tipos where codigo = v_tipo) then
+      return jsonb_build_object('ok',false,'error','No existe el código de caja '||v_tipo); end if;
     select tara_g into v_tara from caja_tipos where codigo = v_tipo;
-    if v_tipo is null then return jsonb_build_object('ok',false,'error','Elige el tipo de caja'); end if;
+    -- solo se usa la tara pesada aquí: la del sistema y la de la hoja son valores redondeados (y en el sistema algunas están en 0)
     if v_tara is null then return jsonb_build_object('ok',false,'falta_tara',true,'tipo_cod',v_tipo,
-      'error','Esta medida de caja aún no tiene su peso vacía: pesa una caja vacía de este tipo'); end if;
+      'tara_referencia_g',(select coalesce(tara_hoja_g,tara_sistema_g) from caja_tipos where codigo=v_tipo),
+      'error','La caja '||v_tipo||' aún no tiene su peso vacía: pon una caja vacía de este tipo en la balanza y escribe el peso (se hace una sola vez)'); end if;
     -- códigos sin peso
     select jsonb_agg(distinct jsonb_build_object('barcode',c.barcode,'estilo',c.estilo,'color',coalesce(c.color_nombre,c.color_cod),'talla',c.talla))
       into v_falta from caja_escaneos e join caja_codigos c on c.barcode=e.barcode
@@ -558,6 +619,12 @@ begin
       peso_esperado_g=null, tolerancia_g=null, peso_resultado=null, peso_origen=null, peso_motivo=null, actualizado=now()
       where id=p->>'caja_id' and estado in ('CERRADA','OBSERVADA','ESCANEADA') returning * into v_caja;
     if v_caja.id is null then return jsonb_build_object('ok',false,'error','La caja no se puede reabrir'); end if;
+    -- si ya tiene todas sus prendas escaneadas, queda lista para volver a pesar
+    select coalesce(sum(l.cantidad),0), coalesce(sum((select count(*) from caja_escaneos e where e.linea_id=l.id and e.resultado='OK' and not e.anulado)),0)
+      into v_req, v_ok from caja_lineas l where l.caja_id = v_caja.id;
+    if v_ok >= v_req and v_req > 0 then
+      update caja_cajas set estado='ESCANEADA', escaneada_en=now() where id=v_caja.id;
+    end if;
     update caja_pesos set valido=false where caja_id=v_caja.id and origen='CAJA';
     for r in select distinct barcode from caja_pesos where caja_id=v_caja.id loop perform caja_recalc_peso(r.barcode); end loop;
     insert into caja_eventos(packing_id,caja_id,accion,detalle,usuario) values (v_caja.packing_id,v_caja.id,'REABRE',jsonb_build_object('motivo',p->>'motivo'),v_usuario);
@@ -565,20 +632,29 @@ begin
 
   -- ------------------------------------------------------------ catálogos
   elsif p_accion = 'guardar_tipo' then
+    -- pesar una caja vacía (tara_g) o crear un código que aún no está en el catálogo de Sistemas (origen MANUAL)
     v_tara := nullif(p->>'tara_g','')::numeric;
-    if v_tara is not null and v_tara <= 0 then return jsonb_build_object('ok',false,'error','La tara debe ser mayor que cero'); end if;
-    if coalesce(p->>'codigo','') <> '' then
-      update caja_tipos set tara_g = coalesce(v_tara, tara_g), activo = coalesce((p->>'activo')::boolean, activo),
-        actualizado=now(), actualizado_por=v_usuario where codigo = p->>'codigo';
-      if not found then return jsonb_build_object('ok',false,'error','No existe el tipo'); end if;
-      v_tipo := p->>'codigo';
+    if v_tara is not null and v_tara <= 0 then return jsonb_build_object('ok',false,'error','El peso de la caja vacía debe ser mayor que cero'); end if;
+    v_tipo := upper(regexp_replace(btrim(coalesce(p->>'codigo','')),'\s','','g'));
+    if v_tipo = '' then return jsonb_build_object('ok',false,'error','Falta el código de la caja'); end if;
+    select to_jsonb(t) into x from caja_tipos t where codigo = v_tipo;
+    if x is not null then
+      update caja_tipos set
+        tara_g = coalesce(v_tara, tara_g),
+        tara_pesada_por = case when v_tara is not null then v_usuario else tara_pesada_por end,
+        tara_pesada_en = case when v_tara is not null then now() else tara_pesada_en end,
+        frecuente = coalesce((p->>'frecuente')::boolean, frecuente),
+        activo = coalesce((p->>'activo')::boolean, activo),
+        actualizado=now(), actualizado_por=v_usuario where codigo = v_tipo;
     else
-      if coalesce(btrim(p->>'medidas'),'')='' then return jsonb_build_object('ok',false,'error','Faltan las medidas'); end if;
-      if exists(select 1 from caja_tipos where caja_norm(medidas)=caja_norm(p->>'medidas')) then return jsonb_build_object('ok',false,'error','Esa medida ya existe'); end if;
-      v_tipo := 'TC-'||lpad(nextval('caja_seq_tipo')::text,3,'0');
-      insert into caja_tipos(codigo,medidas,tara_g,creado_por) values (v_tipo, upper(btrim(p->>'medidas')), v_tara, v_usuario);
+      if coalesce(btrim(p->>'descripcion'),'')='' then return jsonb_build_object('ok',false,'error','Código nuevo: escribe la descripción y las medidas'); end if;
+      insert into caja_tipos(codigo,descripcion,largo_cm,ancho_cm,alto_cm,tara_g,tara_pesada_por,tara_pesada_en,origen,creado_por)
+      values (v_tipo, upper(btrim(p->>'descripcion')), nullif(p->>'largo_cm','')::numeric, nullif(p->>'ancho_cm','')::numeric,
+              nullif(p->>'alto_cm','')::numeric, v_tara, case when v_tara is not null then v_usuario end,
+              case when v_tara is not null then now() end, 'MANUAL', v_usuario);
     end if;
-    insert into caja_eventos(accion,detalle,usuario) values ('TIPO_CAJA', jsonb_build_object('codigo',v_tipo,'tara_g',v_tara), v_usuario);
+    insert into caja_eventos(accion,detalle,usuario) values ('TIPO_CAJA',
+      jsonb_build_object('codigo',v_tipo,'tara_g',v_tara,'antes',x,'nuevo',x is null), v_usuario);
     return jsonb_build_object('ok',true,'codigo',v_tipo);
 
   elsif p_accion = 'guardar_parametro' then
