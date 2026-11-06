@@ -730,6 +730,9 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .video.on{display:flex}
 .video video{flex:1;width:100%;object-fit:cover}
 .video .marco{position:absolute;left:10%;right:10%;top:38%;height:22%;border:3px solid #3CF0B0;border-radius:14px;box-shadow:0 0 0 2000px rgba(0,0,0,.35)}
+.video .hud{position:absolute;top:0;left:0;right:0;padding:14px 16px;background:linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,0));color:#fff;display:flex;flex-direction:column;gap:4px}
+.video .hud b{font-size:24px}
+.video .hud span{font-size:16px}
 .video button{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:none;border-radius:12px;padding:14px 22px;font-weight:700;font-size:16px}
 .pie{display:flex;justify-content:center;margin-top:18px}
 </style>
@@ -764,7 +767,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
   <div class="pie"><button class="btn" id="btnQuien" type="button" style="display:none"></button></div>
 </div>
 <div class="flash" id="flash"></div>
-<div class="video" id="video"><video id="vid" playsinline muted></video><div class="marco"></div><button type="button" id="camCerrar">Cerrar cámara</button></div>
+<div class="video" id="video"><video id="vid" playsinline muted></video><div class="marco"></div><div class="hud"><b id="hudN"></b><span id="hudT">Acerca el hang tag al recuadro</span></div><button type="button" id="camCerrar">Terminar</button></div>
 
 <script>
 const SB='https://xxfufpddgoyhbotjmaiy.supabase.co';
@@ -894,6 +897,7 @@ function pintar(d){
   $('tInfo').textContent=('PACKING '+c.packing+' · '+[c.cliente,c.destino].filter(Boolean).join(' · ')).toUpperCase();
   $('tCaja').innerHTML='Caja '+c.numero+' <small>de '+c.total_cajas+'</small>';
   const req=d.lineas.reduce((a,l)=>a+l.cantidad,0), van=d.lineas.reduce((a,l)=>a+l.escaneadas,0);
+  if($('hudN')) $('hudN').textContent='Caja '+c.numero+' · '+van+' / '+req;
   $('anillo').innerHTML=anillo(req?van/req:0,200,16,van>=req?'#10B981':'#0F7A5A',van+'<span style="font-size:22px;color:var(--stone)"> /'+req+'</span>','prendas correctas',46);
   const varios=new Set(d.lineas.map(l=>l.estilo+'|'+l.color_cod)).size>1;
   $('tallas').innerHTML=d.lineas.map(l=>'<div class="talla'+(l.escaneadas>=l.cantidad?' ok':'')+'"><div class="f" style="height:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%"></div><b>'+esc(l.talla)+'</b><span>'+l.escaneadas+' / '+l.cantidad+'</span>'+(varios?'<em>'+esc(l.color_nombre||l.color_cod)+'</em>':'')+'</div>').join('');
@@ -902,10 +906,11 @@ function pintar(d){
       ({OK:'',SOBRA:'Sobra · ',NO_CORRESPONDE:'No corresponde · '}[s.resultado]||'')+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · ')||s.barcode)+(s.anulado?' <small>(quitada)</small>':'')+'</span><small>'+new Date(s.fecha).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false})+'</small>'+
       (PUEDE&&s.resultado==='OK'&&!s.anulado&&c.estado!=='CERRADA'?'<button class="btn" type="button" data-quitar="'+s.id+'">Quitar</button>':'')+'</div>').join(''):'<div class="vacio">Aún no hay prendas escaneadas en esta caja.</div>';
 }
+let PAUSA=false;
 function flash(cls,ico,t,s,ms,boton){
-  const f=$('flash'); f.className='flash on '+cls; f.innerHTML='<div class="ico">'+ico+'</div><h2>'+esc(t)+'</h2><p>'+esc(s||'')+'</p>'+(boton?'<button class="btn" type="button" id="flBtn">'+esc(boton)+'</button>':'');
+  const f=$('flash'); PAUSA=!!boton; f.className='flash on '+cls; f.innerHTML='<div class="ico">'+ico+'</div><h2>'+esc(t)+'</h2><p>'+esc(s||'')+'</p>'+(boton?'<button class="btn" type="button" id="flBtn">'+esc(boton)+'</button>':'');
   clearTimeout(f._t); if(ms) f._t=setTimeout(()=>{ f.className='flash'; $('inScan').focus(); },ms);
-  const b=$('flBtn'); if(b) b.onclick=()=>{ f.className='flash'; $('inScan').focus(); };
+  const b=$('flBtn'); if(b) b.onclick=()=>{ f.className='flash'; PAUSA=false; $('inScan').focus(); };
 }
 $('flash').addEventListener('click',e=>{ if(e.target.id!=='flBtn'&&$('flash').classList.contains('ok')){ $('flash').className='flash'; $('inScan').focus(); } });
 $('inScan').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=$('inScan').value; $('inScan').value=''; escanear(v); } });
@@ -915,16 +920,18 @@ async function escanear(v){
   OCUPADO=true;
   try{
     const r=await api('escanear',{caja_id:CAJA.caja.id,barcode:bc,token:token()});
-    if(!r.ok){ pitido(false); flash('mal','✖','No se registró',r.error||'',0,'Entendido'); return; }
-    if(r.resultado==='NUEVO'){ pitido(false); nuevoCodigo(bc,r.bloqueado); return; }
+    if(!r.ok){ pitido(false); flash('mal','✖','No se registró',r.error||'',0,'Entendido'); return 'ERR'; }
+    if(r.resultado==='NUEVO'){ pitido(false); nuevoCodigo(bc,r.bloqueado); return 'NUEVO'; }
     pintar(r);
     const cod=r.codigo||{}, t=[cod.estilo,cod.color_nombre||cod.color_cod,'talla '+cod.talla].filter(Boolean).join(' · ');
     if(r.resultado==='OK'){ pitido(true);
-      if(r.caja.estado==='ESCANEADA') flash('lista','✓','Caja completa','Ciérrala y llévala a la mesa de pesado.',0,'Entendido');
-      else flash('ok','✓','Correcta',t,650); }
-    else if(r.resultado==='SOBRA'){ pitido(false); flash('mal','✖','SOBRA','Retira esta prenda: la caja ya tiene todas las '+t,0,'Ya la retiré'); }
-    else if(r.resultado==='NO_CORRESPONDE'){ pitido(false); flash('mal','✖','NO CORRESPONDE',t+' no va en esta caja. Retírala.',0,'Ya la retiré'); }
-  }catch(e){ pitido(false); flash('mal','✖','No se registró','Vuelve a escanear la prenda. ('+e.message+')',0,'Entendido'); }
+      $('hudT').textContent='✓ '+t;
+      if(r.caja.estado==='ESCANEADA'){ flash('lista','✓','Caja completa','Ciérrala y llévala a la mesa de pesado.',0,'Entendido'); return 'LISTA'; }
+      else flash('ok','✓','Correcta',t,STREAM?450:650); return 'OK'; }
+    else if(r.resultado==='SOBRA'){ pitido(false); $('hudT').textContent='✖ Sobra: '+t; flash('mal','✖','SOBRA','Retira esta prenda: la caja ya tiene todas las '+t,0,'Ya la retiré'); }
+    else if(r.resultado==='NO_CORRESPONDE'){ pitido(false); $('hudT').textContent='✖ No corresponde: '+t; flash('mal','✖','NO CORRESPONDE',t+' no va en esta caja. Retírala.',0,'Ya la retiré'); }
+    return 'MAL';
+  }catch(e){ pitido(false); flash('mal','✖','No se registró','Vuelve a escanear la prenda. ('+e.message+')',0,'Entendido'); return 'ERR'; }
   finally{ OCUPADO=false; }
 }
 $('ult').addEventListener('click',async e=>{
@@ -959,23 +966,34 @@ $('nGuardar').addEventListener('click',async()=>{
     if(!r.ok) throw new Error(r.error);
     $('nuevo').style.display='none'; $('inScan').disabled=!PUEDE; pitido(true);
     flash('ok','✓','Código grabado','Ahora vuelve a escanear la prenda para contarla.',1600);
+    if(CAM_USO) setTimeout(abrirCam,1700);
   }catch(e){ alert('No se grabó: '+e.message); }
 });
-/* cámara (celular o PC con cámara, si el navegador lo permite) */
-let STREAM=null, DET=null;
-$('btnCam').addEventListener('click',async()=>{
+/* cámara continua (Android con Chrome): la cámara queda abierta y cada prenda se registra sola.
+   Prendas iguales tienen el mismo código: un código vuelve a contar solo cuando la cámara dejó de verlo
+   (se retiró esa prenda y se acercó la siguiente). Un error rojo pausa hasta «Ya la retiré». */
+let STREAM=null, DET=null, CAM_USO=false, VISTO=null, VISTO_T=0;
+async function abrirCam(){
   try{ DET=DET||new BarcodeDetector({formats:['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code']});
-    STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v=$('vid'); v.srcObject=STREAM; await v.play(); $('video').classList.add('on'); buscar();
+    STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    const v=$('vid'); v.srcObject=STREAM; await v.play(); $('video').classList.add('on'); CAM_USO=true; VISTO=null; buscar();
   }catch(e){ alert('No se pudo abrir la cámara: '+e.message); cerrarCam(); }
-});
+}
+$('btnCam').addEventListener('click',abrirCam);
 async function buscar(){
   if(!STREAM) return;
-  try{ const r=await DET.detect($('vid')); if(r&&r.length){ const v=r[0].rawValue; cerrarCam(); escanear(v); return; } }catch(e){}
-  setTimeout(buscar,250);
+  if(!PAUSA&&!OCUPADO&&$('nuevo').style.display==='none'){
+    let r=null; try{ r=await DET.detect($('vid')); }catch(e){}
+    const ahora=Date.now(), code=r&&r.length?r[0].rawValue:null;
+    if(!code){ if(VISTO&&ahora-VISTO_T>450) VISTO=null; }
+    else if(code===VISTO){ VISTO_T=ahora; }
+    else { VISTO=code; VISTO_T=ahora; const res=await escanear(code);
+      if(res==='NUEVO'||res==='LISTA'){ cerrarCam(res==='NUEVO'); return; } }
+  }
+  setTimeout(buscar,120);
 }
-function cerrarCam(){ if(STREAM){ STREAM.getTracks().forEach(t=>t.stop()); STREAM=null; } $('video').classList.remove('on'); }
-$('camCerrar').addEventListener('click',cerrarCam);
+function cerrarCam(seguir){ if(STREAM){ STREAM.getTracks().forEach(t=>t.stop()); STREAM=null; } $('video').classList.remove('on'); CAM_USO=!!seguir; }
+$('camCerrar').addEventListener('click',()=>cerrarCam(false));
 iniciar();
 </script>
 <!-- ===== lives-franja v6.2 (2026-10-27: pestañas ya no se meten en la barra al bajar y subir) · v6.1 · 2026-10-09 · sin franja de estado arriba y sin la palabra "Supabase" (común a todas las herramientas).
