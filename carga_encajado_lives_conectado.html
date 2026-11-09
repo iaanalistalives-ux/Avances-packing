@@ -702,6 +702,17 @@ padding:12px 16px;margin-top:18px;font-size:13px;}
 details.help summary{cursor:pointer;font-weight:700;color:var(--sage-dark);}
 details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
 
+.subin{font-family:inherit;font-size:13px;border:1px solid var(--warm);border-radius:8px;padding:8px 10px;min-height:44px;background:#fff;color:#333;}
+.subin[type=search]{flex:1;min-width:200px;max-width:340px;}
+.btn.subdel{background:var(--rose);border-color:var(--rose);color:#fff;}
+.btn.subdel[disabled]{background:#fff;color:var(--stone);border-color:var(--warm);}
+tr.subgr td{background:var(--warm-light);font-weight:700;color:var(--petrol);padding-top:10px;}
+tr.subgr button{font-family:inherit;font-size:11.5px;font-weight:700;color:var(--sage);background:none;border:0;cursor:pointer;text-decoration:underline;padding:4px 6px;}
+td.subck,th.subck{width:34px;text-align:center;}
+td.subck input{width:18px;height:18px;cursor:pointer;}
+.subnota{font-size:12px;color:var(--stone);margin-top:8px;}
+.subok{background:#E7F4EF;border:1px solid var(--sage);border-radius:8px;padding:10px 14px;color:var(--sage-dark);font-size:13px;margin-bottom:10px;}
+@media(max-width:600px){ .subin[type=search]{max-width:none;width:100%;} .subin{width:100%;} }
 @media(max-width:900px){ .wrap{padding:14px 14px 36px;} }
 @media(max-width:600px){
   body{font-size:13.5px;}
@@ -759,6 +770,21 @@ details.help p{color:var(--stone);margin:8px 0 0;max-width:130ch;}
     <div class="acciones" style="justify-content:center;margin-top:16px">
       <button class="btn" onclick="reiniciar()">Cargar otros archivos</button>
     </div>
+  </div>
+
+  <div class="panel" id="subPanel">
+    <div class="tira volumen"></div>
+    <div class="pt">Lo ya subido</div>
+    <div class="acciones" style="margin:0 0 10px">
+      <select id="subOp" class="subin" aria-label="OP"><option value="">Todas las OP</option></select>
+      <input id="subQ" class="subin" type="search" placeholder="Buscar PO, color, taller, archivo…" aria-label="Buscar">
+      <button class="btn" id="subQuitar" type="button">Quitar filtros</button>
+      <span class="spacer"></span>
+      <button class="btn subdel" id="subBorrar" type="button" style="display:none" disabled>Eliminar seleccionados</button>
+    </div>
+    <div class="err" id="subErr"></div>
+    <div id="subTabla"><div class="sm">Cargando…</div></div>
+    <div class="subnota" id="subNota"></div>
   </div>
 
   <details class="help">
@@ -1649,8 +1675,112 @@ function exito(cod, validos, prueba){
   $("revision").innerHTML="";
   $("drop").style.display="none";
   $("exito").style.display="block";
+  if(window.subCargar) subCargar();
   window.scrollTo({top:0,behavior:"smooth"});
 }
+
+/* ===== LO YA SUBIDO: tabla agrupada por OP con eliminar (solo Encajados) =====
+   La lista sale de encajado_cargas_lista (una fila por PO + color + OP). Eliminar llama a
+   encajado_borrar_avances, que guarda copia, borra el avance con su detalle y deja constancia
+   en el historial. Quién puede eliminar lo decide la base (encajado_puede_borrar). */
+var SUB={filas:[],puede:false,sel:{},ops:""};
+function subFecha(t){
+  if(!t) return "—"; var d=new Date(t); if(isNaN(d)) return "—";
+  try{ return d.toLocaleString("es-PE",{timeZone:"America/Lima",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}); }
+  catch(e){ return String(t).slice(0,16).replace("T"," "); }
+}
+function subEstatus(e){
+  e=String(e||"");
+  if(e==="APROBADO_CLIENTE") return '<span class="st exc">Aprobado</span>';
+  if(e==="RECHAZADO_CLIENTE") return '<span class="st ale">Rechazado</span>';
+  return '<span class="st low">Sin marcar</span>';
+}
+function subMsgErr(m){ var e=$("subErr"); e.textContent=m||""; e.style.display=m?"block":"none"; }
+function subCargar(){
+  $("subNota").textContent="";
+  Promise.all([ sbRpc("encajado_cargas_lista",{},45000), sbRpc("encajado_puede_borrar",{},15000).catch(function(){ return null; }) ])
+  .then(function(r){
+    SUB.filas=Array.isArray(r[0])?r[0]:[];
+    SUB.puede=!!(r[1]&&r[1].puede);
+    SUB.sel={};
+    var sel=$("subOp"), ant=sel.value, vistas={}, ops=[];
+    SUB.filas.forEach(function(f){ var o=String(f.op||""); if(!vistas[o]){ vistas[o]=1; ops.push(o); } });
+    ops.sort(function(a,b){ return (Number(b)||0)-(Number(a)||0) || (a<b?1:-1); });
+    sel.innerHTML='<option value="">Todas las OP</option>'+ops.map(function(o){
+      return '<option value="'+esc(o)+'">'+(o?"OP "+esc(o):"Sin OP")+'</option>'; }).join("");
+    if(ant && vistas[ant]) sel.value=ant;
+    subRender();
+  }).catch(function(e){
+    $("subTabla").innerHTML=""; subMsgErr("No se pudo cargar lo ya subido: "+(e&&e.message||e));
+  });
+}
+function subRender(){
+  subMsgErr("");
+  var op=$("subOp").value, q=$("subQ").value.trim().toLowerCase();
+  var hay=op||q, filas=SUB.filas.filter(function(f){
+    if(op && String(f.op||"")!==op) return false;
+    if(!q) return true;
+    return [f.po,f.color,f.grupo,f.estilo,f.op,f.talleres,f.archivos].join(" ").toLowerCase().indexOf(q)>=0;
+  });
+  var total=filas.length, recorte=false;
+  if(!hay && total>500){ filas=filas.slice(0,500); recorte=true; }
+  var orden=[], por={};
+  filas.forEach(function(f){ var o=String(f.op||""); if(!por[o]){ por[o]=[]; orden.push(o); } por[o].push(f); });
+  var cols=SUB.puede?8:7, h="";
+  if(!filas.length){ $("subTabla").innerHTML='<div class="sm">No hay avances con ese filtro.</div>'; subBoton(); $("subNota").textContent=""; return; }
+  h+='<table><thead><tr>'+(SUB.puede?'<th class="subck"></th>':'')+'<th>PO</th><th>Color</th><th>Taller</th><th>Archivo</th><th>Subido</th><th class="num">Listas / pedido</th><th>Estatus cliente</th></tr></thead><tbody>';
+  orden.forEach(function(o){
+    var g=por[o];
+    h+='<tr class="subgr"><td colspan="'+cols+'">'+(o?"OP "+esc(o):"Sin OP")+' · '+esc(g[0].grupo||"")+' · '+g.length+' avance'+(g.length===1?"":"s")+
+       (SUB.puede?' <button type="button" data-subop="'+esc(o)+'">Marcar todos</button>':'')+'</td></tr>';
+    g.forEach(function(f){
+      var p=(Number(f.pedido)>0)?Math.round(Number(f.lista||0)/Number(f.pedido)*1000)/10+"%":"";
+      h+='<tr>'+(SUB.puede?'<td class="subck"><input type="checkbox" data-subid="'+f.id+'"'+(SUB.sel[f.id]?" checked":"")+' aria-label="Elegir"></td>':'')+
+         '<td>'+esc(f.po)+'</td><td>'+esc(f.color)+'</td><td>'+esc(f.talleres||"")+'</td><td>'+esc(f.archivos||"")+'</td><td>'+subFecha(f.fecha_carga)+'</td>'+
+         '<td class="num">'+fmt(f.lista)+' / '+fmt(f.pedido)+(p?' · '+p:'')+'</td><td>'+subEstatus(f.estatus)+'</td></tr>';
+    });
+  });
+  h+='</tbody></table>';
+  $("subTabla").innerHTML=h; subBoton();
+  $("subNota").textContent=(recorte?"Se muestran los 500 registros más recientes de "+total+". Usa los filtros para ver los demás. ":"")+
+    (SUB.puede?"":"Solo el equipo de Encajados puede eliminar avances.");
+}
+function subBoton(){
+  var n=Object.keys(SUB.sel).length, b=$("subBorrar");
+  b.style.display=SUB.puede?"":"none"; b.disabled=!n; b.textContent=n?"Eliminar seleccionados ("+n+")":"Eliminar seleccionados";
+}
+function subBorrar(){
+  var ids=Object.keys(SUB.sel).map(Number); if(!ids.length) return;
+  var elegidos=SUB.filas.filter(function(f){ return SUB.sel[f.id]; });
+  var conEst=elegidos.filter(function(f){ return f.estatus; }).length;
+  var ops={}; elegidos.forEach(function(f){ ops[f.op||"sin OP"]=1; });
+  var msg="¿Eliminar "+ids.length+" avance"+(ids.length===1?"":"s")+" (OP "+Object.keys(ops).join(", ")+")?\n\n"+
+    elegidos.slice(0,12).map(function(f){ return "• "+f.po+" · "+f.color; }).join("\n")+(elegidos.length>12?"\n• … y "+(elegidos.length-12)+" más":"")+
+    "\n\nSe borran sus tallas y su carga."+(conEst?"\nOjo: "+conEst+" tiene"+(conEst===1?"":"n")+" estatus del cliente marcado y también se quita.":"");
+  if(!window.confirm(msg)) return;
+  var b=$("subBorrar"); b.disabled=true; b.textContent="Eliminando…"; subMsgErr("");
+  sbRpc("encajado_borrar_avances",{p_ids:ids,p_nombre:(window.LS_SESION&&window.LS_SESION.nombre)||null},60000).then(function(r){
+    if(!r||r.ok!==true){ subMsgErr((r&&r.error)||"No se pudo eliminar."); subBoton(); return; }
+    var n=(r.resultado||[]).filter(function(x){ return x.ok; }).length;
+    subCargar();
+    var d=document.createElement("div"); d.className="subok"; d.textContent="Se eliminaron "+n+" avance"+(n===1?"":"s")+".";
+    $("subTabla").parentNode.insertBefore(d,$("subTabla")); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },6000);
+  }).catch(function(e){ subMsgErr("No se pudo eliminar: "+(e&&e.message||e)); subBoton(); });
+}
+$("subOp").addEventListener("change",subRender);
+$("subQ").addEventListener("input",subRender);
+$("subQuitar").addEventListener("click",function(){ $("subOp").value=""; $("subQ").value=""; subRender(); });
+$("subBorrar").addEventListener("click",subBorrar);
+$("subTabla").addEventListener("click",function(e){
+  var t=e.target, o=t.getAttribute&&t.getAttribute("data-subop");
+  if(o!==null && o!==undefined && t.tagName==="BUTTON"){
+    var ids=SUB.filas.filter(function(f){ return String(f.op||"")===o; }), todos=ids.every(function(f){ return SUB.sel[f.id]; });
+    ids.forEach(function(f){ if(todos) delete SUB.sel[f.id]; else SUB.sel[f.id]=1; }); subRender(); return;
+  }
+  var id=t.getAttribute&&t.getAttribute("data-subid");
+  if(id){ if(t.checked) SUB.sel[id]=1; else delete SUB.sel[id]; subBoton(); }
+});
+subCargar();
 
 /* Arranque */
 if(!CFG.ENDPOINT) $("modoAviso").style.display="block";

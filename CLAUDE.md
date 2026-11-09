@@ -8,12 +8,14 @@ Avance de encajado por PO, color y talla, cruzado con las auditorías, y pedidos
 - `dashboard_avances_auditoria.html` — **dashboard** de solo lectura: filtros (cliente, grupo, estilo, PO, color, semana, mes, estado, estatus del cliente, fechas) y pestañas Estatus, Tendencia, Desgloses y Por Cliente. Cada fila abre el visor.
 - `estatus_cliente_lives.html` — **formulario de Calidad**: busca por OP (o cliente → grupo → estilo → PO → color) y marca APROBADO_CLIENTE o RECHAZADO_CLIENTE. Ya no se bloquea si la auditoría no está aprobada (decisión temporal de Datos e IA); solo avisa.
 - `carga_encajado_lives_conectado.html` — **carga** de los Excel "Avance Encajado" (uno o varios; hoja que contenga "ENCAJADO"; varios cuadros por taller). Muestra una revisión previa por PO y color y guarda en tramos de 25 filas; al volver a subir reemplaza color por color y OP por OP (el color se compara por su descripción; otra OP de la misma PO y color no se toca; los avances que quedan sin detalle, sin estatus del cliente, se quitan).
+- La pantalla de carga trae abajo la tabla **«Lo ya subido»** (desde el 09/11/2026): un avance por PO + color + OP, agrupado por OP, con filtro de OP y búsqueda (regla 500). Quien está en `encajado_quien_borra` (Encajados: gcateriano, gsotelo; también ctalepcio) puede marcar y «Eliminar seleccionados», aunque tengan estatus del cliente (el aviso lo dice). Lo demás solo ve.
 - `solicitudes_encajado_lives.html` — **bandeja de Encajados**: pedidos de las auditoras (Pendientes / Entregadas / Todas, últimos 120 días), agrupados por PO y color, con "Marcar entregada". Se recarga sola cada 60 s.
 - Ninguna pantalla habla ya con Google: la dirección vieja del Apps Script solo queda en el código como interruptor o sin uso.
 
 ## Base de datos (Supabase lives-datos)
 - Vistas: `publico_encajado_detalle` (visor, de `encajado_detalle`), `publico_encajado_dashboard` (dashboard, de `encajado_avances` y `auditorias`), `publico_encajado_avances` (estatus, de `encajado_avances`).
 - Leer: `encajado_auditorias_visor`, `encajado_estatus`, `encajado_auditorias_de`, `encajado_solicitudes_lista`, `encajado_resumen_po`, `encajado_previsualizar`.
+- Lo ya subido y eliminar (`registro_sql/EN01_encajado_eliminar_cargas.sql`): `encajado_cargas_lista` (lee), `encajado_puede_borrar`, `encajado_borrar_avances` (borra avance + detalle + cargas que queden vacías; copia en `encajado_borrados`, constancia ELIMINAR en `encajado_historial`). Para recuperar algo borrado: `encajado_borrados` guarda cada fila en jsonb por lote. A Sistemas: `encajado_puede_borrar` es la pieza que reemplazan con su seguridad.
 - Registrar:
   - Carga: `encajado_guardar_lote` (tablas `encajado_avances`, `encajado_detalle`, `encajado_cargas`, `encajado_lotes`, `encajado_historial`).
   - Estatus del cliente: `encajado_marcar_cliente` (`encajado_avances`, `encajado_historial`).
