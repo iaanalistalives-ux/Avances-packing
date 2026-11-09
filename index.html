@@ -829,44 +829,6 @@ padding:3px 10px;border-radius:20px;background:var(--warm-light);color:var(--sto
 .proc .pr{font-weight:700;}
 .proc.apr{background:#E7F4EF;color:var(--sage-dark);}
 .proc.rec{background:#FCEBEB;color:var(--rose);}
-/* ---- Solicitudes de prendas a Encajados ---- */
-.sol{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px dashed var(--warm);background:#fff;}
-.sol .sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.sol .cl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--stone);}
-.sol .sr{font-size:12.5px;color:#333;}
-.sol .sr b{color:var(--taupe);} .sol .sr .ent{color:var(--sage-dark);}
-.sol .sbtn{margin-left:auto;font-family:inherit;font-size:12.5px;font-weight:700;border-radius:8px;
-padding:7px 12px;cursor:pointer;border:1px solid var(--sage);background:var(--sage);color:#fff;min-height:36px;}
-.sol .sbtn:hover{background:var(--sage-dark);}
-.sol .sbtn[disabled]{background:var(--warm);border-color:var(--warm);color:var(--stone);cursor:not-allowed;}
-.sol .slist{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
-.sol .si{font-size:12px;color:var(--stone);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.sol .si .st{font-size:10.5px;}
-.sol .anu{background:none;border:none;color:var(--rose);font-family:inherit;font-size:12px;font-weight:700;
-cursor:pointer;text-decoration:underline;padding:0;}
-#solModal{position:fixed;inset:0;z-index:2000;background:rgba(14,59,54,.45);display:none;
-align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;}
-#solModal.ver{display:flex;}
-#solModal .caja{background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(14,59,54,.2);
-width:100%;max-width:520px;overflow:hidden;}
-#solModal .cab{background:var(--petrol);border-bottom:3px solid var(--emer);color:#fff;padding:14px 18px;}
-#solModal .cab .t{font-size:16px;font-weight:700;} #solModal .cab .s{font-size:12px;color:#B9CFC9;margin-top:2px;}
-#solModal .cuerpo{padding:16px 18px;}
-#solModal .tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;}
-#solModal label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
-color:var(--stone);margin-bottom:4px;}
-#solModal input,#solModal textarea{width:100%;min-height:44px;font-family:inherit;font-size:16px;
-border:1px solid var(--warm);border-radius:8px;padding:8px 10px;}
-#solModal input:focus,#solModal textarea:focus{outline:none;border-color:var(--sage);}
-#solModal .ref{font-size:11px;color:var(--stone);margin-top:3px;}
-#solModal .msg{font-size:13px;margin-top:12px;padding:10px 12px;border-radius:8px;display:none;}
-#solModal .msg.err{display:block;background:#FBE9E9;color:var(--rose);border:1px solid var(--rose);}
-#solModal .msg.ok{display:block;background:#E7F4EF;color:var(--sage-dark);}
-#solModal .pie{display:flex;gap:10px;justify-content:flex-end;padding:0 18px 16px;}
-#solModal .pie button{min-height:44px;font-family:inherit;font-size:14px;font-weight:700;border-radius:8px;
-padding:10px 18px;cursor:pointer;border:1px solid var(--warm);background:#fff;color:var(--sage);}
-#solModal .pie .pri{background:var(--sage);color:#fff;border-color:var(--sage);}
-#solModal .pie button[disabled]{opacity:.6;cursor:wait;}
 
 /* ---- Estatus del cliente ---- */
 .cli{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;
@@ -1618,7 +1580,6 @@ function cargarDesdeSheet(){
   /* Auditorías y estatus salen ya, sin esperar al avance. */
   pedirAuditorias();
   pedirEstatus();
-  pedirSolicitudes();
 
   jsonp({accion:"datosEncajado", forzar:AUD_FORZAR?1:0}, function(r){
     clearInterval(reloj);
@@ -2042,7 +2003,6 @@ function renderTarjetas(sku){
   sku.forEach(function(g){ if(g.pct!==null && g.pct>tope) tope=g.pct; });
   tope=Math.max(110, Math.ceil(tope/5)*5);
 
-  window.__ULTIMAS_TARJETAS = orden.map(function(k){ return m[k]; });   /* para "Solicitar prendas" */
   $("vistaTarjetas").innerHTML = orden.map(function(k){
     var b=m[k];
     b.tallas.sort(function(x,y){ return ordenTalla(x.talla)-ordenTalla(y.talla); });
@@ -2091,7 +2051,6 @@ function renderTarjetas(sku){
       '</div></div>'+
       '<div class="tchips">'+chips+'</div>'+
       bloqueAuditorias(b)+
-      bloqueSolicitudes(b)+
       '</div>';
   }).join("");
   animarBarras();
@@ -2127,159 +2086,6 @@ var AUD_ABIERTAS={};   /* qué historiales están desplegados, para no perderlos
 var AUD_TOPE=5;        /* cuántas se muestran antes de "ver todas" */
 
 
-/* ===== SOLICITUDES DE PRENDAS A ENCAJADOS (v23) =================================
-   La auditora pide, por talla, prendas de una PO y color. Encajados las ve en su
-   pantalla y las marca como entregadas. Todo vive en Supabase y exige la sesión
-   del portal: quién pide sale de la sesión, no de la página.
-   No hay respaldo en el Apps Script: si Supabase no responde, se avisa. */
-var SOLICITUDES=null;      /* null = cargando · {clave:[filas]} · {__error:"..."} */
-var SOL_DIAS=120;          /* se muestran las de los últimos 120 días */
-
-function pedirSolicitudes(){
-  SOLICITUDES=null;
-  sbRpc("encajado_solicitudes_lista",{p_estado:null,p_dias:SOL_DIAS}).then(function(r){
-    var m={};
-    ((r&&r.filas)||[]).forEach(function(f){ (m[f.clave]=m[f.clave]||[]).push(f); });
-    m.__usuario=(r&&r.usuario)||"";
-    SOLICITUDES=m;
-    if($("app").style.display!=="none") render();
-  }, function(e){
-    SOLICITUDES={__error:"no se pudieron traer las solicitudes"};
-    if($("app").style.display!=="none") render();
-  });
-}
-function sesionPortal(){
-  try{ return (window.LIVES_SESION && window.LIVES_SESION.actual()) || null; }catch(e){ return null; }
-}
-/* Agrupa las filas (una por talla) en solicitudes. */
-function agruparSolicitudes(filas){
-  var por={}, orden=[];
-  filas.forEach(function(f){
-    if(!por[f.solicitud]){ por[f.solicitud]={s:f, tallas:[]}; orden.push(f.solicitud); }
-    por[f.solicitud].tallas.push(f);
-  });
-  return orden.map(function(k){ return por[k]; });
-}
-function bloqueSolicitudes(b){
-  var clave=claveAud(b.grupo,b.estilo,b.po,b.color);
-  var ses=sesionPortal();
-  var boton = ses
-    ? '<button class="sbtn" onclick="abrirSolicitud(\''+esc(clave)+'\')">Solicitar prendas</button>'
-    : '<button class="sbtn" disabled title="Abre el visor desde el portal para solicitar">Solicitar prendas</button>';
-  if(SOLICITUDES===null)
-    return '<div class="sol"><div class="sh"><span class="cl">Solicitudes a Encajados</span>'+
-           '<span class="sr">consultando…</span>'+boton+'</div></div>';
-  if(SOLICITUDES.__error)
-    return '<div class="sol"><div class="sh"><span class="cl">Solicitudes a Encajados</span>'+
-           '<span class="sr">'+esc(SOLICITUDES.__error)+'</span>'+boton+'</div></div>';
-
-  var filas=SOLICITUDES[clave]||[];
-  var pend={}, entr={};
-  filas.forEach(function(f){
-    if(f.estado==="PENDIENTE") pend[f.talla]=(pend[f.talla]||0)+f.cantidad;
-    else if(f.estado==="ENTREGADA") entr[f.talla]=(entr[f.talla]||0)+f.cantidad;
-  });
-  var lista=function(o){ return Object.keys(o).sort(function(x,y){ return ordenTalla(x)-ordenTalla(y); })
-                           .map(function(t){ return t+" "+fmt(o[t]); }).join(" · "); };
-  var resumen = !filas.length ? 'Nada solicitado todavía.' :
-    ((Object.keys(pend).length?'Pendiente: <b>'+lista(pend)+'</b>':'Nada pendiente')+
-     (Object.keys(entr).length?' &nbsp;·&nbsp; <span class="ent">Entregado: '+lista(entr)+'</span>':''));
-
-  var yo=SOLICITUDES.__usuario;
-  var items=agruparSolicitudes(filas).map(function(g){
-    var s=g.s, cls=s.estado==="PENDIENTE"?"rev":(s.estado==="ENTREGADA"?"bue":"low");
-    var txt=s.estado==="PENDIENTE"?"Pendiente":(s.estado==="ENTREGADA"?"Entregada":"Anulada");
-    var tallas=g.tallas.slice().sort(function(x,y){ return ordenTalla(x.talla)-ordenTalla(y.talla); })
-                .map(function(t){ return t.talla+" "+fmt(t.cantidad); }).join(", ");
-    return '<div class="si"><span class="st '+cls+'">'+txt+'</span>'+
-      '<span>'+esc(s.creado)+' · '+esc(s.nombre)+' · '+esc(tallas)+'</span>'+
-      (s.nota?'<span>«'+esc(s.nota)+'»</span>':'')+
-      (s.estado!=="PENDIENTE"&&s.cambiado?'<span>'+(s.estado==="ENTREGADA"?"entregó ":"anuló ")+
-         esc(s.cambiadoPor||"")+' el '+esc(s.cambiado)+'</span>':'')+
-      (s.estado==="PENDIENTE"&&s.usuario===yo?
-         '<button class="anu" onclick="anularSolicitud(\''+esc(s.solicitud)+'\')">anular</button>':'')+
-      '<span style="opacity:.7">'+esc(s.solicitud)+'</span></div>';
-  }).join("");
-
-  return '<div class="sol"><div class="sh"><span class="cl">Solicitudes a Encajados</span>'+
-    '<span class="sr">'+resumen+'</span>'+boton+'</div>'+
-    (items?'<div class="slist">'+items+'</div>':'')+'</div>';
-}
-
-/* ---- Ventana para pedir ---- */
-var SOL_ACTUAL=null;   /* {b, token} — el token se conserva si hay que reintentar */
-function tarjetaPorClave(clave){
-  var res=null;
-  (window.__ULTIMAS_TARJETAS||[]).forEach(function(b){
-    if(claveAud(b.grupo,b.estilo,b.po,b.color)===clave) res=b; });
-  return res;
-}
-function abrirSolicitud(clave){
-  var b=tarjetaPorClave(clave); if(!b) return;
-  var m=$("solModal");
-  if(!m){ m=document.createElement("div"); m.id="solModal"; document.body.appendChild(m); }
-  var tallas=[], vistas={};
-  b.tallas.slice().sort(function(x,y){ return ordenTalla(x.talla)-ordenTalla(y.talla); })
-   .forEach(function(t){ if(!vistas[t.talla]){ vistas[t.talla]={enc:0,req:0}; tallas.push(t.talla); }
-                         vistas[t.talla].enc+=t.enc; });
-  SOL_ACTUAL={b:b, token:"s-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)};
-  m.innerHTML='<div class="caja"><div class="cab"><div class="t">Solicitar prendas a Encajados</div>'+
-    '<div class="s">'+esc(b.grupo)+' · '+esc(b.estilo)+' · PO '+esc(b.po)+' · '+
-      esc((b.codcolor?b.codcolor+" ":"")+b.color)+(b.op?' · OP '+esc(b.op):'')+'</div></div>'+
-    '<div class="cuerpo"><div style="font-size:13px;color:var(--stone);margin-bottom:12px">'+
-      'Escribe cuántas prendas necesitas de cada talla. Deja vacía la talla que no necesites.</div>'+
-    '<div class="tg">'+tallas.map(function(t,i){
-      return '<div><label for="solT'+i+'">Talla '+esc(t)+'</label>'+
-        '<input id="solT'+i+'" data-talla="'+esc(t)+'" type="number" inputmode="numeric" min="1" step="1" placeholder="0">'+
-        '<div class="ref">encajadas: '+fmt(vistas[t].enc)+'</div></div>'; }).join("")+'</div>'+
-    '<div style="margin-top:12px"><label for="solNota">Nota (opcional)</label>'+
-      '<textarea id="solNota" rows="2" maxlength="300" placeholder="Para qué la necesitas, a dónde llevarla…"></textarea></div>'+
-    '<div class="msg" id="solMsg"></div></div>'+
-    '<div class="pie"><button onclick="cerrarSolicitud()">Cancelar</button>'+
-      '<button class="pri" id="solEnviar" onclick="enviarSolicitud()">Enviar solicitud</button></div></div>';
-  m.classList.add("ver");
-  var p=m.querySelector("input"); if(p) p.focus();
-}
-function cerrarSolicitud(){ var m=$("solModal"); if(m) m.classList.remove("ver"); SOL_ACTUAL=null; }
-function enviarSolicitud(){
-  if(!SOL_ACTUAL) return;
-  var msg=$("solMsg"), btn=$("solEnviar");
-  var tallas=[], mal=false;
-  Array.prototype.forEach.call(document.querySelectorAll("#solModal input[data-talla]"), function(inp){
-    inp.style.borderColor="";
-    var v=inp.value.trim(); if(v==="") return;
-    if(!/^\d+$/.test(v)){ inp.style.borderColor="var(--rose)"; mal=true; return; }
-    if(Number(v)>0) tallas.push({talla:inp.getAttribute("data-talla"), cantidad:Number(v)});
-  });
-  if(mal){ msg.className="msg err"; msg.textContent="Escribe números enteros, sin decimales."; return; }
-  if(!tallas.length){ msg.className="msg err"; msg.textContent="Escribe al menos una cantidad mayor que cero."; return; }
-  var b=SOL_ACTUAL.b, ses=sesionPortal()||{};
-  btn.disabled=true; btn.textContent="Enviando…"; msg.className="msg";
-  sbRpc("encajado_solicitar",{p_token:SOL_ACTUAL.token, p_nombre:ses.nombre||ses.usuario||"",
-        p_grupo:b.grupo, p_estilo:b.estilo, p_po:b.po, p_color:b.color, p_op:b.op||"",
-        p_tallas:tallas, p_nota:($("solNota").value||"").trim()})
-  .then(function(r){
-    if(!r||!r.ok) throw new Error((r&&r.error)||"respuesta inesperada");
-    msg.className="msg ok";
-    msg.innerHTML="Solicitud enviada. Código: <b>"+esc(r.solicitud)+"</b>. Encajados ya la ve en su pantalla.";
-    btn.style.display="none";
-    document.querySelector("#solModal .pie button").textContent="Cerrar";
-    pedirSolicitudes();
-  }, function(e){
-    /* Lo escrito se queda. Al reintentar se usa el mismo token: no se duplica. */
-    btn.disabled=false; btn.textContent="Reintentar";
-    msg.className="msg err";
-    msg.textContent="No se pudo enviar ("+String(e&&e.message||e).replace(/^Supabase \d+: /,"").slice(0,160)+
-                    "). Lo que escribiste sigue aquí: pulsa Reintentar.";
-  });
-}
-function anularSolicitud(sol){
-  if(!confirm("¿Anular la solicitud "+sol+"? Encajados dejará de verla como pendiente.")) return;
-  var ses=sesionPortal()||{};
-  sbRpc("encajado_solicitud_estado",{p_solicitud:sol,p_estado:"ANULADA",p_nombre:ses.nombre||""})
-    .then(function(r){ if(r&&!r.ok) alert(r.error); pedirSolicitudes(); },
-          function(e){ alert("No se pudo anular: "+String(e&&e.message||e).slice(0,160)); });
-}
 
 function bloqueAuditorias(b){
   if(AUDITORIAS===null)
@@ -2547,7 +2353,7 @@ function exportarExcel(){
   XLSX.writeFile(wb,"avance_encajado_"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+".xlsx");
 }
 function recargar(){
-  AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={}; ESTATUS=null; SOLICITUDES=null;
+  AUDITORIAS=null; AUD_ESTADO=""; AUD_INFO=""; AUD_FORZAR=true; AUD_ABIERTAS={}; ESTATUS=null;
   mostrarErr(""); ULTIMA_CARGA=null;
   cargarDesdeSheet();
 }
