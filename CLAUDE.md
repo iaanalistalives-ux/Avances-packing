@@ -24,9 +24,8 @@ Avance de encajado por PO, color y talla, cruzado con las auditorías, y pedidos
 Según las entradas por el portal de los últimos 30 días al 21/10/2026: 8 personas (digitadoras de Acabados y de Calidad Manufactura, supervisores de planta y de calidad, gerencia).
 
 ## Quién puede registrar
-- Registra quien entra con su usuario del portal: el nombre de quien carga, marca o pide sale de la sesión. Sin sesión, el visor no deja pedir prendas ("Abre el visor desde el portal para solicitar").
-- Cada auditora anula solo sus propios pedidos pendientes.
-- A Sistemas: aquí va su control de roles (ver o registrar) para cargar, marcar estatus y atender pedidos.
+- Registra quien entra con su usuario del portal: el nombre de quien carga o marca sale de la sesión.
+- A Sistemas: aquí va su control de roles (ver o registrar) para cargar y marcar estatus.
 
 ## Pendientes vistos al escribir esto (21/10/2026)
 - `index.html` enlaza a `carga_encajado_lives_v7.html`, que ya no existe; el cargador actual es `carga_encajado_lives_conectado.html`.
