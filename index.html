@@ -3938,6 +3938,8 @@ window.addEventListener('load',iniciar);
 .lsTop>*{margin:0!important}
 .lsBarra>*{margin-top:0!important;margin-bottom:0!important}
 .lsBaFijo{position:sticky!important;top:0;z-index:30}
+/* v6.3 (10/11/2026): en celular (700 px o menos) las barras de filtros ya no se quedan fijas: suben con la página */
+@media (max-width:700px){.lsBaFijo,.lsBaMovil{position:static!important}}
 .lsBaSuelta{position:static!important}
 .lsPegada .lsAccBtn{display:none!important}
 button.lsBtn,a.lsBtn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #DCE5E2;background:#fff;color:#0F7A5A;min-height:36px;line-height:1.2;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:none}
@@ -3948,7 +3950,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
 }
 </style>
 <script id="lsBaJs">(function(){try{
-  /* v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+  /* v6.3 (10/11/2026): en celular (700 px o menos) la barra de filtros sube con la página, no queda fija. · v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
      Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
      entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
      las pestañas pasan a la barra de la vista que queda abierta.
@@ -3963,6 +3965,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
   var CTL='select,input:not([type=hidden]):not([type=file]):not([type=button]):not([type=submit])';
   var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,.lsSinBarra';
   var ALTO_FIJO=180;
+  function movil(){try{return window.matchMedia('(max-width:700px)').matches;}catch(e){return window.innerWidth<=700;}}
   function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
   function txt(e){return (e.textContent||'').replace(/\s+/g,' ').trim();}
   function limpio(t){return t.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]+/,'');}
@@ -4051,11 +4054,18 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
       if(alta){f.classList.remove('lsBaFijo');f.classList.remove('lsPegada');F=null;}
       else{
         if(getComputedStyle(f).position==='static'){poner(f,'lsBaFijo');var bg=getComputedStyle(f).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)'||bg==='transparent')f.style.backgroundColor=getComputedStyle(document.body).backgroundColor||'#F1F6F4';}
-        F=f;FIX=contScroll(f);}
+        F=f;FIX=contScroll(f);
+        if(movil()){f.classList.remove('lsPegada');F=null;}}
     }
     /* barras pegajosas que solo tienen botones (sin filtros): que suban con la página */
     Array.prototype.forEach.call(document.querySelectorAll(BARRA),function(b){if(b===f||!vis(b))return;var s=getComputedStyle(b).position;
       if((s==='sticky'||s==='fixed')&&!Array.prototype.some.call(b.querySelectorAll(CTL),vis)&&Array.prototype.some.call(b.querySelectorAll('button,a'),esAcc))poner(b,'lsBaSuelta');});
+    /* v6.3: las barras pegadas ARRIBA que traen filtros (casillas o listas) se sueltan en celular; el CSS lo aplica solo con 700 px o menos */
+    Array.prototype.forEach.call(document.querySelectorAll(BARRA+',.stick,.pegado,.fobar,.toolbar,[class*="stick"],[class*="pegad"]'),function(b){
+      if(!vis(b)||b.closest(FUERA)||b.classList.contains('lsBaMovil'))return;
+      var cs=getComputedStyle(b),p=cs.position;
+      if((p!=='sticky'&&p!=='fixed')||cs.top==='auto')return;
+      if(Array.prototype.some.call(b.querySelectorAll(CTL),vis))poner(b,'lsBaMovil');});
     pegada();
   }
   function pegada(){if(!F||!F.isConnected)return;var top=parseFloat(getComputedStyle(F).top)||0,base=FIX?FIX.getBoundingClientRect().top:0,desp=FIX?FIX.scrollTop:(window.scrollY||document.documentElement.scrollTop);
