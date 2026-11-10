@@ -955,7 +955,6 @@ transition:width .9s cubic-bezier(.2,.8,.2,1);}
 
     <div class="kpis" id="kpis"></div>
     <div class="aviso" id="avisoCorte" style="display:none"></div>
-    <div class="aviso" id="avisoOps" style="display:none"></div>
     <div class="note" id="resumenAud" style="display:none"></div>
     <div class="note" id="fuente"></div>
 
@@ -1888,28 +1887,7 @@ function render(){
       '<div class="s">prendas disponibles que aún no se han encajado</div>'+
     '</div></div>';
 
-  /* Filas que no cruzaron contra OPS o cruzaron con discrepancias. Se dice, en vez
-     de mostrar un tablero que parece completo cuando no lo está. */
-  var sinMatch = sku.filter(function(g){ return g.match==="SIN MATCH"; });
-  var conAvisos = sku.filter(function(g){ return g.match && g.match!=="SIN MATCH" && g.avisos; });
-  var av = $("avisoOps");
-  if(sinMatch.length || conAvisos.length){
-    var partes=[];
-    if(sinMatch.length){
-      var pos1={}; sinMatch.forEach(function(g){ pos1[g.po+" · "+g.color]=1; });
-      partes.push("<b>"+fmt(sinMatch.length)+" talla(s) no se encontraron en OPS</b> ("+
-        Object.keys(pos1).slice(0,4).map(esc).join(", ")+
-        (Object.keys(pos1).length>4?" y "+(Object.keys(pos1).length-4)+" más":"")+
-        "). Para esas, el grupo y el estilo son los que traía el Excel, sin verificar.");
-    }
-    if(conAvisos.length){
-      var textos={}; conAvisos.forEach(function(g){ textos[g.avisos]=1; });
-      partes.push("<b>"+fmt(conAvisos.length)+" talla(s) con diferencias entre el Excel y OPS.</b> "+
-        Object.keys(textos).slice(0,3).map(esc).join(" · ")+
-        ". Se muestra lo que dice OPS, que es la base de datos.");
-    }
-    av.innerHTML = partes.join("<br><br>"); av.style.display="block";
-  } else av.style.display="none";
+  /* Aviso de tallas sin cruce con OPS quitado (pedido de Christian, 10/11/2026). */
 
   /* Resumen de auditorías sobre lo que se está viendo */
   if(AUDITORIAS && !AUD_ESTADO){
