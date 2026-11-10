@@ -893,7 +893,7 @@ padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.22);}
         <option value="RECHAZADO_CLIENTE">Rechazado por Cliente</option>
         <option value="PENDIENTE">Pendiente</option>
       </select></div>
-      <div class="fgroup fsearch"><span class="flbl">Buscar</span><input type="text" id="f-search" placeholder="Grupo, estilo, PO, color..."></div>
+      <div class="fgroup fsearch"><span class="flbl">Buscar</span><input type="text" id="f-search" placeholder="Buscar estilo..."></div>
       <div class="fgroup"><span class="flbl">Cliente evaluó desde</span><input type="date" id="f-cli-desde"></div>
       <div class="fgroup"><span class="flbl">hasta</span><input type="date" id="f-cli-hasta"></div>
       <button class="btn" onclick="limpiarFiltros()">✕ Limpiar filtros</button>
@@ -1324,7 +1324,7 @@ function getFiltrados() {
     if (fsem && r.semana !== fsem) return false;
     if (fmes && r.mesKey !== fmes) return false;
     if (fs) {
-      const hay = `${r.grupo} ${r.estilo} ${r.po} ${r.color}`.toLowerCase();
+      const hay = `${r.estilo}`.toLowerCase();
       if (!hay.includes(fs)) return false;
     }
     if (fcliDesde || fcliHasta) {
