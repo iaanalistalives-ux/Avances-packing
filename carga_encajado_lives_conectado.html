@@ -2374,6 +2374,8 @@ button.lsTemaBtn .lsTemaTxt{display:none;font-size:13px;font-weight:700}
 .lsBaFijo{position:sticky!important;top:0;z-index:30}
 /* v6.3 (10/11/2026): en celular (700 px o menos) las barras de filtros ya no se quedan fijas: suben con la página */
 @media (max-width:700px){.lsBaFijo,.lsBaMovil{position:static!important}}
+/* v6.4 (10/11/2026): con mouse, las barras de filtros que se desplazan de lado muestran una manito y se arrastran */
+@media (hover:hover) and (pointer:fine){.lsArrastra{cursor:grab}.lsArrastra.lsArrastrando{cursor:grabbing;user-select:none;-webkit-user-select:none}.lsArrastra.lsArrastrando *{pointer-events:none}}
 .lsBaSuelta{position:static!important}
 .lsPegada .lsAccBtn{display:none!important}
 button.lsBtn,a.lsBtn{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #DCE5E2;background:#fff;color:#0F7A5A;min-height:36px;line-height:1.2;text-decoration:none;display:inline-flex;align-items:center;gap:6px;box-shadow:none}
@@ -2384,7 +2386,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
 }
 </style>
 <script id="lsBaJs">(function(){try{
-  /* v6.3 (10/11/2026): en celular (700 px o menos) la barra de filtros sube con la página, no queda fija. · v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
+  /* v6.4 (10/11/2026): con mouse, las barras de filtros que se desplazan de lado muestran una manito y se arrastran. · v6.3 (10/11/2026): en celular (700 px o menos) la barra de filtros sube con la página, no queda fija. · v6.2 · Botones de exportar, imprimir, actualizar y similares: van en la barra de filtros (no flotando arriba).
      Grupos de botones sueltos arriba (pestañas como "Mejoras / Reporte", "Volver", menús de vista) también
      entran a la barra de filtros; si la pantalla no tiene barra, se les crea una. Al cambiar de pestaña,
      las pestañas pasan a la barra de la vista que queda abierta.
@@ -2400,6 +2402,17 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
   var FUERA='dialog,[role=dialog],.modal,.ficha-card,.mbox,.ventana,#lsFrToast,#lsAct,#lsMud,.lsSinBarra';
   var ALTO_FIJO=180;
   function movil(){try{return window.matchMedia('(max-width:700px)').matches;}catch(e){return window.innerWidth<=700;}}
+  /* v6.4: barras de filtros (y grupos de pestañas o chips) que se desplazan de lado: con mouse se arrastran como con el dedo */
+  var ARR='.bar,.filtros,.filters,.fbar,.filterbar,.fbarra,.fpanel,.controles,.controls,.toolbar,.tabs,.chips,.pills,[class*="filtro"],[class*="filter"],[class*="tabs"],[class*="pills"]';
+  function arrastrable(el){if(el._lsArr)return;el._lsArr=1;var x0=0,s0=0,ar=false,mov=false;
+    el.addEventListener('mousedown',function(e){if(e.button!==0||!el.classList.contains('lsArrastra'))return;if(e.target.closest('input,select,textarea,option'))return;ar=true;mov=false;x0=e.clientX;s0=el.scrollLeft;});
+    window.addEventListener('mousemove',function(e){if(!ar)return;var dx=e.clientX-x0;if(!mov&&Math.abs(dx)>4){mov=true;el.classList.add('lsArrastrando');}if(mov){el.scrollLeft=s0-dx;e.preventDefault();}});
+    window.addEventListener('mouseup',function(){if(!ar)return;ar=false;el.classList.remove('lsArrastrando');if(mov)setTimeout(function(){mov=false;},0);});
+    el.addEventListener('click',function(e){if(mov){e.stopPropagation();e.preventDefault();}},true);}
+  function arrastre(){Array.prototype.forEach.call(document.querySelectorAll(ARR),function(el){
+    if(!vis(el)||el.closest('dialog,[role=dialog],.modal'))return;var cs=getComputedStyle(el),ox=cs.overflowX;
+    var si=(ox==='auto'||ox==='scroll')&&el.scrollWidth>el.clientWidth+2;
+    if(si){arrastrable(el);poner(el,'lsArrastra');}else if(el.classList.contains('lsArrastra'))el.classList.remove('lsArrastra');});}
   function vis(e){if(!e||!e.getBoundingClientRect)return false;var r=e.getBoundingClientRect();if(r.width<=0||r.height<=0)return false;var s=getComputedStyle(e);return s.visibility!=='hidden'&&s.display!=='none';}
   function txt(e){return (e.textContent||'').replace(/\s+/g,' ').trim();}
   function limpio(t){return t.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9]+/,'');}
@@ -2500,6 +2513,7 @@ button.lsBtn:disabled{opacity:.5;cursor:not-allowed}
       var cs=getComputedStyle(b),p=cs.position;
       if((p!=='sticky'&&p!=='fixed')||cs.top==='auto')return;
       if(Array.prototype.some.call(b.querySelectorAll(CTL),vis))poner(b,'lsBaMovil');});
+    try{arrastre();}catch(e){}
     pegada();
   }
   function pegada(){if(!F||!F.isConnected)return;var top=parseFloat(getComputedStyle(F).top)||0,base=FIX?FIX.getBoundingClientRect().top:0,desp=FIX?FIX.scrollTop:(window.scrollY||document.documentElement.scrollTop);
