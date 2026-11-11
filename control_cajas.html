@@ -732,8 +732,8 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .drop .big{font-size:16px;font-weight:700;margin-bottom:4px}
 .drop .sm{font-size:12.5px;color:var(--stone)}
 @media(max-width:1200px){.zona{grid-template-columns:1fr}.kp{grid-template-columns:repeat(2,1fr)}}
-/* en celular no se ofrece Descargar Excel (Christian, 11/11/2026) */
-@media(max-width:700px){#lsXlsBtn{display:none!important}}
+/* en celular no se ofrecen Descargar Excel ni Cargar packing: el packing se carga solo desde computadora (Christian, 11/11/2026) */
+@media(max-width:700px){#lsXlsBtn,#btnCargar{display:none!important}}
 @media(max-width:600px){
   .kp{gap:10px}.k{padding:12px}.k b{font-size:24px}.k .ic{width:38px;height:38px}
   .pks{grid-template-columns:1fr}
@@ -904,8 +904,8 @@ async function iniciar(){
   try{ INI=await api('inicio'); }catch(e){ INI=null; }
   const ok=prepararQuien($('btnQuien'));
   const b=$('btnCargar');
-  if(INI&&INI.puede&&ok){ b.disabled=false; }
-  else { b.disabled=true; b.title=!ok?'Primero toca Identificarme':(INI&&INI.supervision?'Modo supervisión: ves todo, no se guarda nada':'Solo para quien registra');
+  if(INI&&INI.puede){ b.disabled=false; b.title=ok?'':'Te pedirá identificarte antes de cargar'; }
+  else { b.disabled=true; b.title=(INI&&INI.supervision?'Modo supervisión: ves todo, no se guarda nada':'Solo para quien registra');
     if(INI&&!INI.puede){ b.lastChild.textContent='Solo para quien registra'; } }
   await cargar();
 }
@@ -937,7 +937,7 @@ function pintarCajas(filtro){
       '<span class="chip"><i style="background:var(--st-ce)"></i>'+ce+'/'+tot+' cajas</span>'+(p.por_pesar?'<span class="chip"><i style="background:var(--st-es)"></i>'+p.por_pesar+' por pesar</span>':'')+
       (p.observadas?'<span class="chip" style="color:var(--rose)"><i style="background:var(--st-ob)"></i>'+p.observadas+' observada'+(p.observadas>1?'s':'')+'</span>':'')+
       '<span class="chip">'+num(p.escaneadas)+'/'+num(p.requeridas)+' prendas</span>'+(p.estado!=='ABIERTO'?'<span class="chip">'+(p.estado==='ANULADO'?'Anulado':'Cerrado')+'</span>':'')+'</div></div></div>';}).join('');
-  const v=$('vPk'); v.style.display=VPK.length?'none':'block'; v.textContent=filtro?'Ningún packing coincide con el filtro.':'Aún no hay packings abiertos. Carga uno con «Cargar packing».';
+  const v=$('vPk'); v.style.display=VPK.length?'none':'block'; v.textContent=filtro?'Ningún packing coincide con el filtro.':(window.innerWidth<=700?'Aún no hay packings abiertos. Se cargan desde una computadora.':'Aún no hay packings abiertos. Carga uno con «Cargar packing».');
   const t=$('topePk'); if(!filtro&&VPK.length>500){ t.style.display='block'; t.textContent='Se muestran los 500 registros más recientes de '+num(VPK.length)+'. Usa los filtros para ver los demás.'; } else t.style.display='none';
   $('zona').style.display=SEL?'':'none';
   if(!SEL) return;
@@ -1102,7 +1102,7 @@ $('dCerrar').addEventListener('click',()=>cerrarDlg(false));
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('dlg').classList.contains('show')) cerrarDlg(false); else if($('modal').classList.contains('show')) cerrarPantalla(); });
 /* ---------------- carga del Excel de packing ---------------- */
 let CARGA=null;
-$('btnCargar').addEventListener('click',()=>{
+$('btnCargar').addEventListener('click',()=>{ if(!NOMBRE_PORTAL&&!USUARIO){ abrirQuien(); return; }
   CARGA=null;
   abrirDlg('Cargar packing','<label class="drop" id="drop"><input type="file" id="fArch" accept=".xlsx,.xls" style="display:none"><div class="big">Arrastra aquí el Excel «Relación de cajas packing list» o toca para elegirlo</div><div class="sm">El que sale del sistema (CajasProgramadas…xlsx).</div></label><div id="prev"></div>');
   const dr=$('drop'), fi=$('fArch');
