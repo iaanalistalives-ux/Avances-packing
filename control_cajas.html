@@ -734,6 +734,8 @@ td.n,th.n{text-align:right;white-space:nowrap}
 @media(max-width:1200px){.zona{grid-template-columns:1fr}.kp{grid-template-columns:repeat(2,1fr)}}
 /* en celular no se ofrecen Descargar Excel ni Cargar packing: el packing se carga solo desde computadora (Christian, 11/11/2026) */
 @media(max-width:700px){#lsXlsBtn,#btnCargar{display:none!important}}
+/* En celular solo se trabaja la vista Cajas: sin pestañas, sin Códigos ni Cajas vacías (11/11/2026) */
+@media(max-width:700px){#vistas,#v_codigos,#v_vacias{display:none!important}#v_cajas{display:block!important}}
 @media(max-width:600px){
   .kp{gap:10px}.k{padding:12px}.k b{font-size:24px}.k .ic{width:38px;height:38px}
   .pks{grid-template-columns:1fr}
