@@ -662,6 +662,10 @@ button{font-family:inherit}
 .mcaja iframe{flex:1;border:0;width:100%;background:var(--warm-light)}
 .dcuerpo{padding:16px 18px 20px;overflow:auto}
 body.modalAbierta{overflow:hidden}
+/* ventana del packing (11/11/2026): las cajas y el detalle ya no van debajo de las tarjetas */
+.mcaja.pkc{height:auto;max-height:96vh;max-width:1100px}
+.pkCuerpo{flex:1;overflow:auto;padding:16px 16px 4px;-webkit-overflow-scrolling:touch}
+@media(max-width:600px){.mcaja.pkc{height:100%;max-height:none;max-width:none}.pkCuerpo{padding:12px 12px 2px}}
 .fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
 .fila>*{flex:1 1 150px}
 .acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -779,14 +783,6 @@ td.n,th.n{text-align:right;white-space:nowrap}
     <div class="pks" id="pks"></div>
     <div class="vacio" id="vPk" style="display:none"></div>
     <div class="lsTope500" id="topePk" style="display:none"></div>
-    <div class="zona" id="zona">
-      <div class="panel"><h2 id="gTit"></h2>
-        <div class="leyenda"><span><i style="background:var(--st-pe)"></i>Sin empezar</span><span><i style="background:var(--st-pr)"></i>Escaneando</span><span><i style="background:var(--st-es)"></i>Por pesar</span><span><i style="background:var(--st-ob)"></i>Observada</span><span><i style="background:var(--st-ce)"></i>Cerrada</span></div>
-        <div class="cajas" id="cajas"></div>
-        <div class="acciones" id="pkAcc"></div>
-      </div>
-      <div class="panel det" id="det"></div>
-    </div>
   </section>
 
   <section class="vista" id="v_codigos">
@@ -805,6 +801,19 @@ td.n,th.n{text-align:right;white-space:nowrap}
   </section>
 </div>
 
+<div class="modal" id="pkWin"><div class="mcaja pkc">
+  <div class="mbar"><b id="pkTit"></b><button type="button" id="pkCerrar">✕ Cerrar</button></div>
+  <div class="pkCuerpo">
+    <div class="zona" id="zona">
+      <div class="panel"><h2 id="gTit"></h2>
+        <div class="leyenda"><span><i style="background:var(--st-pe)"></i>Sin empezar</span><span><i style="background:var(--st-pr)"></i>Escaneando</span><span><i style="background:var(--st-es)"></i>Por pesar</span><span><i style="background:var(--st-ob)"></i>Observada</span><span><i style="background:var(--st-ce)"></i>Cerrada</span></div>
+        <div class="cajas" id="cajas"></div>
+        <div class="acciones" id="pkAcc"></div>
+      </div>
+      <div class="panel det" id="det"></div>
+    </div>
+  </div>
+</div></div>
 <div class="modal" id="modal"><div class="mcaja">
   <div class="mbar"><b id="mTit"></b><button type="button" id="mCerrar">✕ Cerrar</button></div>
   <iframe id="mFrame" title="Control de Cajas"></iframe>
@@ -900,7 +909,8 @@ const ICO={
   cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>'
 };
 
-let INI=null, T=null, VISTA='cajas', SEL=null, CSEL=null, VPK=[], VCJ=[], VCOD=[];
+let INI=null, T=null, VISTA='cajas', SEL=null, CSEL=null, VPK=[], VCJ=[], VCOD=[], PKAB=false, PANT=false, FILTRO=false;
+const sincBody=()=>document.body.classList.toggle('modalAbierta',!!document.querySelector('.modal.show'));
 const PUEDE=()=>!!(INI&&INI.puede)&&!!(NOMBRE_PORTAL||USUARIO);
 async function iniciar(){
   try{ INI=await api('inicio'); }catch(e){ INI=null; }
@@ -924,8 +934,8 @@ function pintar(){
   const ids=new Set(VPK.map(p=>p.id));
   VCJ=(T.cajas||[]).filter(c=>ids.has(c.packing_id));
   VCOD=(T.codigos||[]).filter(c=>!q||norm([c.barcode,c.estilo,c.color_cod,c.color_nombre,c.talla].join(' ')).includes(q));
-  if(!SEL||!ids.has(SEL)){ SEL=VPK.length?VPK[0].id:null; CSEL=null; }
-  pintarCajas(filtro); pintarCodigos(q); pintarVacias(q);
+  if(!SEL||!ids.has(SEL)){ SEL=null; CSEL=null; PKAB=false; }
+  FILTRO=filtro; pintarCajas(filtro); pintarCodigos(q); pintarVacias(q);
 }
 /* ---------------- vista Cajas ---------------- */
 function pintarCajas(filtro){
@@ -934,17 +944,19 @@ function pintarCajas(filtro){
   $('kp').innerHTML=kp(n('CERRADA'),'Cajas cerradas','ok','var(--sage)')+kp(n('ESCANEADA'),'Por pesar','pesa','var(--tan)')+kp(n('OBSERVADA'),'Observadas','alerta','var(--rose)')+kp(n('EN_PROCESO'),'Escaneando','scan','var(--blue)');
   const L=filtro?VPK:VPK.slice(0,500);
   $('pks').innerHTML=L.map(p=>{const tot=p.cajas||0, ce=p.cerradas||0;
-    return '<div class="pk'+(p.id===SEL?' act':'')+'" data-pk="'+esc(p.id)+'"><span class="cli">'+esc(p.cliente||'')+'</span>'+anillo(tot?ce/tot:0,78,9,'#0F7A5A',(tot?Math.round(ce/tot*100):0)+'%','cerradas')+
+    return '<div class="pk'+(PKAB&&p.id===SEL?' act':'')+'" data-pk="'+esc(p.id)+'"><span class="cli">'+esc(p.cliente||'')+'</span>'+anillo(tot?ce/tot:0,78,9,'#0F7A5A',(tot?Math.round(ce/tot*100):0)+'%','cerradas')+
       '<div style="min-width:0"><h3>'+esc(p.packing)+'</h3><div class="sub">'+esc([p.grupo,p.destino,p.po?'PO '+p.po:''].filter(Boolean).join(' · '))+'</div><div class="chips">'+
       '<span class="chip"><i style="background:var(--st-ce)"></i>'+ce+'/'+tot+' cajas</span>'+(p.por_pesar?'<span class="chip"><i style="background:var(--st-es)"></i>'+p.por_pesar+' por pesar</span>':'')+
       (p.observadas?'<span class="chip" style="color:var(--rose)"><i style="background:var(--st-ob)"></i>'+p.observadas+' observada'+(p.observadas>1?'s':'')+'</span>':'')+
       '<span class="chip">'+num(p.escaneadas)+'/'+num(p.requeridas)+' prendas</span>'+(p.estado!=='ABIERTO'?'<span class="chip">'+(p.estado==='ANULADO'?'Anulado':'Cerrado')+'</span>':'')+'</div></div></div>';}).join('');
   const v=$('vPk'); v.style.display=VPK.length?'none':'block'; v.textContent=filtro?'Ningún packing coincide con el filtro.':(window.innerWidth<=700?'Aún no hay packings abiertos. Se cargan desde una computadora.':'Aún no hay packings abiertos. Carga uno con «Cargar packing».');
   const t=$('topePk'); if(!filtro&&VPK.length>500){ t.style.display='block'; t.textContent='Se muestran los 500 registros más recientes de '+num(VPK.length)+'. Usa los filtros para ver los demás.'; } else t.style.display='none';
-  $('zona').style.display=SEL?'':'none';
-  if(!SEL) return;
+  const ab=PKAB&&!!SEL;
+  $('pkWin').classList.toggle('show',ab&&!PANT); sincBody();
+  if(!ab) return;
   const p=VPK.find(x=>x.id===SEL), cs=VCJ.filter(c=>c.packing_id===SEL).sort((a,b)=>a.numero-b.numero);
-  $('gTit').innerHTML='Packing '+esc(p.packing)+' <small>· '+cs.length+' cajas · '+esc(p.cliente||'')+(p.peso_bruto_kg!=null?' · bruto declarado '+num(p.peso_bruto_kg,2)+' kg':'')+(p.peso_real_kg!=null?' · pesado '+num(p.peso_real_kg,2)+' kg':'')+'</small>';
+  $('pkTit').textContent='Packing '+p.packing;
+  $('gTit').innerHTML='<small>'+cs.length+' cajas · '+esc(p.cliente||'')+(p.peso_bruto_kg!=null?' · bruto declarado '+num(p.peso_bruto_kg,2)+' kg':'')+(p.peso_real_kg!=null?' · pesado '+num(p.peso_real_kg,2)+' kg':'')+'</small>';
   $('cajas').innerHTML=cs.map(c=>'<button type="button" class="cj '+c.estado+(c.id===CSEL?' sel':'')+'" data-cj="'+esc(c.id)+'" title="'+esc((EST[c.estado]||['',''])[1])+'"><span class="lleno" style="height:'+(c.estado==='EN_PROCESO'&&c.requeridas?Math.round(c.escaneadas/c.requeridas*100):0)+'%"></span><span>'+c.numero+'</span><small>'+c.escaneadas+'/'+c.requeridas+'</small></button>').join('');
   $('pkAcc').innerHTML=(PUEDE()&&p.estado==='ABIERTO'&&!p.escaneadas?'<button class="btn peligro" type="button" id="btnAnularPk">Anular packing</button>':'');
   const an=$('btnAnularPk'); if(an) an.onclick=()=>anularPacking(p);
@@ -979,7 +991,9 @@ async function verCaja(id){
       try{ const r=await api('reabrir',{caja_id:c.id,motivo:m}); if(!r.ok) throw new Error(r.error); await cargar(); }catch(err){ alert('No se reabrió: '+err.message); } }
   });
 }
-$('pks').addEventListener('click',e=>{ const t=e.target.closest('.pk'); if(t){ SEL=t.dataset.pk; CSEL=null; pintarCajas(true); } });
+$('pks').addEventListener('click',e=>{ const t=e.target.closest('.pk'); if(t){ SEL=t.dataset.pk; CSEL=null; PKAB=true; $('det').innerHTML=''; pintarCajas(FILTRO); const c=document.querySelector('.pkCuerpo'); if(c) c.scrollTop=0; } });
+function cerrarPk(){ PKAB=false; $('pkWin').classList.remove('show'); document.querySelectorAll('.pk.act').forEach(x=>x.classList.remove('act')); sincBody(); }
+$('pkCerrar').addEventListener('click',cerrarPk);
 $('cajas').addEventListener('click',e=>{ const t=e.target.closest('.cj'); if(!t) return; CSEL=t.dataset.cj; document.querySelectorAll('.cj').forEach(x=>x.classList.toggle('sel',x===t)); verCaja(CSEL).then(()=>{ if(window.innerWidth<=1200){ const d=$('det').getBoundingClientRect(); if(d.bottom>window.innerHeight) $('det').scrollIntoView({behavior:'smooth',block:'end'}); } }); });
 async function anularPacking(p){
   const m=prompt('Motivo para anular el packing '+p.packing+' (por ejemplo: se cargó un archivo equivocado):'); if(!m) return;
@@ -1093,25 +1107,25 @@ let M_REFRESCAR=false;
 function abrirPantalla(arch,tit,extra){
   const u=new URL(arch,location.href); u.searchParams.set('modal','1'); if(NOMBRE_PORTAL) u.searchParams.set('usuario',NOMBRE_PORTAL);
   Object.entries(extra||{}).forEach(([k,v])=>u.searchParams.set(k,v));
-  $('mTit').textContent=tit; $('mFrame').src=u.toString(); $('modal').classList.add('show'); document.body.classList.add('modalAbierta'); M_REFRESCAR=true;
+  $('mTit').textContent=tit; $('mFrame').src=u.toString(); PANT=true; $('pkWin').classList.remove('show'); $('modal').classList.add('show'); sincBody(); M_REFRESCAR=true;
 }
-function cerrarPantalla(){ $('modal').classList.remove('show'); document.body.classList.remove('modalAbierta'); $('mFrame').src='about:blank'; if(M_REFRESCAR){ M_REFRESCAR=false; cargar(); } }
+function cerrarPantalla(){ $('modal').classList.remove('show'); PANT=false; if(PKAB&&SEL) $('pkWin').classList.add('show'); sincBody(); $('mFrame').src='about:blank'; if(M_REFRESCAR){ M_REFRESCAR=false; cargar(); } }
 $('mCerrar').addEventListener('click',cerrarPantalla);
 let D_SUCIO=false;
-function abrirDlg(tit,html){ $('dTit').textContent=tit; $('dCuerpo').innerHTML=html; $('dlg').classList.add('show'); document.body.classList.add('modalAbierta'); D_SUCIO=false; }
-function cerrarDlg(forzar){ if(!forzar&&D_SUCIO&&!confirm('¿Salir sin guardar?')) return; $('dlg').classList.remove('show'); document.body.classList.remove('modalAbierta'); $('dCuerpo').innerHTML=''; D_SUCIO=false; }
+function abrirDlg(tit,html){ $('dTit').textContent=tit; $('dCuerpo').innerHTML=html; $('dlg').classList.add('show'); sincBody(); D_SUCIO=false; }
+function cerrarDlg(forzar){ if(!forzar&&D_SUCIO&&!confirm('¿Salir sin guardar?')) return; $('dlg').classList.remove('show'); sincBody(); $('dCuerpo').innerHTML=''; D_SUCIO=false; }
 $('dCerrar').addEventListener('click',()=>cerrarDlg(false));
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('dlg').classList.contains('show')) cerrarDlg(false); else if($('modal').classList.contains('show')) cerrarPantalla(); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if($('dlg').classList.contains('show')) cerrarDlg(false); else if($('modal').classList.contains('show')) cerrarPantalla(); else if($('pkWin').classList.contains('show')) cerrarPk(); });
 /* ---------------- carga del Excel de packing ---------------- */
-let CARGA=null;
+let CARGA=[];
 $('btnCargar').addEventListener('click',()=>{ if(!NOMBRE_PORTAL&&!USUARIO){ abrirQuien(); return; }
-  CARGA=null;
-  abrirDlg('Cargar packing','<label class="drop" id="drop"><input type="file" id="fArch" accept=".xlsx,.xls" style="display:none"><div class="big">Arrastra aquí el Excel «Relación de cajas packing list» o toca para elegirlo</div><div class="sm">El que sale del sistema (CajasProgramadas…xlsx).</div></label><div id="prev"></div>');
+  CARGA=[];
+  abrirDlg('Cargar packing','<label class="drop" id="drop"><input type="file" id="fArch" accept=".xlsx,.xls" multiple style="display:none"><div class="big">Arrastra aquí los Excel «Relación de cajas packing list» o toca para elegirlos</div><div class="sm">Los que salen del sistema (CajasProgramadas…xlsx). Puedes elegir varios a la vez.</div></label><div id="prev"></div>');
   const dr=$('drop'), fi=$('fArch');
-  fi.addEventListener('change',()=>{ if(fi.files[0]) leerArchivo(fi.files[0]); });
+  fi.addEventListener('change',()=>{ if(fi.files.length) leerArchivos(fi.files); fi.value=''; });
   dr.addEventListener('dragover',e=>{ e.preventDefault(); dr.classList.add('over'); });
   dr.addEventListener('dragleave',()=>dr.classList.remove('over'));
-  dr.addEventListener('drop',e=>{ e.preventDefault(); dr.classList.remove('over'); if(e.dataTransfer.files[0]) leerArchivo(e.dataTransfer.files[0]); });
+  dr.addEventListener('drop',e=>{ e.preventDefault(); dr.classList.remove('over'); if(e.dataTransfer.files.length) leerArchivos(e.dataTransfer.files); });
 });
 function txt(v){ return v==null?'':String(v).trim(); }
 function leerPacking(wb,nombre){
@@ -1161,33 +1175,62 @@ function leerPacking(wb,nombre){
     _prendas:lista.reduce((a,c)=>a+c.lineas.reduce((x,l)=>x+l.cantidad,0),0),_totGen:totGen,_difs:difs,_medidas:unicas,_sinMed:lista.filter(c=>!c.medidas).length};
 }
 
-function leerArchivo(f){
-  const rd=new FileReader();
-  rd.onload=()=>{
-    try{ CARGA=leerPacking(XLSX.read(new Uint8Array(rd.result),{type:'array'}),f.name); }
-    catch(e){ $('prev').innerHTML='<div class="errBox" style="display:block;margin-top:10px">'+esc(e.message)+'</div>'; return; }
-    D_SUCIO=true; const c=CARGA, sumG=Object.values(c._totGen).reduce((a,b)=>a+b,0);
-    const dato=(l,v)=>'<div><span class="chip">'+l+'</span><div style="font-size:18px;font-weight:800;margin-top:4px">'+v+'</div></div>';
-    $('prev').innerHTML='<div class="panel" style="margin-top:12px">'+
+/* uno o varios archivos: cada uno es un packing; se revisan todos y se guardan uno tras otro */
+const pkListo=x=>!x.error&&!x.dup&&!x.c._difs.length&&!!x.c.packing&&!!x.c.cajas.length;
+function leerArchivos(fs){
+  const L=[...fs]; if(!L.length) return;
+  $('prev').innerHTML='<div class="aviso" style="margin-top:12px">Leyendo '+(L.length>1?num(L.length)+' archivos':'el archivo')+'…</div>';
+  Promise.all(L.map(f=>new Promise(res=>{
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ res({archivo:f.name,c:leerPacking(XLSX.read(new Uint8Array(rd.result),{type:'array'}),f.name)}); }catch(e){ res({archivo:f.name,error:e.message}); } };
+    rd.onerror=()=>res({archivo:f.name,error:'No se pudo leer el archivo.'});
+    rd.readAsArrayBuffer(f);
+  }))).then(R=>{
+    const vistos=new Set();
+    R.forEach(x=>{ if(x.error||!x.c.packing) return; if(vistos.has(x.c.packing)) x.dup=true; else vistos.add(x.c.packing); });
+    CARGA=R; D_SUCIO=true; pintarCarga();
+  });
+}
+function pintarCarga(){
+  const dato=(l,v)=>'<div><span class="chip">'+l+'</span><div style="font-size:18px;font-weight:800;margin-top:4px">'+v+'</div></div>';
+  const varios=CARGA.length>1, ok=CARGA.filter(pkListo), mal=CARGA.length-ok.length;
+  const tarjeta=(x,i)=>{
+    const arch=varios?'<div style="font-size:12px;color:var(--stone);margin-bottom:6px;word-break:break-all">'+esc(x.archivo)+'</div>':'';
+    if(x.error) return '<div class="panel" style="margin-top:12px">'+arch+'<div class="errBox" style="display:block">'+esc(x.error)+'</div></div>';
+    const c=x.c, sumG=Object.values(c._totGen).reduce((a,b)=>a+b,0);
+    return '<div class="panel" style="margin-top:12px">'+arch+
       '<div class="fila">'+dato('Packing',esc(c.packing||'¿?'))+dato('Cliente',esc(c.cliente))+dato('Destino',esc(c.destino))+'</div>'+
       '<div class="fila">'+dato('Cajas',num(c.cajas.length))+dato('Prendas',num(c._prendas))+dato('Neto / bruto',c.peso_neto_kg!=null?num(c.peso_neto_kg,2)+' / '+num(c.peso_bruto_kg,2)+' kg':'—')+'</div>'+
       '<div style="font-size:13px;color:var(--stone)">'+esc([c.grupo,c.po?'PO '+c.po:'',c._medidas.length?'caja '+c._medidas.join(' · '):''].filter(Boolean).join(' · '))+'</div>'+
+      (x.dup?'<div class="errBox" style="display:block;margin-top:10px">El packing '+esc(c.packing)+' está repetido en los archivos elegidos: este no se guarda.</div>':'')+
+      (!c.packing?'<div class="errBox" style="display:block;margin-top:10px">No encontré el número de packing en el archivo.</div>':'')+
       (c._difs.length?'<div class="errBox" style="display:block;margin-top:10px">Las tallas no suman igual que el «Total general» ('+esc(c._difs.join(', '))+'). Revisa el archivo.</div>':(sumG?'<div class="okBox">✓ Las tallas cuadran con el «Total general» del archivo ('+num(sumG)+' prendas).</div>':''))+
       (c.peso_neto_kg!=null&&c.peso_neto_kg===c.peso_bruto_kg?'<div class="aviso">El archivo declara el mismo neto y bruto ('+num(c.peso_neto_kg,2)+' kg): el bruto debería incluir el peso de las cajas vacías.</div>':'')+
       (c._sinMed?'<div class="aviso">'+num(c._sinMed)+' cajas sin medida: el código de caja se elegirá al pesarlas.</div>':'')+
-      '<div class="acciones"><button class="btn pri" type="button" id="btnGuardarPk"'+(c._difs.length||!c.packing||!c.cajas.length?' disabled':'')+'>Guardar packing</button></div><div id="resPk"></div></div>';
-    $('btnGuardarPk').onclick=guardarPacking;
+      '<div id="resPk'+i+'"></div></div>';
   };
-  rd.readAsArrayBuffer(f);
+  const rotulo=ok.length>1?'Guardar los '+num(ok.length)+' packings':'Guardar packing';
+  $('prev').innerHTML=
+    (varios?'<div class="fila" style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);align-items:start">'+dato('Archivos',num(CARGA.length))+dato('Listos para guardar',num(ok.length))+dato('Cajas',num(ok.reduce((a,x)=>a+x.c.cajas.length,0)))+dato('Prendas',num(ok.reduce((a,x)=>a+x.c._prendas,0)))+'</div>':'')+
+    CARGA.map(tarjeta).join('')+
+    (varios&&mal&&ok.length?'<div class="aviso">'+num(mal)+(mal>1?' archivos tienen':' archivo tiene')+' un problema y no se '+(mal>1?'guardarán':'guardará')+'. Los demás sí.</div>':'')+
+    '<div class="acciones"><button class="btn pri" type="button" id="btnGuardarPk" data-rot="'+esc(rotulo)+'"'+(ok.length?'':' disabled')+'>'+esc(rotulo)+'</button></div>';
+  $('btnGuardarPk').onclick=guardarPacking;
 }
 async function guardarPacking(){
-  const b=$('btnGuardarPk'); b.disabled=true; b.textContent='Guardando…';
-  const p=Object.assign({},CARGA); Object.keys(p).filter(k=>k[0]==='_').forEach(k=>delete p[k]);
-  try{ const r=await api('guardar_packing',p); if(!r.ok) throw new Error(r.error);
-    D_SUCIO=false; const tipos=Object.entries(r.tipos||{}).map(([k,v])=>(k==='?'?'sin reconocer':k)+': '+v).join(' · ');
-    $('resPk').innerHTML='<div class="okBox">Packing '+esc(CARGA.packing)+' cargado: '+num(r.cajas)+' cajas y '+num(r.prendas)+' prendas. Código de caja: '+esc(tipos)+'.</div>';
-    b.textContent='Guardado'; SEL=r.id; await cargar();
-  }catch(e){ $('resPk').innerHTML='<div class="errBox" style="display:block">No se guardó: '+esc(e.message)+'</div>'; b.disabled=false; b.textContent='Guardar packing'; }
+  const b=$('btnGuardarPk'), pend=CARGA.map((x,i)=>[x,i]).filter(([x])=>pkListo(x)&&!x.guardado); if(!pend.length) return;
+  b.disabled=true; let n=0, fallas=0, ult=null;
+  for(const [x,i] of pend){
+    b.textContent=pend.length>1?'Guardando '+(++n)+' de '+pend.length+'…':'Guardando…';
+    const p=Object.assign({},x.c); Object.keys(p).filter(k=>k[0]==='_').forEach(k=>delete p[k]);
+    try{ const r=await api('guardar_packing',p); if(!r.ok) throw new Error(r.error);
+      x.guardado=true; ult=r.id; const tipos=Object.entries(r.tipos||{}).map(([k,v])=>(k==='?'?'sin reconocer':k)+': '+v).join(' · ');
+      $('resPk'+i).innerHTML='<div class="okBox">Packing '+esc(x.c.packing)+' cargado: '+num(r.cajas)+' cajas y '+num(r.prendas)+' prendas. Código de caja: '+esc(tipos)+'.</div>';
+    }catch(e){ fallas++; $('resPk'+i).innerHTML='<div class="errBox" style="display:block">No se guardó: '+esc(e.message)+'</div>'; }
+  }
+  if(fallas){ b.disabled=false; b.textContent=fallas>1?'Reintentar los '+fallas+' que fallaron':(pend.length>1?'Reintentar el que falló':b.dataset.rot); }
+  else { D_SUCIO=false; b.textContent='Guardado'; }
+  if(ult){ SEL=ult; await cargar(); }
 }
 /* ---------------- Excel LIVES ---------------- */
 window.LS_XLS={
