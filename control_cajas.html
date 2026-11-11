@@ -628,6 +628,7 @@ button{font-family:inherit}
 .btn:hover{border-color:var(--sage);transform:translateY(-1px)}
 .btn.pri{background:var(--sage);color:#fff;border-color:var(--sage);box-shadow:0 4px 12px rgba(15,122,90,.28)}
 .btn.pri:hover{background:var(--sage-dark)}
+.btn.grande{flex:1 1 100%;min-height:56px;font-size:16.5px;border-radius:14px}.btn.grande svg{width:22px;height:22px}
 .btn.peligro{color:var(--rose)}
 .btn:disabled{background:#E5E9E8;color:#8A9893;border-color:#E5E9E8;cursor:not-allowed;box-shadow:none;transform:none}
 .btn svg{width:18px;height:18px;flex:none}
@@ -763,8 +764,6 @@ td.n,th.n{text-align:right;white-space:nowrap}
     <select id="fEst"><option value="ABIERTO">Packings abiertos</option><option value="">Todos</option><option value="CERRADO">Cerrados</option><option value="ANULADO">Anulados</option></select>
     <span class="esp"></span>
     <div class="lsAcc">
-      <button class="btn pri" id="btnEscanear" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Escanear</button>
-      <button class="btn pri" id="btnCierre" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 21h14l-2-11H7L5 21z"/><circle cx="12" cy="7" r="1.5"/></svg>Pesar y cerrar</button>
       <button class="btn" id="btnCargar" type="button" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>Cargar packing</button>
       <button class="btn" id="btnQuien" type="button" style="display:none"></button>
     </div>
@@ -963,9 +962,9 @@ async function verCaja(id){
     (c.peso_motivo?'<div class="aviso">Motivo: '+esc(c.peso_motivo)+'</div>':'')+
     '<div class="barras">'+d.lineas.map(l=>'<div class="b"><div><span>'+esc(l.talla)+' <small style="color:var(--stone);font-weight:400">'+esc(l.estilo+' · '+(l.color_nombre||l.color_cod))+'</small></span><span>'+l.escaneadas+' / '+l.cantidad+'</span></div><div class="t"><i style="width:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%;background:'+(l.escaneadas>=l.cantidad?'var(--sage)':'var(--blue)')+'"></i></div></div>').join('')+'</div>'+
     '<div class="acciones">'+
-      (s==='CERRADA'?'<button class="btn pri" type="button" data-a="etq">Imprimir etiqueta</button>':'')+
-      (['ESCANEADA','OBSERVADA'].includes(s)?'<button class="btn pri" type="button" data-a="pesar">'+(s==='OBSERVADA'?'Revisar y pesar':'Pesar ahora')+'</button>':'')+
-      (['PENDIENTE','EN_PROCESO'].includes(s)?'<button class="btn pri" type="button" data-a="esc">Escanear esta caja</button>':'')+
+      (s==='CERRADA'?'<button class="btn pri grande" type="button" data-a="etq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>Imprimir etiqueta</button>':'')+
+      (['ESCANEADA','OBSERVADA'].includes(s)?'<button class="btn pri grande" type="button" data-a="pesar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M5 21h14l-2-11H7L5 21z"/><circle cx="12" cy="7" r="1.5"/></svg>'+(s==='OBSERVADA'?'Revisar y pesar esta caja':'Pesar esta caja')+'</button>':'')+
+      (['PENDIENTE','EN_PROCESO'].includes(s)?'<button class="btn pri grande" type="button" data-a="esc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>'+(s==='EN_PROCESO'?'Seguir escaneando esta caja':'Escanear esta caja')+'</button>':'')+
       (PUEDE()&&['CERRADA','OBSERVADA'].includes(s)?'<button class="btn peligro" type="button" data-a="reabrir">Reabrir</button>':'')+'</div>';
   $('det').querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{
     const a=b.dataset.a;
@@ -977,7 +976,7 @@ async function verCaja(id){
   });
 }
 $('pks').addEventListener('click',e=>{ const t=e.target.closest('.pk'); if(t){ SEL=t.dataset.pk; CSEL=null; pintarCajas(true); } });
-$('cajas').addEventListener('click',e=>{ const t=e.target.closest('.cj'); if(!t) return; CSEL=t.dataset.cj; document.querySelectorAll('.cj').forEach(x=>x.classList.toggle('sel',x===t)); verCaja(CSEL); });
+$('cajas').addEventListener('click',e=>{ const t=e.target.closest('.cj'); if(!t) return; CSEL=t.dataset.cj; document.querySelectorAll('.cj').forEach(x=>x.classList.toggle('sel',x===t)); verCaja(CSEL).then(()=>{ if(window.innerWidth<=1200){ const d=$('det').getBoundingClientRect(); if(d.bottom>window.innerHeight) $('det').scrollIntoView({behavior:'smooth',block:'end'}); } }); });
 async function anularPacking(p){
   const m=prompt('Motivo para anular el packing '+p.packing+' (por ejemplo: se cargó un archivo equivocado):'); if(!m) return;
   try{ const r=await api('anular_packing',{id:p.id,motivo:m}); if(!r.ok) throw new Error(r.error); SEL=null; await cargar(); }catch(err){ alert('No se anuló: '+err.message); }
@@ -1094,8 +1093,6 @@ function abrirPantalla(arch,tit,extra){
 }
 function cerrarPantalla(){ $('modal').classList.remove('show'); document.body.classList.remove('modalAbierta'); $('mFrame').src='about:blank'; if(M_REFRESCAR){ M_REFRESCAR=false; cargar(); } }
 $('mCerrar').addEventListener('click',cerrarPantalla);
-$('btnEscanear').addEventListener('click',()=>abrirPantalla('escaneo_cajas.html','Escanear prendas'));
-$('btnCierre').addEventListener('click',()=>abrirPantalla('cierre_cajas.html','Pesar y cerrar cajas'));
 let D_SUCIO=false;
 function abrirDlg(tit,html){ $('dTit').textContent=tit; $('dCuerpo').innerHTML=html; $('dlg').classList.add('show'); document.body.classList.add('modalAbierta'); D_SUCIO=false; }
 function cerrarDlg(forzar){ if(!forzar&&D_SUCIO&&!confirm('¿Salir sin guardar?')) return; $('dlg').classList.remove('show'); document.body.classList.remove('modalAbierta'); $('dCuerpo').innerHTML=''; D_SUCIO=false; }
