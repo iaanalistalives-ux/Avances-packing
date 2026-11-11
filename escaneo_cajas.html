@@ -872,6 +872,8 @@ async function iniciar(){
   if('BarcodeDetector' in window) $('btnCam').style.display='';
   const g=(()=>{ try{ return JSON.parse(sessionStorage.getItem('lives_caja_sel')||'null'); }catch(e){ return null; } })();
   const pre=QS.get('caja')||(g&&g.caja);
+  /* Abierta desde Control de Cajas ya en una caja (11/11/2026): sin «Cambiar», para cambiar de caja se cierra la ventana */
+  if(QS.get('modal')==='1'&&QS.get('caja')){ const bc=$('btnCambiar'); bc.hidden=true; bc.style.display='none'; }
   if(pre) await abrirCaja(pre); else await cargarPackings();
 }
 function err(t){ const b=$('errBox'); b.textContent=t||''; b.style.display=t?'block':'none'; }
