@@ -742,6 +742,23 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .selinfo.on{background:#FEF3E2;color:var(--taupe);border:1px solid var(--tan)}
 .selinfo.listo{background:#E7F4EF;color:var(--sage-dark)}
 .selinfo .btn{min-height:32px;padding:4px 10px;font-size:12.5px;margin-left:auto}
+/* peso prenda por prenda (13/11/2026): la caja se llena sobre la balanza */
+.pesa{display:none;margin:-16px 10px 0;background:#0E3B36;color:#fff;border-radius:16px;box-shadow:var(--sh-h);padding:12px 14px;position:relative;z-index:2}
+.pesa.on{display:block}
+.pesa .lbl{font-size:11.5px;font-weight:800;letter-spacing:.7px;color:#8FB3AC}
+.pesa .que{font-size:16px;font-weight:700;margin:3px 0 2px;line-height:1.25}
+.pesa .ref{font-size:12.5px;color:#B9D2CC;min-height:16px}
+.pesa .display{display:flex;align-items:baseline;gap:8px;background:#06211E;border-radius:12px;padding:6px 14px;margin:8px 0}
+.pesa .display input{flex:1;min-width:0;background:none;border:none;outline:none;color:#3CF0B0;font-size:40px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums;font-family:inherit}
+.pesa .display input::placeholder{color:#2C5F56}
+.pesa .display span{color:#8FB3AC;font-weight:700;font-size:16px}
+.pesa .msg{display:none;background:#FEF3E2;color:#7A3E06;border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:600;margin-bottom:8px}
+.pesa textarea{display:none;width:100%;box-sizing:border-box;min-height:58px;border-radius:10px;border:none;padding:8px 10px;font-family:inherit;font-size:14px;margin-bottom:8px;background:#fff;color:#0E3B36}
+.pesa select{width:100%;box-sizing:border-box;min-height:48px;border-radius:10px;border:none;padding:0 10px;font-family:inherit;font-size:15px;font-weight:700;margin:8px 0;background:#fff;color:#0E3B36}
+.pesa .f2{display:flex;gap:8px;flex-wrap:wrap}
+.pesa .f2 .btn{flex:1;min-height:48px;font-size:15px}
+.pesa .f2 .btn:not(.pri){background:#fff;color:#0E3B36;border:none}
+.talla i.kg{position:relative;display:block;font-style:normal;font-size:10.5px;color:var(--sage-dark,#0B5E46);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 <style id="lsLimp3Css">/* lives-limpieza v3 (30/10/2026) · fuera del portal tampoco hay títulos de panel ni notas explicativas */.panel>.pt,.panel>.ph{display:none!important}</style>
 </head>
@@ -759,6 +776,14 @@ td.n,th.n{text-align:right;white-space:nowrap}
   <div id="trabajo" style="display:none">
     <div class="top" data-ls-fijo><div class="l1"><span id="tInfo"></span><button type="button" id="btnCambiar">Cambiar</button></div><h3 id="tCaja"></h3></div>
     <div class="scanbox" data-ls-fijo><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg><input id="inScan" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="Escanea el hang tag"><button type="button" class="cam" id="btnCam" title="Escanear con la cámara" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></button></div>
+    <div class="pesa" id="pesa" data-ls-fijo>
+      <div class="lbl" id="pLbl"></div><div class="que" id="pQue"></div><div class="ref" id="pRef"></div>
+      <select id="pTipo" style="display:none"></select>
+      <div class="display" id="pDisp"><input id="inPeso" inputmode="decimal" autocomplete="off" placeholder="0.00"><span>kg</span></div>
+      <div class="msg" id="pMsg"></div>
+      <textarea id="pMot" placeholder="Motivo: por qué pesa distinto (al menos 10 letras)"></textarea>
+      <div class="f2"><button class="btn pri" type="button" id="pOk">Registrar peso</button><button class="btn" type="button" id="pRetirar" style="display:none">Retiré la prenda</button></div>
+    </div>
     <div class="panel" id="nuevo" style="display:none;margin-top:14px">
       <h2>Código nuevo: <span id="nCod"></span></h2>
       <div class="aviso">Lee estilo, color y talla <b>del hang tag de la prenda que tienes en la mano</b>, no de lo que pide la caja. Se graba una sola vez.</div>
@@ -771,6 +796,7 @@ td.n,th.n{text-align:right;white-space:nowrap}
     <div class="tallas" id="tallas"></div>
     <div class="titulo">ÚLTIMOS ESCANEOS</div>
     <div id="ult"></div>
+    <div class="pie" id="pieEtq" style="display:none"><button class="btn pri" type="button" id="btnEtq">Imprimir etiqueta</button></div>
   </div>
   <div class="pie"><button class="btn" id="btnQuien" type="button" style="display:none"></button></div>
 </div>
@@ -900,39 +926,135 @@ async function abrirCaja(id){
   catch(e){ err('No se pudo abrir la caja: '+e.message); try{ sessionStorage.removeItem('lives_caja_sel'); }catch(_){} return cargarPackings(); }
   try{ sessionStorage.setItem('lives_caja_sel',JSON.stringify({caja:id})); }catch(e){}
   $('elegir').style.display='none'; $('trabajo').style.display=''; $('nuevo').style.display='none';
-  const i=$('inScan'); i.disabled=!PUEDE||CAJA.caja.estado==='CERRADA'; i.value=''; if(!i.disabled) i.focus();
+  $('inScan').value=''; pintarPeso(); foco();
 }
+function foco(){ let i=PEND?$('inPeso'):$('inScan'); if(PEND&&i.offsetParent===null) i=$('pOk'); if(i&&!i.disabled){ try{ i.focus(); }catch(e){} } }
 function pintar(d){
   CAJA=d; const c=d.caja;
   $('tInfo').textContent=('PACKING '+c.packing+' · '+[c.cliente,c.destino].filter(Boolean).join(' · ')).toUpperCase();
-  $('tCaja').innerHTML='Caja '+c.numero+' <small>de '+c.total_cajas+'</small>';
+  $('tCaja').innerHTML='Caja '+c.numero+' <small>de '+c.total_cajas+(d.peso&&d.peso.modo&&d.peso.ultima_g!=null?' · balanza '+kg(d.peso.ultima_g)+' kg':'')+'</small>';
   const req=d.lineas.reduce((a,l)=>a+l.cantidad,0), van=d.lineas.reduce((a,l)=>a+l.escaneadas,0);
   if($('hudN')) $('hudN').textContent='Caja '+c.numero+' · '+van+' / '+req;
   $('anillo').innerHTML=anillo(req?van/req:0,200,16,van>=req?'#10B981':'#0F7A5A',van+'<span style="font-size:22px;color:var(--stone)"> /'+req+'</span>','prendas correctas',46);
   const varios=new Set(d.lineas.map(l=>l.estilo+'|'+l.color_cod)).size>1;
   if(SELL){ const ls=d.lineas.find(l=>l.id===SELL); if(!ls||ls.escaneadas>=ls.cantidad){ if(ls) avisoSel('✓ Talla '+ls.talla+' completa: toca la siguiente talla'); SELL=null; } }
   pintarSel();
-  $('tallas').innerHTML=d.lineas.map(l=>'<div class="talla'+(l.escaneadas>=l.cantidad?' ok':'')+(l.id===SELL?' sel':'')+'" data-l="'+l.id+'"><div class="f" style="height:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%"></div><b>'+esc(l.talla)+'</b><span>'+l.escaneadas+' / '+l.cantidad+'</span>'+(varios?'<em>'+esc(l.color_nombre||l.color_cod)+'</em>':'')+'</div>').join('');
+  $('tallas').innerHTML=d.lineas.map(l=>'<div class="talla'+(l.escaneadas>=l.cantidad?' ok':'')+(l.id===SELL?' sel':'')+'" data-l="'+l.id+'"><div class="f" style="height:'+Math.min(100,l.escaneadas/l.cantidad*100)+'%"></div><b>'+esc(l.talla)+'</b><span>'+l.escaneadas+' / '+l.cantidad+'</span>'+(varios?'<em>'+esc(l.color_nombre||l.color_cod)+'</em>':'')+(l.pesadas?'<i class="kg">'+kg(l.peso_g)+' kg · '+num(l.peso_g/l.pesadas)+' g c/u</i>':'')+'</div>').join('');
   const R=d.escaneos||[];
   $('ult').innerHTML=R.length?R.slice(0,12).map(s=>'<div class="it"><i style="background:'+(s.resultado==='OK'&&!s.anulado?'var(--sage)':s.anulado?'var(--st-pe)':'var(--rose)')+'"></i><span>'+
-      ({OK:'',SOBRA:'Sobra · ',NO_CORRESPONDE:'No corresponde · '}[s.resultado]||'')+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · ')||s.barcode)+(s.anulado?' <small>(quitada)</small>':'')+'</span><small>'+new Date(s.fecha).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false})+'</small>'+
+      ({OK:'',SOBRA:'Sobra · ',NO_CORRESPONDE:'No corresponde · '}[s.resultado]||'')+esc([s.estilo,s.color_cod,s.talla].filter(Boolean).join(' · ')||s.barcode)+(s.peso_g!=null&&!s.anulado?' · <b>'+num(s.peso_g)+' g</b>'+(s.peso_res==='APROBADO_CON_MOTIVO'?' <small>(con motivo)</small>':''):'')+(s.anulado?' <small>(quitada)</small>':'')+'</span><small>'+new Date(s.fecha).toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',hour12:false})+'</small>'+
       (PUEDE&&s.resultado==='OK'&&!s.anulado&&c.estado!=='CERRADA'?'<button class="btn" type="button" data-quitar="'+s.id+'">Quitar</button>':'')+'</div>').join(''):'<div class="vacio">Aún no hay prendas escaneadas en esta caja.</div>';
+  $('pieEtq').style.display=(c.estado==='CERRADA'&&QS.get('modal')!=='1')?'':'none';
+  pintarPeso();
 }
+/* ---- peso prenda por prenda: la base dice qué lectura falta (caja vacía, prenda o ajuste) ---- */
+let PEND=null, PKEY='', PCONF=false, PFUERA=false;
+function pMsg(t){ const m=$('pMsg'); m.textContent=t||''; m.style.display=t?'block':'none'; }
+function pintarPeso(){
+  const p=CAJA&&CAJA.peso, c=CAJA&&CAJA.caja, pen=(PUEDE&&p&&p.pendiente&&c.estado!=='CERRADA')?p.pendiente:null;
+  const key=pen?pen+'|'+(p.escaneo_id||''):'';
+  if(key!==PKEY){ PKEY=key; PCONF=false; PFUERA=false; $('inPeso').value=''; $('pMot').value=''; pMsg(''); }
+  PEND=pen; if(pen&&p.reconfirmar) PCONF=true;
+  $('pesa').classList.toggle('on',!!pen);
+  document.querySelector('.scanbox').style.display=pen?'none':'';
+  $('inScan').disabled=!PUEDE||!c||c.estado==='CERRADA'||!!pen;
+  if(!pen) return;
+  const seg=PCONF?'SEGUNDA LECTURA · ':'', s=$('pTipo');
+  s.style.display=pen==='VACIA'?'block':'none'; $('pDisp').style.display='';
+  if(pen==='VACIA'){
+    /* la caja vacía no se pesa: se elige su código y el peso sale del guardado (pedido de Christian, 13/11/2026) */
+    if(s.dataset.c!==c.id){ const T=(INI&&INI.tipos)||[], o=t=>'<option value="'+esc(t.codigo)+'">'+esc(t.codigo+' · '+t.descripcion)+(taraDe(t)!=null?' · '+kg(taraDe(t))+' kg':' · sin peso')+'</option>';
+      s.innerHTML='<option value="">— Elige el código de caja —</option><optgroup label="Más usadas">'+T.filter(t=>t.frecuente).map(o).join('')+'</optgroup><optgroup label="Todas">'+T.filter(t=>!t.frecuente).map(o).join('')+'</optgroup>';
+      s.value=c.tipo_cod||p.tipo_cod||''; s.dataset.c=c.id; }
+    const t=tipoSel(), tw=taraDe(t);
+    $('pLbl').textContent=seg+'PASO 1 · CÓDIGO DE LA CAJA';
+    $('pQue').textContent=!t?'Elige el código de la caja que vas a llenar':tw!=null?'Pon la caja vacía en la balanza y empieza':'Esta caja aún no tiene peso guardado: ponla vacía en la balanza y escribe lo que marca (una sola vez)';
+    $('pRef').textContent=t&&tw!=null?'Caja '+t.codigo+' vacía: '+kg(tw)+' kg (la balanza debería marcar eso)':'';
+    $('pDisp').style.display=(t&&tw==null)?'':'none';
+    $('pMot').style.display=PFUERA?'block':'none'; $('pRetirar').style.display='none';
+    $('pOk').textContent=!t||tw!=null?'Empezar con esta caja':'Guardar peso de la caja';
+    return;
+  } else if(pen==='AJUSTE'){
+    $('pLbl').textContent=seg+'SE RETIRÓ UNA PRENDA';
+    $('pQue').textContent='Escribe lo que marca la balanza ahora';
+    $('pRef').textContent='Debería marcar cerca de '+kg(p.referencia_g)+' kg';
+  } else {
+    $('pLbl').textContent=seg+'PESO DE LA PRENDA';
+    $('pQue').textContent='Talla '+p.talla+' · '+(p.color_nombre||p.color_cod)+' · '+p.estilo+': ponla en la caja y escribe lo que marca la balanza';
+    $('pRef').textContent='Antes marcaba '+kg(p.ultima_g)+' kg'+(p.referencia_g!=null?' · ahora debería marcar cerca de '+kg(+p.ultima_g+ +p.referencia_g)+' kg':' · primera prenda de este código: su peso queda de referencia');
+  }
+  $('pMot').style.display=PFUERA?'block':'none';
+  $('pRetirar').style.display=(PFUERA&&pen==='PRENDA')?'':'none';
+  $('pOk').textContent=PFUERA?'Aprobar con motivo':'Registrar peso';
+}
+function tipoSel(){ return ((INI&&INI.tipos)||[]).find(t=>t.codigo===$('pTipo').value); }
+function taraDe(t){ return !t?null:t.tara_g!=null?+t.tara_g:t.tara_hoja_g!=null?+t.tara_hoja_g:(+t.tara_sistema_g>0?+t.tara_sistema_g:null); }
+function leerKg(){ const raw=String($('inPeso').value).trim().replace(',','.'), v=parseFloat(raw); return (/^\d{1,2}(\.\d{1,3})?$/.test(raw)&&v>0&&v<=60)?v:null; }
+$('pTipo').addEventListener('change',()=>{ PCONF=false; PFUERA=false; pMsg(''); $('inPeso').value=''; pintarPeso(); foco(); });
+async function empezarCaja(){
+  const t=tipoSel(); if(!t){ pMsg('Elige el código de la caja.'); $('pTipo').focus(); return; }
+  OCUPADO=true; $('pOk').disabled=true;
+  try{
+    if(taraDe(t)==null){
+      const v=leerKg(); if(v==null){ pitido(false); pMsg('Escribe en kg lo que marca la balanza con la caja vacía (ej. 1.10).'); $('inPeso').value=''; foco(); return; }
+      if(PFUERA&&$('pMot').value.trim().length<10){ pMsg('Escribe el motivo (al menos 10 letras).'); $('pMot').focus(); return; }
+      const g=await api('guardar_tipo',{codigo:t.codigo,tara_g:Math.round(v*1000),confirmado:PCONF,motivo:$('pMot').value.trim()});
+      if(g.fuera_rango){ pitido(false); PCONF=true; PFUERA=true; pintarPeso(); pMsg(g.error); $('inPeso').value=''; foco(); return; }
+      if(!g.ok) throw new Error(g.error||'No se guardó el peso de la caja');
+      if(g.tara_g!=null) t.tara_g=g.tara_g; $('pTipo').dataset.c='';
+    }
+    const r=await api('lectura',{caja_id:CAJA.caja.id,tipo_cod:t.codigo,token:token()});
+    if(!r.ok){ pitido(false); if(r.caja) pintar(r); pMsg(r.error||'No se registró'); return; }
+    pitido(true); pintar(r);
+    flash('ok','✓','Caja '+t.codigo,'Vacía pesa '+kg(r.peso.vacia_g)+' kg. Escanea la primera prenda.',1100);
+  }catch(e){ pitido(false); pMsg('No se registró: '+e.message); }
+  finally{ OCUPADO=false; $('pOk').disabled=false; }
+}
+async function registrarPeso(){
+  if(!PEND||OCUPADO||!CAJA) return;
+  if(PEND==='VACIA') return empezarCaja();
+  const raw=String($('inPeso').value).trim().replace(',','.'), v=parseFloat(raw);
+  if(!/^\d{1,2}(\.\d{1,3})?$/.test(raw)||!(v>0)||v>60){ pitido(false); pMsg('Escribe el peso en kg tal como lo marca la balanza (ej. 1.39). Si acabas de escanear una prenda, primero falta este peso.'); $('inPeso').value=''; foco(); return; }
+  if(PFUERA&&$('pMot').value.trim().length<10){ pMsg('Para aprobar escribe el motivo (al menos 10 letras)'+(PEND==='PRENDA'?', o retira la prenda.':'.')); $('pMot').focus(); return; }
+  OCUPADO=true; $('pOk').disabled=true;
+  try{
+    const r=await api('lectura',{caja_id:CAJA.caja.id,peso_g:Math.round(v*1000),confirmado:PCONF,motivo:PFUERA?$('pMot').value.trim():'',token:token()});
+    if(r.reconfirmar){ pitido(false); if(r.caja) pintar(r); PCONF=true; pintarPeso(); $('inPeso').value=''; pMsg(r.error); foco(); return; }
+    if(r.fuera){ pitido(false); if(r.caja) pintar(r); PCONF=true; PFUERA=true; pintarPeso(); pMsg(r.error); $('pMot').focus(); return; }
+    if(!r.ok){ pitido(false); if(r.caja) pintar(r); pMsg(r.error||'No se registró'); $('inPeso').value=''; foco(); return; }
+    pitido(true); pintar(r);
+    if(r.cerrada){ flash('lista','✓','Caja cerrada · '+kg(r.caja.peso_bruto_g)+' kg','Todas las prendas están pesadas. Ciérrala y pégale su etiqueta.',0,'Entendido'); CAM_USO=false; }
+    else if(r.tipo==='PRENDA') flash('ok','✓',num(r.delta_g)+' g','Peso registrado. Escanea la siguiente prenda.',700);
+    else flash('ok','✓','Peso registrado',r.tipo==='VACIA'?'Ahora escanea la primera prenda.':'Sigue escaneando.',900);
+    if(CAM_USO&&!r.cerrada&&!PEND) setTimeout(abrirCam,800);
+  }catch(e){ pitido(false); pMsg('No se registró: '+e.message+' Vuelve a tocar «Registrar peso».');
+    try{ const d=await api('caja',{caja_id:CAJA.caja.id}); if(d.ok) pintar(d); }catch(_){} }
+  finally{ OCUPADO=false; $('pOk').disabled=false; }
+}
+$('pOk').addEventListener('click',registrarPeso);
+$('inPeso').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); registrarPeso(); } });
+$('pRetirar').addEventListener('click',async()=>{
+  const p=CAJA&&CAJA.peso; if(!p||!p.escaneo_id) return;
+  if(!confirm('¿Ya sacaste la prenda de la caja? Se quita de la cuenta.')) return;
+  try{ const r=await api('quitar',{escaneo_id:p.escaneo_id}); if(!r.ok) throw new Error(r.error); pintar(r); foco(); }catch(e){ pMsg('No se quitó: '+e.message); }
+});
+$('btnEtq').addEventListener('click',()=>{ if(CAJA) window.open('cierre_cajas.html?etiqueta='+encodeURIComponent(CAJA.caja.id)+(USUARIO?'&usuario='+encodeURIComponent(USUARIO):''),'_blank'); });
 let PAUSA=false;
 function flash(cls,ico,t,s,ms,boton){
   const f=$('flash'); PAUSA=!!boton; f.className='flash on '+cls; f.innerHTML='<div class="ico">'+ico+'</div><h2>'+esc(t)+'</h2><p>'+esc(s||'')+'</p>'+(boton?'<button class="btn" type="button" id="flBtn">'+esc(boton)+'</button>':'');
-  clearTimeout(f._t); if(ms) f._t=setTimeout(()=>{ f.className='flash'; $('inScan').focus(); },ms);
-  const b=$('flBtn'); if(b) b.onclick=()=>{ f.className='flash'; PAUSA=false; $('inScan').focus(); };
+  clearTimeout(f._t); if(ms) f._t=setTimeout(()=>{ f.className='flash'; foco(); },ms);
+  const b=$('flBtn'); if(b) b.onclick=()=>{ f.className='flash'; PAUSA=false; foco(); };
 }
-$('flash').addEventListener('click',e=>{ if(e.target.id!=='flBtn'&&$('flash').classList.contains('ok')){ $('flash').className='flash'; $('inScan').focus(); } });
+$('flash').addEventListener('click',e=>{ if(e.target.id!=='flBtn'&&$('flash').classList.contains('ok')){ $('flash').className='flash'; foco(); } });
 $('inScan').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=$('inScan').value; $('inScan').value=''; escanear(v); } });
-document.addEventListener('click',e=>{ if(CAJA&&$('nuevo').style.display==='none'&&!e.target.closest('input,select,textarea,button,a,.flash')) $('inScan').focus(); });
+document.addEventListener('click',e=>{ if(CAJA&&$('nuevo').style.display==='none'&&!e.target.closest('input,select,textarea,button,a,.flash')) foco(); });
 async function escanear(v){
   const bc=String(v||'').trim(); if(!bc||!CAJA||OCUPADO) return;
   OCUPADO=true;
   try{
     const ls=SELL&&CAJA.lineas.find(l=>l.id===SELL);
     const r=await api('escanear',{caja_id:CAJA.caja.id,barcode:bc,token:token(),auto:ls?{estilo:ls.estilo,color_cod:ls.color_cod,color_nombre:ls.color_nombre,talla:ls.talla}:null});
+    if(r.falta_lectura){ pitido(false); if(r.caja) pintar(r); pMsg(r.error); foco(); return 'PESO'; }
     if(!r.ok){ pitido(false); flash('mal','✖','No se registró',r.error||'',0,'Entendido'); return 'ERR'; }
     if(r.resultado==='NUEVO'){ pitido(false); nuevoCodigo(bc,r.bloqueado); return 'NUEVO'; }
     pintar(r);
@@ -940,6 +1062,7 @@ async function escanear(v){
     if(r.resultado==='OK'){ pitido(true);
       $('hudT').textContent='✓ '+t;
       if(r.caja.estado==='ESCANEADA'){ flash('lista','✓','Caja completa','Ciérrala y llévala a la mesa de pesado.',0,'Entendido'); return 'LISTA'; }
+      else if(PEND){ flash(r.auto_grabado?'nuevo':'ok','✓',r.auto_grabado?'Código nuevo grabado':'Correcta',t+'. Ahora escribe lo que marca la balanza.',r.auto_grabado?900:500); return 'PESO'; }
       else if(r.auto_grabado) flash('nuevo','✓','Código nuevo grabado','Talla '+cod.talla+' · '+(cod.color_nombre||cod.color_cod)+' · '+cod.estilo+'. Ya se contó.',STREAM?900:1100);
       else flash('ok','✓','Correcta',t,STREAM?450:650); return 'OK'; }
     else if(r.resultado==='SOBRA'){ pitido(false); $('hudT').textContent='✖ Sobra: '+t; flash('mal','✖','SOBRA','Retira esta prenda: la caja ya tiene todas las '+t,0,'Ya la retiré'); }
@@ -952,15 +1075,15 @@ $('ult').addEventListener('click',async e=>{
   const b=e.target.closest('[data-quitar]'); if(!b) return;
   if(!confirm('¿Quitar esta prenda de la cuenta? Sácala de la caja.')) return;
   try{ const r=await api('quitar',{escaneo_id:+b.dataset.quitar}); if(!r.ok) throw new Error(r.error); pintar(r); }catch(err2){ alert('No se quitó: '+err2.message); }
-  $('inScan').focus();
+  foco();
 });
 /* talla preseleccionada: los códigos nuevos se graban solos con esa talla, color y estilo */
 function pintarSel(){ const ls=SELL&&CAJA&&CAJA.lineas.find(l=>l.id===SELL), i=$('selInfo');
-  if(ls){ i.className='selinfo on'; i.innerHTML='<span style="flex:1;min-width:0">Escaneando <b>talla '+esc(ls.talla)+' · '+esc(ls.color_nombre||ls.color_cod)+'</b> · '+esc(ls.estilo)+'<br><small>Los códigos nuevos se graban con esta talla y color.</small></span><button type="button" class="btn" id="selQuitar">Quitar</button>'; $('selQuitar').onclick=()=>{ SELL=null; pintar(CAJA); $('inScan').focus(); }; }
+  if(ls){ i.className='selinfo on'; i.innerHTML='<span style="flex:1;min-width:0">Escaneando <b>talla '+esc(ls.talla)+' · '+esc(ls.color_nombre||ls.color_cod)+'</b> · '+esc(ls.estilo)+'<br><small>Los códigos nuevos se graban con esta talla y color.</small></span><button type="button" class="btn" id="selQuitar">Quitar</button>'; $('selQuitar').onclick=()=>{ SELL=null; pintar(CAJA); foco(); }; }
   else { i.className='selinfo'; i.textContent='Toca la talla que vas a escanear: los códigos nuevos se graban solos con esa talla y color.'; } }
 function avisoSel(t){ const i=$('selInfo'); setTimeout(()=>{ if(!SELL){ i.className='selinfo listo'; i.textContent=t; } },60); }
 $('tallas').addEventListener('click',e=>{ const t=e.target.closest('.talla'); if(!t||!PUEDE) return; const id=+t.dataset.l, l=CAJA.lineas.find(x=>x.id===id);
-  if(!l) return; if(l.escaneadas>=l.cantidad){ avisoSel('Esa talla ya está completa.'); return; } SELL=(SELL===id?null:id); pintar(CAJA); $('inScan').focus(); });
+  if(!l) return; if(l.escaneadas>=l.cantidad){ avisoSel('Esa talla ya está completa.'); return; } SELL=(SELL===id?null:id); pintar(CAJA); foco(); });
 /* código nuevo */
 function opciones(sel,vals){ $(sel).innerHTML='<option value="">— Elige —</option>'+vals.map(v=>'<option value="'+esc(v[0])+'">'+esc(v[1])+'</option>').join('')+'<option value="__otro">Otro (escribir)</option>'; }
 function nuevoCodigo(bc,bloq){
@@ -976,7 +1099,7 @@ function nuevoCodigo(bc,bloq){
   if(new Set(L.map(l=>l.color_cod)).size===1) $('nCol').value=L[0].color_cod;
 }
 ['nEst','nCol','nTal'].forEach(id=>$(id).addEventListener('change',()=>{ $('nOtro').style.display=['nEst','nCol','nTal'].some(x=>$(x).value==='__otro')?'':'none'; }));
-$('nCancelar').addEventListener('click',()=>{ $('nuevo').style.display='none'; $('inScan').disabled=!PUEDE; $('inScan').focus(); });
+$('nCancelar').addEventListener('click',()=>{ $('nuevo').style.display='none'; $('inScan').disabled=!PUEDE; foco(); });
 $('nGuardar').addEventListener('click',async()=>{
   const v=(s,o)=>$(s).value==='__otro'?$(o).value.trim():$(s).value;
   const est=v('nEst','nEstO'), col=v('nCol','nColO'), tal=v('nTal','nTalO');
@@ -1009,7 +1132,7 @@ async function buscar(){
     if(!code){ if(VISTO&&ahora-VISTO_T>450) VISTO=null; }
     else if(code===VISTO){ VISTO_T=ahora; }
     else { VISTO=code; VISTO_T=ahora; const res=await escanear(code);
-      if(res==='NUEVO'||res==='LISTA'){ cerrarCam(res==='NUEVO'); return; } }
+      if(res==='NUEVO'||res==='LISTA'||res==='PESO'){ cerrarCam(res!=='LISTA'); return; } }
   }
   setTimeout(buscar,120);
 }
