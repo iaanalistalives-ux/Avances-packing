@@ -659,7 +659,7 @@ body{ font-family:Calibri,Arial,sans-serif; font-variant-numeric:tabular-nums; b
 .ac-item:last-child{ border-bottom:none; }
 .ac-item:hover,.ac-item:active{ background:#E7F4EF; color:var(--sage); }
 
-.btn-limpiar{ background:transparent; border:1.5px solid var(--warm); color:var(--stone); border-radius:8px; padding:6px 14px;
+.btn-limpiar{ background:transparent; border:1.5px solid var(--stone); color:var(--stone); white-space:nowrap; border-radius:8px; padding:6px 14px;
   font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; }
 .btn-limpiar:hover{ border-color:var(--rose); color:var(--rose); }
 
@@ -769,7 +769,7 @@ padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--ston
   <div class="card">
     <div class="card-title-row">
       <div class="card-title">Buscar registro</div>
-      <button class="btn-limpiar" onclick="limpiarFormulario()">✕ Limpiar</button>
+      <button class="btn-limpiar" onclick="limpiarFormulario()">✕ Limpiar filtros</button>
     </div>
     <div id="loading-search" class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span><br><br>Cargando datos...</div>
     <div id="info-carga" style="display:none;font-size:12px;color:var(--stone);margin:-4px 0 10px"></div>
@@ -1256,15 +1256,15 @@ function confirmarGuardado(statusClienteSel, fecha) {
 }
 
 function limpiarFormulario() {
-  ['grupo','estilo','po','color'].forEach(c => {
+  ['cliente','grupo','estilo','po','color'].forEach(c => {
     const inp = document.getElementById('inp-'+c);
-    inp.value = ''; if (c !== 'grupo') inp.disabled = true;
+    inp.value = ''; if (c !== 'grupo' && c !== 'cliente') inp.disabled = true;
     document.getElementById('list-'+c).classList.remove('open');
   });
   document.getElementById('inp-estilo').placeholder = 'Primero selecciona Grupo';
   document.getElementById('inp-po').placeholder = 'Primero selecciona Estilo';
   document.getElementById('inp-color').placeholder = 'Primero selecciona PO';
-  st = { cliente: st.cliente, grupo:null, estilo:null, po:null, color:null };
+  st = { cliente:null, grupo:null, estilo:null, po:null, color:null };
   ocultarRegistro();
   window.scrollTo({top:0, behavior:'smooth'});
   const op = document.getElementById('inp-op');
