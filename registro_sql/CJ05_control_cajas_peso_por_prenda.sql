@@ -1,6 +1,6 @@
 -- CJ05 · Control de Cajas: peso prenda por prenda (pedido de Rodrigo, 13/11/2026)
--- La caja se llena sobre la balanza. Se escribe lo que marca vacía y, después de cada prenda
--- escaneada, lo que marca la balanza. El sistema resta la lectura anterior: ese es el peso de la prenda.
+-- La caja se llena sobre la balanza. Se elige el código de caja (su peso vacía sale del guardado en caja_tipos;
+-- no se pesa, salvo que ese código aún no tenga peso) y, después de cada prenda escaneada, se escribe lo que marca la balanza. El sistema resta la lectura anterior: ese es el peso de la prenda.
 -- Si no cuadra con el peso conocido de la prenda: segunda lectura; si sigue sin cuadrar, no deja
 -- escanear la siguiente hasta retirar la prenda o aprobar con motivo. Con la última prenda la caja se cierra.
 -- Interruptor: caja_parametros.PESO_POR_PRENDA (SI / NO). Con NO todo vuelve a ser como antes (peso al final, en la mesa).
@@ -77,8 +77,7 @@ begin
   if not v_modo or c.estado not in ('PENDIENTE','EN_PROCESO') then return x; end if;
   if v_vacia is null then
     select coalesce(t.tara_g, t.tara_hoja_g, nullif(t.tara_sistema_g,0)) into v_ref from caja_tipos t where t.codigo = c.tipo_cod;
-    return x || jsonb_build_object('pendiente','VACIA','referencia_g', v_ref,
-      'reconfirmar', exists(select 1 from caja_lecturas where caja_id = p_caja and tipo = 'VACIA' and resultado = 'FUERA'));
+    return x || jsonb_build_object('pendiente','VACIA','referencia_g', v_ref, 'tipo_cod', c.tipo_cod);
   end if;
   if c.ajuste_esperado_g is not null then
     return x || jsonb_build_object('pendiente','AJUSTE','referencia_g', c.ajuste_esperado_g);
@@ -115,7 +114,7 @@ declare c caja_cajas%rowtype; x jsonb; v_pen text; v_peso numeric; v_ant numeric
   v_conf boolean := coalesce((p->>'confirmado')::boolean, false); v_mot text := nullif(btrim(coalesce(p->>'motivo','')),'');
   v_paso numeric := coalesce(nullif(caja_par('BALANZA_PASO_G'),'')::numeric, 10);
   v_pct numeric := coalesce(nullif(caja_par('TARA_RANGO_PCT'),'')::numeric, 15);
-  v_res text; v_esc bigint; v_bc text; v_lin bigint; v_req int; v_ok int; v_cerrada boolean := false; v_n int;
+  v_res text; v_esc bigint; v_bc text; v_lin bigint; v_req int; v_ok int; v_cerrada boolean := false; v_n int; v_tipo text;
 begin
   select * into c from caja_cajas where id = p->>'caja_id' for update;
   if c.id is null then return jsonb_build_object('ok',false,'error','No existe la caja'); end if;
@@ -123,30 +122,29 @@ begin
     return jsonb_build_object('ok',true,'repetido',true) || caja_detalle_(c.id);
   end if;
   v_peso := nullif(p->>'peso_g','')::numeric;
-  if coalesce(v_peso,0) <= 0 or v_peso > 60000 then return jsonb_build_object('ok',false,'error','Peso no válido'); end if;
   x := caja_lectura_pendiente_(c.id); v_pen := x->>'pendiente';
   if v_pen is null then
     return jsonb_build_object('ok',false,'error','No hay nada que pesar en esta caja: escanea la siguiente prenda') || caja_detalle_(c.id);
   end if;
+  if v_pen <> 'VACIA' and (coalesce(v_peso,0) <= 0 or v_peso > 60000) then return jsonb_build_object('ok',false,'error','Peso no válido'); end if;
   v_ant := (x->>'ultima_g')::numeric; v_ref := (x->>'referencia_g')::numeric;
 
   if v_pen = 'VACIA' then
-    v_tol := greatest(coalesce(v_ref,0) * v_pct / 100, 2 * v_paso);
-    if v_ref is null then v_res := 'REFERENCIA';
-    elsif abs(v_peso - v_ref) <= v_tol then v_res := 'OK';
-    elsif not v_conf then
-      insert into caja_lecturas(caja_id,tipo,lectura_g,esperado_g,tolerancia_g,resultado,valida,usuario)
-      values (c.id,'VACIA',v_peso,v_ref,v_tol,'FUERA',false,v_usuario);
-      return jsonb_build_object('ok',false,'reconfirmar',true,'error','Esta caja vacía suele pesar '||caja_kg_(v_ref)||' kg y escribiste '||caja_kg_(v_peso)||' kg. Ponla sola en la balanza y escribe el peso otra vez.') || caja_detalle_(c.id);
-    elsif length(coalesce(v_mot,'')) < 10 then
-      return jsonb_build_object('ok',false,'fuera',true,'error','Sigue sin cuadrar con el peso habitual de esta caja ('||caja_kg_(v_ref)||' kg). Escribe el motivo (al menos 10 letras) para seguir.') || caja_detalle_(c.id);
-    else v_res := 'APROBADO_CON_MOTIVO';
+    -- La caja vacía NO se pesa (pedido de Christian, 13/11/2026): se elige el código de caja y su peso sale del guardado
+    v_tipo := coalesce(nullif(upper(btrim(coalesce(p->>'tipo_cod',''))),''), c.tipo_cod);
+    if v_tipo is null or not exists(select 1 from caja_tipos where codigo = v_tipo) then
+      return jsonb_build_object('ok',false,'falta_tipo',true,'error','Elige el código de la caja') || caja_detalle_(c.id);
     end if;
-    insert into caja_lecturas(caja_id,tipo,lectura_g,esperado_g,tolerancia_g,resultado,motivo,token,usuario)
-    values (c.id,'VACIA',v_peso,v_ref,v_tol,v_res,v_mot,nullif(p->>'token',''),v_usuario);
-    update caja_cajas set peso_modo = 'PRENDA', tara_real_g = v_peso, actualizado = now() where id = c.id;
+    select coalesce(t.tara_g, t.tara_hoja_g, nullif(t.tara_sistema_g,0)) into v_ref from caja_tipos t where t.codigo = v_tipo;
+    if v_ref is null then
+      return jsonb_build_object('ok',false,'falta_tara',true,'tipo_cod',v_tipo,'error','La caja '||v_tipo||' aún no tiene peso guardado: pésala vacía una vez y escribe lo que marca') || caja_detalle_(c.id);
+    end if;
+    v_res := 'OK'; v_peso := v_ref;
+    insert into caja_lecturas(caja_id,tipo,lectura_g,esperado_g,resultado,token,usuario)
+    values (c.id,'VACIA',v_ref,v_ref,v_res,nullif(p->>'token',''),v_usuario);
+    update caja_cajas set tipo_cod = v_tipo, peso_modo = 'PRENDA', tara_real_g = v_ref, actualizado = now() where id = c.id;
     insert into caja_eventos(packing_id,caja_id,accion,detalle,usuario) values (c.packing_id,c.id,'LECTURA_VACIA',
-      jsonb_build_object('peso_g',v_peso,'referencia_g',v_ref,'resultado',v_res,'motivo',v_mot),v_usuario);
+      jsonb_build_object('tipo_cod',v_tipo,'peso_g',v_ref,'origen','CATALOGO'),v_usuario);
 
   elsif v_pen = 'AJUSTE' then
     v_tol := 2 * v_paso;
@@ -284,13 +282,13 @@ declare d text := pg_get_functiondef('public.caja_api(text,jsonb)'::regprocedure
     x := caja_lectura_pendiente_(v_caja.id);
     if x->>'pendiente' is not null then
       return jsonb_build_object('ok',false,'falta_lectura',true,'error', case x->>'pendiente'
-        when 'VACIA' then 'Antes de la primera prenda, pon la caja vacía en la balanza y escribe lo que marca'
+        when 'VACIA' then 'Antes de la primera prenda, elige el código de la caja'
         when 'AJUSTE' then 'Se retiró una prenda: escribe lo que marca la balanza ahora antes de seguir'
         else 'Falta escribir el peso de la prenda anterior' end) || caja_detalle_(v_caja.id);
     end if;$b$],
     -- 3. escanear: la caja pesada prenda por prenda no pasa a «Por pesar»; la cierra su última lectura
-    [$a$case when estado='OBSERVADA' then 'OBSERVADA' else 'ESCANEADA' end,$a$,
-     $b$case when estado='OBSERVADA' then 'OBSERVADA' when peso_modo='PRENDA' then 'EN_PROCESO' else 'ESCANEADA' end,$b$],
+    [$a$case when estado='OBSERVADA' then 'OBSERVADA' else 'ESCANEADA' end$a$,
+     $b$case when estado='OBSERVADA' then 'OBSERVADA' when peso_modo='PRENDA' then 'EN_PROCESO' else 'ESCANEADA' end$b$],
     -- 4. quitar: la lectura de esa prenda deja de valer y se pide lectura de ajuste
     [$a$insert into caja_eventos(packing_id,caja_id,accion,detalle,usuario) values (v_caja.packing_id,v_caja.id,'QUITA_PRENDA'$a$,
      $b$perform caja_lectura_quitar_((p->>'escaneo_id')::bigint);
