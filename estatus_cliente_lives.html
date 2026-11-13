@@ -799,21 +799,6 @@ padding:2px 9px;border-radius:20px;background:var(--warm-light);color:var(--ston
     <div class="card-title">Registro</div>
     <div class="datos-grid" id="datos-grid"></div>
 
-    <div class="section-label">Estatus Auditoría <span style="font-weight:400;text-transform:none;letter-spacing:0">(en vivo, desde el sistema de auditorías)</span></div>
-    <div class="estatus-box" id="estatus-box">
-      <div class="estatus-badge" id="estatus-badge">—</div>
-      <div class="estatus-detalle" id="estatus-detalle"></div>
-    </div>
-
-    <div class="section-label">Historial de auditorías</div>
-    <div class="aud-table-wrap">
-      <table class="aud-table" id="aud-table" style="display:none">
-        <thead><tr><th>Fecha</th><th>Proceso</th><th>Interno / externo</th><th>Resultado</th><th>Taller / servicio</th><th>Auditor</th><th>Lote</th></tr></thead>
-        <tbody id="aud-tbody"></tbody>
-      </table>
-      <div class="aud-empty" id="aud-empty">Aún no hay auditorías registradas para esta combinación.</div>
-    </div>
-
     <div class="cliente-section" id="cliente-section">
       <div class="status-label">Estatus Cliente <span class="cliente-hint" id="cliente-hint-text">(audita lo ya aprobado por Calidad)</span></div>
       <div class="cliente-actual" id="cliente-actual"></div>
@@ -1156,50 +1141,6 @@ function ocultarRegistro() {
 
 function pctTexto(p) { return (p === null || p === undefined) ? '—' : (p*100).toFixed(1) + '%'; }
 
-/* Trae el detalle de auditorías de un solo registro. El resumen viene en
-   accion=datos; el detalle no, porque con dos mil filas eran siete mil
-   registros y la página se quedaba esperando hasta agotar el tiempo. */
-function pedirDetalleAuditorias(d) {
-  const cb = 'cbAud_' + Date.now();
-  const script = document.createElement('script');
-  let listo = false;
-  const limpiar = () => { try { document.body.removeChild(script); } catch(e) {} };
-  const falla = () => {
-    const v = document.getElementById('aud-empty');
-    if (v) v.textContent = 'No se pudieron traer las auditorías. El resto de los datos sí está bien.';
-  };
-  const to = setTimeout(() => { if (!listo) { delete window[cb]; limpiar(); falla(); } }, 30000);
-
-  window[cb] = function(r) {
-    listo = true; clearTimeout(to); delete window[cb]; limpiar();
-    if (r && r.ok) {
-      /* El estado de auditoría también llega aquí: en modo ligero no viene con
-         el resto de la fila, para no leer el maestro en cada consulta. */
-      d.estatusAuditoria    = r.estatusAuditoria || '';
-      d.auditorias          = r.auditorias || [];
-      d.auditoriasTodas     = r.auditoriasTodas || [];
-      d.numAuditorias       = d.auditorias.length;
-      d.numAuditoriasTodas  = d.auditoriasTodas.length;
-      d.sumaLotes           = r.sumaLotes || 0;
-      d.mesesAud            = r.meses || 0;
-      if (d.cantidadLista > 0) d.pctAuditado = d.sumaLotes / d.cantidadLista;
-      if (registro === d) renderRegistro(d);
-    } else falla();
-  };
-  const q = ['accion=auditoriasDe',
-             'grupo='  + encodeURIComponent(d.grupo  || ''),
-             'estilo=' + encodeURIComponent(d.estilo || ''),
-             'po='     + encodeURIComponent(d.po     || ''),
-             'color='  + encodeURIComponent(d.color  || ''),
-             'callback=' + cb].join('&');
-  /* Sin respaldo en el Apps Script: el Sheet ya no se actualiza. */
-  const usarGas = () => { if (!listo) { clearTimeout(to); delete window[cb]; limpiar(); falla(); } };
-  /* Desde Supabase llegan TODAS las auditorías (sin el límite de 3 meses). */
-  sbRpc('encajado_auditorias_de', { p_grupo: d.grupo || '', p_estilo: d.estilo || '',
-                                    p_po: d.po || '', p_color: d.color || '', p_meses: 0 })
-    .then(r => { if (!listo && window[cb]) window[cb](r); }, e => { sbAviso(e); usarGas(); });
-}
-
 function renderRegistro(d) {
   document.getElementById('datos-grid').innerHTML = [
     { l:'Grupo', v:d.grupo }, { l:'Estilo', v:d.estilo }, { l:'PO', v:d.po },
@@ -1207,76 +1148,13 @@ function renderRegistro(d) {
     { l:'Cantidad Pedido', v:d.cantidadPedido || '—' },
     { l:'Cantidad Lista', v:d.cantidadLista || '—' },
     { l:'% Listo', v:pctTexto(d.pctListo) },
-    { l:'% Auditado', v:pctTexto(d.pctAuditado) },
   ].map(x => `<div class="dato"><span class="dato-label">${x.l}</span><span class="dato-valor">${x.v}</span></div>`).join('');
-
-  // Estatus Auditoría (en vivo)
-  const box = document.getElementById('estatus-box');
-  const badge = document.getElementById('estatus-badge');
-  const detalle = document.getElementById('estatus-detalle');
-  if (d.estatusAuditoria === 'APROBADO') {
-    box.className = 'estatus-box aprobado'; badge.className = 'estatus-badge aprobado'; badge.textContent = 'Aprobado';
-  } else if (d.estatusAuditoria === 'RECHAZADO') {
-    box.className = 'estatus-box rechazado'; badge.className = 'estatus-badge rechazado'; badge.textContent = 'Rechazado';
-  } else {
-    box.className = 'estatus-box'; badge.className = 'estatus-badge'; badge.textContent = 'Sin auditar';
-  }
-  const nTodas = d.numAuditoriasTodas || d.numAuditorias || 0;
-  detalle.innerHTML = nTodas > 0
-    ? `<b>${d.numAuditorias}</b> auditoría(s) final(es) — el resultado de arriba es la más reciente` +
-      (nTodas > d.numAuditorias
-        ? ` · ${nTodas} en total contando costura y acabados, abajo el detalle`
-        : '')
-    : (d._detallePedido && d.mesesAud !== undefined
-        ? 'Sin auditoría final en el período consultado.'
-        : 'Consultando auditorías…');
-
-  // Historial de auditorías
-  const tabla = document.getElementById('aud-table');
-  const tbody = document.getElementById('aud-tbody');
-  const vacio = document.getElementById('aud-empty');
-  /* Se muestran los tres procesos (costura, acabados y final) si el backend los
-     manda. El Estatus Auditoría de arriba sigue siendo el de la última final:
-     son dos cosas distintas y conviene no mezclarlas. */
-  const lista = (d.auditoriasTodas && d.auditoriasTodas.length) ? d.auditoriasTodas : (d.auditorias || []);
-  if (!lista.length && !d._detallePedido) {
-    /* Hay auditorías pero todavía no se ha traído el detalle: se pide ahora. */
-    tabla.style.display = 'none';
-    vacio.style.display = '';
-    vacio.textContent = 'Trayendo las auditorías…';
-    d._detallePedido = true;
-    pedirDetalleAuditorias(d);
-    return;
-  }
-  /* Aviso del período: el servidor solo manda los últimos meses para que
-     abrir un registro sea rápido. */
-  const periodo = d.mesesAud ? ' en los últimos ' + d.mesesAud + ' meses' : '';
-  if (lista.length) {
-    tabla.style.display = ''; vacio.style.display = '';
-    vacio.textContent = d.mesesAud ? 'Se muestran solo las auditorías de los últimos ' + d.mesesAud + ' meses.' : '';
-    if (!d.mesesAud) vacio.style.display = 'none';
-    tbody.innerHTML = lista.map(a => `<tr>
-      <td>${a.fecha}</td>
-      <td>${a.proceso || '—'}</td>
-      <td>${a.intExt || '—'}</td>
-      <td><span class="badge-res ${a.resultado==='APROBADO'?'aprobado':'rechazado'}">${a.resultado}</span></td>
-      <td>${a.taller || '—'}</td>
-      <td>${a.auditor || '—'}</td>
-      <td>${a.lote}</td>
-    </tr>`).join('');
-  } else {
-    /* Antes se quedaba en "Trayendo las auditorías…" para siempre cuando el
-       registro no tenía ninguna. */
-    tabla.style.display = 'none'; vacio.style.display = '';
-    vacio.textContent = 'No hay auditorías registradas para esta combinación' + periodo + '.';
-  }
 
   renderClienteSection(d);
 }
 
-// Estatus Cliente solo disponible si el Estatus Auditoría (en vivo) es
-// APROBADO — misma regla de siempre. Revocable: se puede volver a
-// presionar el otro botón en cualquier momento.
+// Estatus Cliente: revocable, se puede volver a presionar el otro botón
+// en cualquier momento.
 function renderClienteSection(d) {
   const seccion = document.getElementById('cliente-section');
   const actualEl = document.getElementById('cliente-actual');
@@ -1285,28 +1163,13 @@ function renderClienteSection(d) {
   const hint = document.getElementById('cliente-hint-text');
   const aviso = document.getElementById('cliente-aviso');
 
-  const detectado = d.estatusAuditoria === 'APROBADO';
-
-  // NOTA (activo durante la implementación, a pedido de Christian): los
-  // botones ya NO se bloquean cuando el cruce en vivo no muestra
-  // Aprobado. Mientras se termina de migrar todo puede haber auditorías
-  // reales que el sistema aún no detecte (por un Grupo/Estilo/PO/Color
-  // que no calza exacto contra AUDITORIAS) — la persona que marca Estatus
-  // Cliente tiene el contexto para decidir. Se muestra un aviso, no un
-  // bloqueo, y el `.gs` deja rastro en el Historial cuando esto pasa.
+  /* Esta pantalla ya no muestra ni consulta las auditorías (pedido de
+     Christian, 13/11/2026): solo se marca el estatus del cliente. */
   seccion.classList.remove('bloqueado');
   btnApr.disabled = false;
   btnRech.disabled = false;
   hint.textContent = '(revocable en cualquier momento)';
-
-  if (!detectado) {
-    aviso.style.display = '';
-    aviso.textContent = d.numAuditorias > 0
-      ? '⚠ El cruce en vivo con Auditorías no muestra Aprobado para este registro. Verifica con la auditora antes de continuar si no estás segura.'
-      : '⚠ Todavía no se detecta ninguna auditoría para este registro. Verifica antes de marcar Estatus Cliente si no estás segura.';
-  } else {
-    aviso.style.display = 'none';
-  }
+  aviso.style.display = 'none';
 
   btnApr.classList.remove('on'); btnRech.classList.remove('on');
   const btnQ = document.getElementById('btn-cli-quitar');
