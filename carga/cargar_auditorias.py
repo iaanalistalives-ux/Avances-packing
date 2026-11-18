@@ -37,15 +37,25 @@ def T(v):
 def leer(ruta):
     import openpyxl
     warnings.simplefilter('ignore')
-    ws = openpyxl.load_workbook(ruta, data_only=True)['Detalle']
-    filas = list(ws.iter_rows(values_only=True))
-    cab = next((i for i, f in enumerate(filas[:12]) if f and T(f[0]).upper() == 'ID'), None)
-    if cab is None:
-        raise SystemExit('No encuentro la fila de encabezados (ID, Fecha, ...) en la hoja Detalle.')
-    enc = [T(c) for c in filas[cab]]
-    falta = [c for c in COLS if c not in enc]
-    if falta:
-        raise SystemExit('Al Excel le faltan columnas: ' + ', '.join(falta) + '. No se carga.')
+    # La hoja se llamaba «Detalle» y desde el 18/11/2026 «Cabecera»: se busca por sus columnas, no por el nombre.
+    wb = openpyxl.load_workbook(ruta, data_only=True)
+    filas = cab = enc = None
+    vistas = []
+    for ws in wb.worksheets:
+        fs = list(ws.iter_rows(min_row=1, max_row=12, values_only=True))
+        c = next((i for i, f in enumerate(fs) if f and T(f[0]).upper() == 'ID'), None)
+        if c is None:
+            continue
+        e = [T(x) for x in fs[c]]
+        falta = [x for x in COLS if x not in e]
+        vistas.append('%s (faltan: %s)' % (ws.title, ', '.join(falta) or 'ninguna'))
+        if not falta:
+            if filas is not None:
+                raise SystemExit('Hay mas de una hoja con las columnas de auditorias. No se carga.')
+            filas, cab, enc = list(ws.iter_rows(values_only=True)), c, e
+    if filas is None:
+        raise SystemExit('Ninguna hoja trae todas las columnas (ID, Fecha, ..., Lote AQL, Muestra, Defectos). '
+                         'Hojas revisadas: ' + '; '.join(vistas) + '. No se carga.')
     pos = [enc.index(c) for c in COLS]
     out = []
     for f in filas[cab + 1:]:
